@@ -1,11 +1,8 @@
-<!doctype html>
-
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Peter Wyckoff</title>
   <meta name="description" content="Current projects and other information">
   <meta name="author" content="Peter Wyckoff">
 
@@ -31,4 +28,3 @@
 <img src="https://user-images.githubusercontent.com/42244565/195392390-26e2d131-a2fd-4ec1-8546-c42db302a879.jpg" alt="Peter Wyckoff" width="1000" height="750">
 
 </body>
-</html>
