@@ -1,6 +1,7 @@
 ---
 title: "Climate Change in the New York Times"
 header:
+  image: /images/profile.jpg
   teaser: /images/profile.jpg
   #overlay_image: /images/unnamed-chunk-3-1.png
   #overlay_filter: 0.5
