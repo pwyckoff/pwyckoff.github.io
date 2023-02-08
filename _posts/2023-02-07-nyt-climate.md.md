@@ -1,9 +1,10 @@
 ---
 title: "Climate Change in the New York Times"
 header:
-  overlay_image: /images/unnamed-chunk-3-1.png
-  overlay_filter: 0.5
   teaser: /images/unnamed-chunk-3-1.png
+  #overlay_image: /images/unnamed-chunk-3-1.png
+  #overlay_filter: 0.5
+  
   
 output: 
   md_document: 
