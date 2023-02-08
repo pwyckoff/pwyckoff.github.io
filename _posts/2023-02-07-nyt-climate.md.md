@@ -1,7 +1,7 @@
 ---
 title: "Climate Change in the New York Times"
 header:
-  teaser: /images/unnamed-chunk-3-1.png
+  teaser: /images/profile.jpg
   #overlay_image: /images/unnamed-chunk-3-1.png
   #overlay_filter: 0.5
   
@@ -165,9 +165,7 @@ natural disasters in the West.
 
 NB: The climate change terms used in the initial analysis are: “climate
 change” “global warming” “greenhouse effect” “climate catastrophe”
-“climate emergency” “climate crisis” and “global heating.” In this
-section, I build a corpus of NYT article from 1995 to 2022 that include
-terms of climate change. To select these terms, I drew from some
+“climate emergency” “climate crisis” and “global heating.” To select these terms, I drew from some
 established work ([see Lineman et
 al](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0138996),
 or [Kumar and
