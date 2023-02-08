@@ -1,7 +1,7 @@
 ---
 title: "Climate Change in the New York Times"
 header:
-  teaser: "images/unnamed-chunk-3-1.jpg"
+  teaser: "/images/unnamed-chunk-3-1.jpg"
 output: 
   md_document: 
     variant: markdown_github
