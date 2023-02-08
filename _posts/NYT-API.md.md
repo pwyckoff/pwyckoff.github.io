@@ -1,3 +1,11 @@
+---
+permalink: /posts/2023/02/nyt-climate
+title: "New York Times and Climate Change"
+tags:
+  - climate change
+  - data analysis
+---
+
 Mediatic attention has a significant impact on the politics of climate
 change (see Maxwell Boykoff’s work, for example). In this post, I use
 the New York Times’ API to assess how it has covered climate change over
