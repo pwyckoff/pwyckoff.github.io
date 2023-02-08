@@ -1,8 +1,6 @@
 ---
 title: "Climate Change in the New York Times"
 layout: single
-header:
-    teaser: header_post1.jpg
 excerpt: "How has coverage of climate change in the NYT evolved since 1995? Analysis using the NYT API and quantitative text analysis tools such as Quanteda. " 
 toc: true
 date: "2023-02-07"
@@ -162,7 +160,15 @@ not necessarily face the biggest challenges. And indeed, looking at word
 counts, it is striking that articles above 1,000 words are focused on
 natural disasters in the West.
 
-NB: The climate change terms used in the initial analysis are: “climate
+# Sources and Notes
+
+The [NYT API](https://developer.nytimes.com/apis) is an excellent resource 
+for textual analysis of its coverage. 
+
+The analysis was conducted in R, in particular drawing from the 
+[Quanteda](http://quanteda.io/) package for text analysis.  
+
+The climate change terms used in the initial analysis are: “climate
 change” “global warming” “greenhouse effect” “climate catastrophe”
 “climate emergency” “climate crisis” and “global heating.” To select these terms, I drew from some
 established work ([see Lineman et
