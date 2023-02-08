@@ -3,6 +3,7 @@ title: "Climate Change in the New York Times"
 layout: single
 header:
     teaser: header_post1.jpg
+excerpt: "How has coverage of climate change in the NYT evolved since 1995? Analysis using the NYT API and quantitative text analysis tools such as Quanteda. " 
 toc: true
 date: "2023-02-07"
 permalink: /posts/2023/02/nyt-climate
@@ -31,12 +32,12 @@ change coverage has evolved over time
 For more detail about the code used to compile the dataset, take a look
 at the github version of this document.
 
-## A larger share of coverage, a new desk, moving up the pages
+# A larger share of coverage, a new desk, moving up the pages
 
 This section highlights the increasing coverage dedicated to climate
-change over the period through various indicators.\*\*
+change over the period through various indicators.
 
-**Frequency overall, over time**
+## Frequency overall, over time
 
 ![](/images/unnamed-chunk-3-1.png)
 
@@ -52,7 +53,7 @@ seasonal pattern to the publishing. ![](/images/unnamed-chunk-4-1.png)
 These charts suggest that generally there tend to be more
 articles published toward the end of the year, and in June.
 
-**Frequency by desk**
+## Frequency by desk
 
 In the next section, I look to see how coverage has shifted between
 desks.
@@ -93,7 +94,7 @@ desk, also peaking around 2006-2007.
 for the Foreign desk, has larger peaks in 2009 and 2016 for the National
 desk, and is definitely focused around 2006 for the Metropolitan desk.
 
-**Frequency by Page Number**
+## Frequency by Page Number
 
 Next, I turn to the page numbers – which gives a sense to the relative
 importance accorded to climate change as a topic on any single day.
@@ -114,7 +115,7 @@ there has been an increase in the number of more front page stories
 about climate change. The peaks of front page coverage were in May 2006
 (an Inconvenient Truth was released on May 24) and October of 2021.
 
-## Presidents and Scientists, Nation and World
+# Presidents and Scientists, Nation and World
 
 I'll now use quanteda to dig a little deeper into what words are used
 in the abstracts.
@@ -130,8 +131,9 @@ collective action debates, *“nation” and “world”* are #11 and #12 in
 frequency, respectively. As a last note – it is perhaps not surprising
 to see how much *money* (“$”) gets mentioned in these articles.
 
-## Natural disasters
+# Natural disasters
 
+## Coverage of disasters in NYT climate change articles
 Finally, the rest of this project will be focused on looking at how
 natural disasters drive coverage of climate policy, using a dictionary
 for natural disasters to sort through our existing corpus of articles.
@@ -142,7 +144,7 @@ Indeed, while the number of climate change articles has been increasing
 generally, it is also seems like there are more articles specifically
 referencing natural disasters as part of the coverage.
 
-**Natural disasters and climate change in the NYT**
+## Estimates of impact of natural disasters covered in NYT articles about climate change
 
 For this next and final section, I go to wikipedia to gather some data
 on the impact of these natural disasters that are mentioned in articles
