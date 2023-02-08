@@ -1,8 +1,7 @@
 ---
-permalink: /posts/2023/02/nyt-climate
-collection: posts
-type: "posts"
 title: "New York Times and Climate Change"
+date: 2023-02-07 
+permalink: /posts/2023/02/nyt-climate/
 tags:
   - climate change
   - data analysis
