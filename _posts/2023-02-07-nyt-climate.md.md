@@ -1,8 +1,8 @@
 ---
 title: "Climate Change in the New York Times"
 header:
-  image: /images/profile.jpg
-  teaser: /images/profile.jpg
+  image: /images/header_post1.jpg
+  teaser: /images/header_post1.jpg
   #overlay_image: /images/unnamed-chunk-3-1.png
   #overlay_filter: 0.5
   
@@ -16,7 +16,8 @@ permalink: /posts/2023/02/nyt-climate
 tags: 
   - climate change
   - data analysis
-  - 
+  - media
+  - text analysis
 ---
 
 Mediatic attention has a significant impact on the politics of climate
@@ -78,22 +79,24 @@ unclassified or in smaller desks.
     ##       584       867       394       694       293
 
 ![](/images/unnamed-chunk-7-1.png)![](/images/unnamed-chunk-7-2.png)
+
 These charts provide a significant amount of information.
 
 Some basic notes:
 
 *The charts highlights the creation of the new climate desk at the NYT
-in
-2017[url](https://www.nytimes.com/2017/03/16/insider/a-sea-change-for-climate-coverage.html),
+in 2017[url](https://www.nytimes.com/2017/03/16/insider/a-sea-change-for-climate-coverage.html),
 with about 450 articles written by that desk since, nearly 10% of the
 total number of articles in our sample. *It also highlights the seeming
 creation of new tags for letters and op-eds mid-way through the sample.
+
 *Beyond that, looking at the data, there's a concentration of
 articles in the book section around 2005-2007 (the era of Al Gore’s An
 Inconvenient Truth), and over the past three years. There are a perhaps
 surprisingly large (and continuous) number of articles from the Business
-desk, also peaking around 2006-2007. *Looking at the different
-geographic desks, it is striking that the flow is more or less constant
+desk, also peaking around 2006-2007. 
+
+*Looking at the different geographic desks, it is striking that the flow is more or less constant
 for the Foreign desk, has larger peaks in 2009 and 2016 for the National
 desk, and is definitely focused around 2006 for the Metropolitan desk.
 
