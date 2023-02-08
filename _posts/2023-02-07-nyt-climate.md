@@ -1,10 +1,15 @@
 ---
-title: "New York Times and Climate Change"
-date: 2023-02-07 
-permalink: /posts/2023/02/nyt-climate/
-tags:
+title: "Climate Change in the New York Times"
+output: 
+  md_document: 
+    variant: markdown_github
+    preserve_yaml: true
+date: "2023-02-07"
+permalink: /posts/2023/02/nyt-climate
+tags: 
   - climate change
   - data analysis
+  - 
 ---
 
 Mediatic attention has a significant impact on the politics of climate
@@ -32,7 +37,7 @@ change over the period through various indicators.\*\*
 
     ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
 
-![](images/unnamed-chunk-3-1.png)
+![](/images/unnamed-chunk-3-1.png)
 
 We can see that, as a share of all articles published each month,
 climate change articles have become a larger share in recent years. As
@@ -42,8 +47,7 @@ the share of articles discussing climate change has regularly been above
 the 0.5% threshold.
 
 In the chart above, it’s also clear that there seems to be some kind of
-seasonal pattern to the publishing.
-![](images/unnamed-chunk-4-1.png)
+seasonal pattern to the publishing. ![](/images/unnamed-chunk-4-1.png)
 
 From these charts we can see that generally there tend to be more
 articles published toward the end of the year, and in June.
@@ -67,7 +71,7 @@ unclassified or in smaller desks.
     ##  National      None      OpEd     Other   Science 
     ##       584       867       394       694       293
 
-![](images/unnamed-chunk-7-1.png)![](images/unnamed-chunk-7-2.png)
+![](/images/unnamed-chunk-7-1.png)![](/images/unnamed-chunk-7-2.png)
 These charts provide a significant amount of information.
 
 Some basic notes:
@@ -96,7 +100,7 @@ importance accorded to climate change as a topic on any single day.
 
     ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
 
-![]images/unnamed-chunk-8-1.png)
+![](/images/unnamed-chunk-8-1.png)
 
 There generally seems to be a relatively constant page rank for articles
 about climate change – but it seems likely that earlier years are
@@ -105,7 +109,7 @@ downward trend “towards the front” in the past decade.
 
     ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
 
-![](images/unnamed-chunk-9-1.png)
+![](/images/unnamed-chunk-9-1.png)
 
 One way around the issues with the previous chart is to just focus on
 front page stories (aka print page 1). Indeed, over the past five years,
@@ -118,14 +122,14 @@ about climate change. The peaks of front page coverage were in May 2006
 **We’ll now use quanteda to dig a little deeper into what words are used
 in the abstracts.**
 
-![](images/unnamed-chunk-10-1.png)![](images/unnamed-chunk-10-2.png)
+![](/images/unnamed-chunk-10-1.png)![](/images/unnamed-chunk-10-2.png)
 
 These exercises to determine the frequency of words used in articles
 reveal some key insights. For one thing, *political leaders* stand out –
 “Presid”, but also specifically Bush and Obama. Other actors that are
 key to these debates, and to press discussion, are *scientists*,
 mentioned nearly 500 times. Perhaps ironically in the context of global
-collective action debates, *“nation” and “world”* are \#11 and \#12 in
+collective action debates, *“nation” and “world”* are #11 and #12 in
 frequency, respectively. As a last note – it is perhaps not surprising
 to see how much *money* (“$”) gets mentioned in these articles.
 
@@ -135,7 +139,7 @@ Finally, the rest of this project will be focused on looking at how
 natural disasters drive coverage of climate policy, using a dictionary
 for natural disasters to sort through our existing corpus of articles.
 
-![](images/unnamed-chunk-11-1.png)
+![](/images/unnamed-chunk-11-1.png)
 
 Indeed, while the number of climate change articles has been increasing
 generally, it is also seems like there are more articles specifically
