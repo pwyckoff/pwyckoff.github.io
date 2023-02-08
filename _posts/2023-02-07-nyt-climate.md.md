@@ -2,7 +2,8 @@
 title: "Climate Change in the New York Times"
 layout: single
 header:
-  image: header_post1.jpg
+    image: header_post1.jpg
+    teaser: header_post1.jpg
 toc: true
 date: "2023-02-07"
 permalink: /posts/2023/02/nyt-climate
