@@ -3,9 +3,6 @@ title: "Climate Change in the New York Times"
 layout: single
 header:
   image: header_post1.jpg
-  teaser: header_post1.jpg
-  #overlay_image: /images/unnamed-chunk-3-1.png
-  #overlay_filter: 0.5
 toc: true
 date: "2023-02-07"
 permalink: /posts/2023/02/nyt-climate
