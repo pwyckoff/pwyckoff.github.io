@@ -2,7 +2,6 @@
 title: "Climate Change in the New York Times"
 layout: single
 excerpt: "How has coverage of climate change in the NYT evolved since 1995? Analysis using the NYT API and quantitative text analysis tools such as Quanteda. " 
-toc: true
 date: "2023-02-07"
 permalink: /posts/2023/02/nyt-climate
 tags: 

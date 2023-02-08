@@ -82,7 +82,7 @@ analytics:
 author:
   name             : "Peter Wyckoff"
   avatar           : "profile.jpg"
-  bio              : "MRes/PhD Student at the Department of Government, LSE -- interested in employment, climate, politics"
+  bio              : "Department of Government, LSE. Interested in employment, climate, politics"
   location         : "London, UK"
   employer         :
   pubmed           : #"https://www.ncbi.nlm.nih.gov/pubmed/?term=john+snow"
@@ -202,6 +202,7 @@ defaults:
       comments: true
       share: true
       related: true
+      toc: true
   # _pages
   - scope:
       path: ""
