@@ -1,0 +1,444 @@
+---
+title: "Climate Change in the New York Times"
+output: html_document
+date: "2023-02-08"
+---
+
+```{r setup, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+suppressMessages(library(dplyr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(lubridate))
+suppressMessages(library(ggthemes))
+suppressMessages(library(tidyverse))
+suppressMessages(library("quanteda"))
+suppressMessages(library("quanteda.textstats"))
+suppressMessages(library("quanteda.textplots"))
+suppressMessages(library(httr))
+suppressMessages(library("rvest"))
+suppressMessages(library("xml2"))
+suppressMessages(library(plotly))
+```
+
+Mediatic attention has a significant impact on the politics of climate change (see Maxwell Boykoff's work, for example). In this post, I use the New York Times'  API to assess how it has covered climate change over the past few decades. 
+
+The dataset for the analysis is the subset of NYT articles from 1995-2022 that included climate change terms in their abstract*. 
+
+I look at:
+* the frequency of climate change articles over time, by desk and by published page to get a sense of how the salience of climate change coverage has evolved over time
+* word use in the abstracts
+* climate change and natural disasters 
+
+For more detail about the code used to compile the dataset, take a look at the github version of this document.
+```{r echo=FALSE, eval=FALSE, include=FALSE}
+#Link length of wikipedia pages and amount of coverage in NYT 
+apikey <- "tba"
+df_big = data.frame()
+df_compiled=data.frame()
+
+nyt_years_scrape <- function(yearinit, yearend){
+  years <-seq(yearinit, yearend)
+  for (y in years) {
+    for (i in 1:12) {
+      message(paste0("Working on ", i, "-", y))
+    
+      #Extract archive for year y and month i
+      r <- GET(sprintf("https://api.nytimes.com/svc/archive/v1/%g/%g.json?api-key=%s", y, i, apikey))
+      json <- fromJSON(content(r, "text"))
+      df_small <-json$response$docs %>%
+        as.tibble()
+    
+      #Extract information to be used in analysis, get rid of the rest
+      df_small$headlines <- df_small$headline$main
+      df_small <- df_small %>%
+        select(-multimedia, -uri, -print_section, -source, -headline, -keywords, -byline)
+      df_small$month_count <- nrow(df_small)
+    
+      #Keep only if climate terms are in the abstract
+      df_small$keep <- ifelse(str_extract(df_small$abstract, "climate change") != "NA" 
+                            | str_extract(df_small$abstract, "global warming") != "NA" 
+                            | str_extract(df_small$abstract, "greenhouse effect") != "NA"
+                            | str_extract(df_small$abstract, "climate catastrophe") != "NA"
+                            | str_extract(df_small$abstract, "climate emergency") != "NA"
+                            | str_extract(df_small$abstract, "climate crisis") != "NA"
+                            | str_extract(df_small$abstract, "global heating") != "NA", 1, 0)
+      df_small <- df_small %>%
+        filter(keep==1)
+    
+      #Turn into dataframe, and bind with larger dataset
+      df_small <- df_small %>% 
+        as.data.frame()
+    
+    
+      df_big <- rbind(df_big, df_small)
+      message(paste0("The data frame now has ", nrow(df_big), " rows in it."))
+      Sys.sleep(6)
+    }
+  
+  }
+  return(df_big)
+}
+
+
+
+
+#Collect all articles from 1995 to 2022
+df_compiled <- nyt_years_scrape(1995, 2022)
+#head(df_compiled)
+#str(df_compiled)
+
+write.csv(df_compiled, "df_compiled.csv")
+```
+
+
+## A larger share of coverage, a new desk, moving up the pages
+
+This section highlights the increasing coverage dedicated to climate change over the period through various indicators.**
+
+```{r, echo=FALSE, include=FALSE}
+## Starting here so database does not need to be re-compiled. 
+df_compiled <- read.csv("C:/Users/Peter/Documents/analysis/climate_nyt/data/df_compiled.csv")
+df_compiled <- df_compiled%>%
+  select(-X, -keep)
+#head(df_compiled)
+```
+
+**Frequency overall, over time**
+
+```{r, echo=FALSE}
+#Frequency of climate change articles over time 
+df_clim_freq <- df_compiled %>% 
+  select(pub_date, print_page, news_desk, word_count, month_count)
+df_clim_freq$date <- as_date(df_clim_freq$pub_date)
+df_clim_freq$month <- month(df_clim_freq$date)
+df_clim_freq$year <- year(df_clim_freq$date)
+
+suppressMessages(df_clim_freq_date <- df_clim_freq %>% 
+  group_by(year, month) %>%
+  summarise(month_share=n()/month_count*100))
+df_clim_freq_date <- distinct(df_clim_freq_date)
+df_clim_freq_date$date<- my(paste(df_clim_freq_date$month, "-", df_clim_freq_date$year))
+
+#Going forward, colors from https://www.learnui.design/tools/data-color-picker.html 
+
+ggplot(data=df_clim_freq_date, aes(x=date, y=month_share))+
+  geom_point(color="#bc5090")+
+  geom_smooth(color="#ef5675")+
+  labs(title="Climate change articles as a share of total NYT articles, monthly, 1995-2022", 
+       subtitle="Each dot represents the share of total articles in a month", 
+       caption="Source: NYT API", 
+       x="Date", 
+       y="Share of total articles (%)")+
+  
+  theme_bw()
+```
+
+We can see that, as a share of all articles published each month, climate change articles have become a larger share in recent years. As will be visible in future charts, the 2005-2010 saw an increase in coverage before stagnation in the early 2010s. It's only since 2015 that the share of articles discussing climate change has regularly been above the 0.5% threshold.
+
+In the chart above, it's also clear that there seems to be some kind of seasonal pattern to the publishing.
+```{r, echo=FALSE}
+df_clim_freq_monthtot <- df_clim_freq %>% 
+  group_by(month) %>%
+  summarise(monthtot=n())
+ggplot()+
+  geom_point(data=df_clim_freq_monthtot, aes(x=month, y=monthtot), color="#7a5195", size=2)+
+  labs(title="Total number of climate change articles published in each calendar month,\nsum over 1999-2022", 
+       subtitle="Months are from 1 (January) to 12 (December) on the x axis", 
+       caption="Source: NYT API", 
+       x="Month", 
+       y="Sum of articles on climate change, 1999-2022")+
+  scale_x_continuous(breaks=c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), limits=c(1, 12))+
+  scale_y_continuous(breaks=c(250, 500, 750), limits=c(50, 800))+
+  theme_bw()+
+  theme(panel.grid.minor = element_blank())
+```
+
+From these charts we can see that generally there tend to be more articles published toward the end of the year, and in June.
+
+**Frequency by desk**
+
+In the next section, we look to see how coverage has shifted between desks.
+```{r, echo=FALSE}
+#Frequency by desk
+#Combining major categories, and then creating an "other" option for desks that had fewer than 100 articles
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Opinion", "OpEd", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Arts", "Culture", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Arts & Ideas/Cultural Desk", "Culture", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Movies, Performing Arts/Weekend Desk", "Culture", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Arts&Leisure", "Culture", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="The Arts/Cultural Desk", "Culture", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Cultural Desk", "Culture", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Arts and Leisure Desk", "Culture", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Science / Environment", "Science", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Science Desk;", "Science", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Science Desk", "Science", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Travel Desk", "Travel", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="BookReview", "Books", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Books / First Chapters", "Books", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Book Review Desk", "Books", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Books / Sunday Book Review", "Books", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Business / Your Money", "Business", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Business Travel", "Business", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Business Day", "Business", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Business/Financial Desk", "Business", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="SundayBusiness", "Business", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Money and Business/Financial Desk", "Business", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="", "None", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Editorial Desk", "Editorial", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Foreign Desk", "Foreign", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Metro", "Metropolitan", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Metropolitan Desk", "Metropolitan", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Metropolitan", "Metro.", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="National Desk", "National", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Opinion", "OpEd", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Opinion", "OpEd", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Opinion", "OpEd", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk=="Opinion", "OpEd", df_clim_freq$news_desk)
+df_clim_freq$news_desk<- ifelse(df_clim_freq$news_desk %in% c("Books", "Business", "Climate", "Culture", "Editorial", "Foreign", "Letters", "Metro.", "National", "None", "OpEd", "Science"), df_clim_freq$news_desk, "Other")
+                                  
+df_clim_freq$news_desk<-as.factor(df_clim_freq$news_desk)
+```
+
+
+The following table highlights the variation in aggregated NYT desks (I aggregated desk codes that likely reflect historical shifts in naming (e.g. Business vs. Business Desk), and put all desks with fewer than 100 articles into their own "other" category). The National, Foreign and Editorial desks have a significant share of articles, reflecting their historic dominance and significant size. A significant number are either unclassified or in smaller desks. 
+```{r, echo=FALSE}
+table(df_clim_freq$news_desk)
+```
+
+```{r, echo=FALSE}
+ggplot(data=df_clim_freq, aes(x=news_desk, y=date))+
+  geom_violin(fill="#2f4b7c")+
+  scale_color_continuous()+
+  labs(title="Climate change articles over time, by news desk", 
+       caption="Source: NYT API", 
+       x="News Desk", 
+       y="Date")+
+  theme_bw()
+
+ggplot(data=df_clim_freq, aes(x=news_desk, y=date))+
+  geom_jitter(width=0.3, color="#2f4b7c", size=.5)+
+  labs(title="Climate change articles over time, by news desk", 
+       caption="Source: NYT API", 
+       x="News Desk", 
+       y="Date")+
+  theme_bw()
+
+```
+These charts provide a significant amount of information.
+
+Some basic notes: 
+
+*The charts highlights the creation of the new climate desk at the NYT in 2017[url](https://www.nytimes.com/2017/03/16/insider/a-sea-change-for-climate-coverage.html), with about 450 articles written by that desk since, nearly 10% of the total number of articles in our sample.
+*It also highlights the seeming creation of new tags for letters and op-eds mid-way through the sample.
+*Beyond that, looking at the data, we can see a concentration of articles in the book section around 2005-2007 (the era of Al Gore's An Inconvenient Truth), and over the past three years. There are a perhaps surprisingly large (and continuous) number of articles from the Business desk, also peaking around 2006-2007.
+*Looking at the different geographic desks, it is striking that the flow is more or less constant for the Foreign desk, has larger peaks in 2009 and 2016 for the National desk, and is definitely focused around 2006 for the Metropolitan desk.
+
+
+**Frequency by Page Number**
+
+Next, we turn to the page numbers -- which gives a sense to the relative importance accorded to climate change as a topic on any single day.
+
+```{r, echo=FALSE}
+#What page are they on? 
+df_clim_freq$print_page<-as.numeric(df_clim_freq$print_page)
+
+df_clim_freq$print_page_group <- ifelse(df_clim_freq$print_page==1, "Front page", ifelse(df_clim_freq$print_page>1 &df_clim_freq$print_page<=10, "Pages 2-10", ifelse(df_clim_freq$print_page>10 & df_clim_freq$print_page<=50, "Pages 11-50", ifelse(df_clim_freq$print_page>50, "Pages 51+", "Other"))))
+
+
+df_clim_freq_2 <- df_clim_freq %>% 
+  group_by(year, month) %>%
+  mutate(average_page=mean(print_page, na.rm=TRUE))%>%
+  select(month, year, average_page)%>%
+  distinct()
+
+df_clim_freq_2$date <- my(paste0(df_clim_freq_2$month, "/", df_clim_freq_2$year))
+
+
+ggplot(data=df_clim_freq_2, aes(x=date, y=average_page))+
+  geom_point(color="#d45087")+
+  geom_smooth()+
+  labs(title="Average page rank, among articles about climate change", 
+       caption="Source: NYT API", 
+       x="Date", 
+       y="Average Print Page Number")+
+  theme_bw()
+```
+
+There generally seems to be a relatively constant page rank for articles about climate change -- but it seems likely that earlier years are influenced by having relatively few articles. There does seem to be a downward trend "towards the front" in the past decade.
+
+```{r, echo=FALSE}
+
+#Number of days on front page in a month
+suppressMessages(df_clim_freq_frontpage <- df_clim_freq %>% 
+  filter(print_page==1)%>%
+  group_by(year, month) %>%
+  summarise(front_page_by_month=n()))
+df_clim_freq_frontpage$date<- my(paste(df_clim_freq_frontpage$month, "-", df_clim_freq_frontpage$year))
+
+
+ggplot(data=df_clim_freq_frontpage, aes(x=date, y=front_page_by_month))+
+  geom_point(color="#a05195")+
+  geom_smooth(color="#d45087")+
+  labs(title="Number of front page climate change articles by month", 
+       subtitle="Each point represents one month in one year",
+       caption="Source: NYT API", 
+       x="Date", 
+       y="Number of front page climate change articles")+
+  theme_bw()
+```
+
+One way around the issues with the previous chart is to just focus on front page stories (aka print page 1). Indeed, over the past five years, there has been an increase in the number of more front page stories about climate change. The peaks of front page coverage were in May 2006 (an Inconvenient Truth was released on May 24) and October of 2021.
+
+## Presidents and Scientists, Nation and World
+
+**We'll now use quanteda to dig a little deeper into what words are used in the abstracts.**
+
+```{r, echo=FALSE}
+df <- corpus(df_compiled$lead_paragraph, docvars=data.frame(headline=df_compiled$headlines, page=df_compiled$print_page, newsdesk=df_compiled$news_desk, section=df_compiled$section_name, wordcount=df_compiled$word_count, date=as_date(df_compiled$pub_date)))
+
+
+#Worldcloud of all words
+dfm1 <- df
+dfm1 <- dfm1 %>%
+  tokens(remove_punct=TRUE, remove_numbers=TRUE) %>%
+  tokens_remove(stopwords("en")) %>%
+  tokens_wordstem()%>%
+  dfm()%>%
+  dfm_trim(min_termfreq = 2)
+textplot_wordcloud(dfm1)
+
+features_dfm1 <- textstat_frequency(dfm1, n = 50)
+features_dfm1$feature <- with(features_dfm1, reorder(feature, -frequency))
+ggplot(features_dfm1, aes(x = feature, y = frequency)) +
+    theme_bw()+
+  geom_point(color="#a05195") + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Frequency of words in abstracts of climate change articles", 
+       caption="Source: NYT API", 
+       x="Word", 
+       y="Number of times used in total set of articles")
+  
+
+```
+
+These exercises to determine the frequency of words used in articles reveal some key insights. For one thing, *political leaders* stand out -- "Presid", but also specifically Bush and Obama. Other actors that are key to these debates, and to press discussion, are *scientists*, mentioned nearly 500 times. Perhaps ironically in the context of global collective action debates, *"nation" and "world"* are #11 and #12 in frequency, respectively. As a last note -- it is perhaps not surprising to see how much *money* ("$") gets mentioned in these articles.
+
+## Natural disasters
+
+Finally, the rest of this project will be focused on looking at how natural disasters drive coverage of climate policy, using a dictionary for natural disasters to sort through our existing corpus of articles.
+
+```{r, echo=FALSE}
+#Creating a dictionary for extreme weather 
+dict <- dictionary(list(hurricane=c("hurricane*", "typhoon*", "cyclone*"), 
+                        #rain=c("rain*", "precipitation", "squall*"),
+                        storm=c("storm"),
+                        fire=c("fire*", "wildfire*"),
+                        drought=c("drought*"),
+                        flood=c("flood*", "landslide*", "mudslide*"), 
+                        cold=c("icestorm", "snowstorm*", "blizzard*"), 
+                        extreme=c("extreme", "historic", "record"), 
+                        apocalyptic=c("apocalypse", "apocalyptic", "catastroph*"), 
+                        disaster=c("disaster*", "disastrous", "calamity", "devastation", "wreckage", "ravag*")
+                        ))
+dfm_natural <- dfm_lookup(dfm1, dictionary=dict)
+
+df_disas_plot <- convert(dfm_natural, to = "data.frame")
+df_disas_plot$date <- dfm_natural$date
+df_disas_plot$print_page <- dfm_natural$page
+
+df_disas_plot$month<-month(df_disas_plot$date)
+df_disas_plot$year <- year(df_disas_plot$date)
+
+df_disas_plot_byyear <- df_disas_plot %>% 
+  group_by(year) %>%
+  summarise(all_disaster = sum(hurricane, storm, fire, drought, flood, cold, extreme, apocalyptic, disaster))
+
+ggplot(data=df_disas_plot_byyear, aes(x=year, y=all_disaster))+
+  geom_point(color="#ff7c43")+ 
+  labs(title="Number of climate change articles mentioning natural disasters, by year", 
+       caption="Source: NYT API", 
+       x="Year", 
+       y="Number of articles")+
+  theme_bw()
+```
+
+Indeed, while the number of climate change articles has been increasing generally, it is also seems like there are more articles specifically referencing natural disasters as part of the coverage.
+
+
+```{r, echo=FALSE}
+
+df_texts_to_find <- df_disas_plot %>% 
+  group_by(doc_id)%>%
+  mutate(all_disaster = sum(hurricane, storm, fire, drought, flood, cold, extreme, apocalyptic, disaster))
+df$dictionary <- df_texts_to_find$all_disaster
+#write.csv(convert(corpus_subset(df, dictionary>1), to = "data.frame"), "disaster_climate.csv")
+```
+
+**Natural disasters and climate change in the NYT**
+
+For this next and final section, I go to wikipedia to gather some data on the impact of these natural disasters that are mentioned in articles referencing climate change. By hand, I went through and skimmed the selected abstracts for references, and then found the relevant wikipedia page url. There are not English wikipedia pages for all disasters.
+
+```{r, echo=FALSE}
+#Go through urls and gather data on damages
+
+disaster_wiki <- read.csv("C:/Users/Peter/Documents/analysis/climate_nyt/data/disaster_climate_wikidata.csv")
+
+#Many abstracts either didn't mention a specific storm,  didn't have a url link, or were already referenced in a separate wikipedia article (eg. Hurricane Ida was covered in several articles). You can see the search terms used for each article in the appropriate column. I'll now filter down to the ones that have urls.  
+disaster_wiki <- disaster_wiki %>% 
+  select(-X, -wikipedia_search_terms)%>%
+  filter(url!="")
+
+
+#html_event <- read_html("https://en.wikipedia.org/wiki/1998_Florida_wildfires")
+#title_elements_event <- html_event %>% html_elements(class = ".mw-page-title-main")
+#html_text(title_elements_event)
+#We are left with 29 articles 
+
+for (i in disaster_wiki$url){
+  html_event <- read_html(i)
+  label_elements_event <- html_event %>% html_elements(css = ".infobox-label")
+  data_elements_event <- html_event %>% html_elements(css = ".infobox-data")
+  label_event <- label_elements_event %>% html_text()
+  data_event <- data_elements_event %>% html_text()
+  event_table <- data.frame(label_event, data_event)
+  disaster_wiki$damage[disaster_wiki$url==i] <- ifelse (("Damage" %in% event_table$label_event == TRUE | "Property damage"%in% event_table$label_event == TRUE | "Cost" %in% event_table$label_event == TRUE | "Total damage" %in% event_table$label_event == TRUE), (event_table$data_event[event_table$label_event %in% c("Damage", "Property damage", "Cost", "Total damage")]), "")
+  disaster_wiki$lives[disaster_wiki$url==i] <- ifelse (("Deaths" %in% event_table$label_event == TRUE | "Fatalities" %in% event_table$label_event ==TRUE | "Total fatalities" %in% event_table$label_event == TRUE), (event_table$data_event[event_table$label_event %in% c("Deaths", "Fatalities", "Total fatalities")]), "")
+  title_elements_event <- html_event %>% html_elements(css = ".mw-page-title-main")
+  disaster_wiki$disaster[disaster_wiki$url==i] <- html_text(title_elements_event)
+}
+
+disaster_wiki$damage <- gsub("\\[.*\\]", "", disaster_wiki$damage)
+disaster_wiki$casualties <- gsub("\\[.*\\]", "", disaster_wiki$lives)
+disaster_wiki$casualties[15]<-""
+disaster_wiki$casualties[19]<- "3,951+ deaths (Belgium: 716; France: 1,435; Germany: 500; Netherlands: 400; United Kingdom: 900)"  
+disaster_wiki$casualties[27] <- "≥1,408 deaths (estimated), ≥914 (confirmed). ~600-800 deaths in Canada (deadliest weather event in the history of Canada) and ~200-600 deaths in the US"
+
+disaster_wiki$date<-mdy(disaster_wiki$date)
+#change lives to casualties
+
+#disaster_wiki$date<-as_date(disaster_wiki$date)  
+  
+p <- ggplot(data=disaster_wiki, aes(x=date, y=wordcount, color=section, damages=damage, casualties=casualties, disaster=disaster))+
+  geom_point()+
+  labs(title="Climate change articles mentioning specific natural disasters, 1995-2022", 
+       subtitle="Information about the natural disasters available in mouse-over", 
+       caption="Source: NYT API, Wikipedia", 
+       legend="NYT Section", 
+       x="Date", 
+       y="Article Word Count")+
+  theme_bw()
+
+ggplotly(p, tooltip=c("disaster", "damages", "casualties"))
+
+
+
+
+```
+
+As discussed, the NYT is increasingly touching upon specific natural disasters in its climate change coverage. Many of the disasters mentioned were devastating in terms of human and economic costs.
+
+It's worth noting that most of this coverage remains of US and Western European disasters -- despite our understanding that these places will not necessarily face the biggest challenges. And indeed, looking at word counts, it is striking that articles above 1,000 words are focused on natural disasters in the West.
+
+
+NB: The climate change terms used in the initial analysis are: "climate change" "global warming" "greenhouse effect" "climate catastrophe" "climate emergency" "climate crisis" and "global heating." In this section, I build a corpus of NYT article from 1995 to 2022 that include terms of climate change. To select these terms, I drew from some established work ([see Lineman et al](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0138996), or [Kumar and Li](https://www.researchgate.net/profile/Sathish-Kumar-26/publication/331453828_Spatiotemporal_Topic_Modeling_and_Sentiment_Analysis_of_Global_Climate_Change_Tweets/links/5d9033e6a6fdcc2554a4740e/Spatiotemporal-Topic-Modeling-and-Sentiment-Analysis-of-Global-Climate-Change-Tweets.pdf)).
