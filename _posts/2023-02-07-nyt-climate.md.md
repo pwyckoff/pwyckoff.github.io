@@ -1,5 +1,7 @@
 ---
 title: "Climate Change in the New York Times"
+header:
+  teaser: "images/unnamed-chunk-3-1.jpg"
 output: 
   md_document: 
     variant: markdown_github
@@ -20,10 +22,12 @@ the past few decades.
 The dataset for the analysis is the subset of NYT articles from
 1995-2022 that included climate change terms in their abstract\*.
 
-I look at: \* the frequency of climate change articles over time, by
+I look at: 
+* the frequency of climate change articles over time, by
 desk and by published page to get a sense of how the salience of climate
-change coverage has evolved over time \* word use in the abstracts \*
-climate change and natural disasters
+change coverage has evolved over time 
+* word use in the abstracts 
+* climate change and natural disasters
 
 For more detail about the code used to compile the dataset, take a look
 at the github version of this document.
@@ -35,26 +39,23 @@ change over the period through various indicators.\*\*
 
 **Frequency overall, over time**
 
-    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
-
 ![](/images/unnamed-chunk-3-1.png)
 
-We can see that, as a share of all articles published each month,
-climate change articles have become a larger share in recent years. As
-will be visible in future charts, the 2005-2010 saw an increase in
-coverage before stagnation in the early 2010s. It’s only since 2015 that
-the share of articles discussing climate change has regularly been above
-the 0.5% threshold.
+As a share of all articles published each month, climate change 
+articles have become a larger share in recent years. As will be visible 
+in future charts, the 2005-2010 saw an increase in coverage before stagnation 
+in the early 2010s. It’s only since 2015 that the share of articles discussing 
+climate change has regularly been above the 0.5% threshold.
 
 In the chart above, it’s also clear that there seems to be some kind of
 seasonal pattern to the publishing. ![](/images/unnamed-chunk-4-1.png)
 
-From these charts we can see that generally there tend to be more
+These charts suggest that generally there tend to be more
 articles published toward the end of the year, and in June.
 
 **Frequency by desk**
 
-In the next section, we look to see how coverage has shifted between
+In the next section, I look to see how coverage has shifted between
 desks.
 
 The following table highlights the variation in aggregated NYT desks (I
@@ -82,7 +83,7 @@ in
 with about 450 articles written by that desk since, nearly 10% of the
 total number of articles in our sample. *It also highlights the seeming
 creation of new tags for letters and op-eds mid-way through the sample.
-*Beyond that, looking at the data, we can see a concentration of
+*Beyond that, looking at the data, there's a concentration of
 articles in the book section around 2005-2007 (the era of Al Gore’s An
 Inconvenient Truth), and over the past three years. There are a perhaps
 surprisingly large (and continuous) number of articles from the Business
@@ -93,12 +94,8 @@ desk, and is definitely focused around 2006 for the Metropolitan desk.
 
 **Frequency by Page Number**
 
-Next, we turn to the page numbers – which gives a sense to the relative
+Next, I turn to the page numbers – which gives a sense to the relative
 importance accorded to climate change as a topic on any single day.
-
-    ## Warning: NAs introduced by coercion
-
-    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
 
 ![](/images/unnamed-chunk-8-1.png)
 
@@ -107,7 +104,6 @@ about climate change – but it seems likely that earlier years are
 influenced by having relatively few articles. There does seem to be a
 downward trend “towards the front” in the past decade.
 
-    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
 
 ![](/images/unnamed-chunk-9-1.png)
 
@@ -119,8 +115,8 @@ about climate change. The peaks of front page coverage were in May 2006
 
 ## Presidents and Scientists, Nation and World
 
-**We’ll now use quanteda to dig a little deeper into what words are used
-in the abstracts.**
+I'll now use quanteda to dig a little deeper into what words are used
+in the abstracts.
 
 ![](/images/unnamed-chunk-10-1.png)![](/images/unnamed-chunk-10-2.png)
 
