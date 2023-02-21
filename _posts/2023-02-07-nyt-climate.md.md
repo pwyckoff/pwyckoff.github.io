@@ -4,6 +4,7 @@ layout: single
 excerpt: "How has coverage of climate change in the NYT evolved since 1995? Analysis using the NYT API and quantitative text analysis tools such as Quanteda. " 
 date: "2023-02-20"
 permalink: /posts/2023/02/nyt-climate
+toc: true
 tags: 
   - climate change
   - data analysis
@@ -17,7 +18,7 @@ the New York Times’ API to assess how it has covered climate change over
 the past few decades.
 
 The dataset for the analysis is the subset of NYT articles from
-1995-2022 that included climate change terms in their abstract\*.
+1995-2022 that included climate change terms in their abstract.
 
 I look at: 
 * the frequency of climate change articles over time, by
@@ -78,9 +79,10 @@ These charts provide a significant amount of information.
 Some basic notes:
 
 * The charts highlights the creation of the new climate desk at the NYT
-in 2017[url](https://www.nytimes.com/2017/03/16/insider/a-sea-change-for-climate-coverage.html),
+in [2017](https://www.nytimes.com/2017/03/16/insider/a-sea-change-for-climate-coverage.html),
 with about 450 articles written by that desk since, nearly 10% of the
-total number of articles in our sample. *It also highlights the seeming
+total number of articles in our sample. 
+* It also highlights the seeming
 creation of new tags for letters and op-eds mid-way through the sample.
 
 * Beyond that, looking at the data, there's a concentration of
