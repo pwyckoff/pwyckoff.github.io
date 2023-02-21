@@ -161,10 +161,10 @@ not necessarily face the biggest challenges. And indeed, looking at word
 counts, it is striking that articles above 1,000 words are focused on
 natural disasters in the West.
 
-<div w3-include-html="file:///C:/Users/Peter/Documents/GitHub/pwyckoff.github.io/_includes/nyt_climate_plotly.html"></div>
+<div w3-include-html="nyt_climate_plotly.html"></div>
 
 
-{% include file:///C:/Users/Peter/Documents/GitHub/pwyckoff.github.io/_includes/nyt_climate_plotly.html %}
+{% include nyt_climate_plotly.html %}
 
 
 # Closing thoughts
