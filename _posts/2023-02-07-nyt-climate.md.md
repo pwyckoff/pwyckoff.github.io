@@ -161,7 +161,7 @@ not necessarily face the biggest challenges. And indeed, looking at word
 counts, it is striking that articles above 1,000 words are focused on
 natural disasters in the West.
 
-<iframe src="/drafts/climate_plotly.html" height="600px" width="100%" style="border:none;"></iframe>
+<iframe src="/files/climate_plotly.html" height="600px" width="100%" style="border:none;"></iframe>
 
 
 # Closing thoughts
