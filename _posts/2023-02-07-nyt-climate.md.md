@@ -170,7 +170,7 @@ Analysis of the "newspaper of record" highlights how coverage of climate change 
 * The total share of articles has quintupled, with a particular increase surrounding the release of Al Gore's An Inconvenient Truth. A similar trend can be observed in terms of front page articles. 
 * Desks such as Business and Foreign contribute a significant number of articles on climate change.
 * Key actors and dynamics emerge from word use analysis -- coverage emphasizes presidents and scientists, financial considerations, and both "nation" and "world." 
-* Natural disasters coverage and climate change mentions seem to be increasingly linked. As we have become more aware of how the severity and frequency of natural disasters is linked to climate change, it does seem that the New York Times is making the connection more frequently.  
+* Discussion of natural disasters seems to increasingly mention climate change, in line with our growing understanding of how climate change is fuelling more intense and frequent natural disasters.   
 
 # Sources and Notes
 
