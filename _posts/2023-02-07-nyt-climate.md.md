@@ -45,7 +45,9 @@ in the early 2010s. It’s only since 2015 that the share of articles discussing
 climate change has regularly been above the 0.5% threshold.
 
 In the chart above, it’s also clear that there seems to be some kind of
-seasonal pattern to the publishing. ![](/images/unnamed-chunk-4-1.png)
+seasonal pattern to the publishing. 
+
+![](/images/unnamed-chunk-4-1.png)
 
 These charts suggest that generally there tend to be more
 articles published toward the end of the year, and in June.
@@ -158,6 +160,20 @@ European disasters – despite our understanding that these places will
 not necessarily face the biggest challenges. And indeed, looking at word
 counts, it is striking that articles above 1,000 words are focused on
 natural disasters in the West.
+
+<iframe width="560" 
+height="315" 
+src="_includes/climate_plotly" 
+frameborder="0"> 
+</iframe>
+
+
+# Closing thoughts
+
+Analysis of the "newspaper of record" highlights how coverage of climate change has increased over the past few decades. 
+* The total share of articles has quintupled, with a particular increase surrounding the release of Al Gore's An Inconvenient Truth. A similar trend can be observed in terms of front page articles. 
+* Desks such as Business and Foreign contribute a significant number of articles on climate change.
+* Key actors and dynamics emerge from word use analysis -- coverage emphasizes presidents and scientists, financial considerations, and both "nation" and "world." 
 
 # Sources and Notes
 
