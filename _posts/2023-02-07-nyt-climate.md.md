@@ -161,7 +161,7 @@ not necessarily face the biggest challenges. And indeed, looking at word
 counts, it is striking that articles above 1,000 words are focused on
 natural disasters in the West.
 
-<iframe src="/files/climate_plotly.html" height="600px" width="100%" style="border:none;"></iframe>
+<iframe src="/files/nyt_climate_plotly.html" height="600px" width="100%" style="border:none;"></iframe>
 
 
 # Closing thoughts
@@ -171,6 +171,8 @@ Analysis of the "newspaper of record" highlights how coverage of climate change 
 * Desks such as Business and Foreign contribute a significant number of articles on climate change.
 * Key actors and dynamics emerge from word use analysis -- coverage emphasizes presidents and scientists, financial considerations, and both "nation" and "world." 
 * Discussion of natural disasters seems to increasingly mention climate change, in line with our growing understanding of how climate change is fuelling more intense and frequent natural disasters.   
+
+
 
 # Sources and Notes
 
@@ -182,8 +184,8 @@ The analysis was conducted in R, in particular drawing from the
 
 The climate change terms used in the initial analysis are: “climate
 change” “global warming” “greenhouse effect” “climate catastrophe”
-“climate emergency” “climate crisis” and “global heating.” To select these terms, I drew from some
-established work ([see Lineman et
+“climate emergency” “climate crisis” and “global heating.” To select these terms, I drew from 
+established work (see for example [Lineman et
 al](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0138996),
 or [Kumar and
 Li](https://www.researchgate.net/profile/Sathish-Kumar-26/publication/331453828_Spatiotemporal_Topic_Modeling_and_Sentiment_Analysis_of_Global_Climate_Change_Tweets/links/5d9033e6a6fdcc2554a4740e/Spatiotemporal-Topic-Modeling-and-Sentiment-Analysis-of-Global-Climate-Change-Tweets.pdf)).
