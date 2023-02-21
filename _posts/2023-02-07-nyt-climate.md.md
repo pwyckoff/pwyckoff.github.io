@@ -164,7 +164,7 @@ natural disasters in the West.
 <div w3-include-html="nyt_climate_plotly.html"></div>
 
 
-{% include nyt_climate_plotly.html %}
+{% include file:///C:/Users/Peter/Documents/GitHub/pwyckoff.github.io/_includes/nyt_climate_plotly.html %}
 
 
 # Closing thoughts
