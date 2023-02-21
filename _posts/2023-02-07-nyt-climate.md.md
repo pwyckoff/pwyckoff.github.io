@@ -2,7 +2,7 @@
 title: "Climate Change in the New York Times"
 layout: single
 excerpt: "How has coverage of climate change in the NYT evolved since 1995? Analysis using the NYT API and quantitative text analysis tools such as Quanteda. " 
-date: "2023-02-07"
+date: "2023-02-20"
 permalink: /posts/2023/02/nyt-climate
 tags: 
   - climate change
@@ -161,8 +161,10 @@ not necessarily face the biggest challenges. And indeed, looking at word
 counts, it is striking that articles above 1,000 words are focused on
 natural disasters in the West.
 
-{% include climate_plotly.html %}
+<div w3-include-html="nyt_climate_plotly.html"></div>
 
+
+{% include nyt_climate_plotly.html %}
 
 
 # Closing thoughts
