@@ -12,9 +12,9 @@ tags:
   - text analysis
 ---
 
-Mediatic attention has a significant impact on the politics of climate
+Media attention has a significant impact on the politics of climate
 change (see Maxwell Boykoff’s work, for example). In this post, I use
-the New York Times’ API to assess how it has covered climate change over
+the New York Times’ API to assess how the newspaper has covered climate change over
 the past few decades.
 
 The dataset for the analysis is the subset of NYT articles from
@@ -28,7 +28,7 @@ change coverage has evolved over time
 * climate change and natural disasters
 
 For more detail about the code used to compile the dataset, take a look
-at the github version of this document.
+at my github page.
 
 # A larger share of coverage, a new desk, moving up the pages
 
@@ -118,7 +118,7 @@ about climate change. The peaks of front page coverage were in May 2006
 
 # Presidents and Scientists, Nation and World
 
-I'll now use quanteda to dig a little deeper into what words are used
+Quanteda tools allow for a deeper dig into the vocabulary used
 in the abstracts.
 
 ![](/images/unnamed-chunk-10-1.png)![](/images/unnamed-chunk-10-2.png)
@@ -168,7 +168,7 @@ natural disasters in the West.
 
 # Closing thoughts
 
-Analysis of the "newspaper of record" highlights how coverage of climate change has increased over the past few decades. 
+This analysis of the "newspaper of record" highlights how coverage of climate change has evolved over the past few decades. 
 * The total share of articles has quintupled, with a particular increase surrounding the release of Al Gore's An Inconvenient Truth. A similar trend can be observed in terms of front page articles. 
 * Desks such as Business and Foreign contribute a significant number of articles on climate change.
 * Key actors and dynamics emerge from word use analysis -- coverage emphasizes presidents and scientists, financial considerations, and both "nation" and "world." 
@@ -183,6 +183,8 @@ for textual analysis of its coverage.
 
 The analysis was conducted in R, in particular drawing from the 
 [Quanteda](http://quanteda.io/) package for text analysis.  
+
+Color choices benefit from Kennedy Design's [color picker](https://www.learnui.design/tools/data-color-picker.html).
 
 The climate change terms used in the initial analysis are: “climate
 change” “global warming” “greenhouse effect” “climate catastrophe”
