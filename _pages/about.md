@@ -8,15 +8,11 @@ redirect_from:
   - /about.html
 ---
 
-Current
-======
 I am an MRes/PhD student at the London School of Economics and Political Science, affiliated with the [Department of Government](https://www.lse.ac.uk/government) and the [Grantham Research Institute](https://www.lse.ac.uk/granthaminstitute/). My research interests include: 
 * political economy
 * distributional impacts of climate change
 * electoral institutions 
 * just transitions and sustainable employment
-
-![](/images/cover_picture.jpg)
 
 
 Background 
@@ -25,7 +21,7 @@ I have previously worked in the OECD's [Directorate on Employment, Labour and So
 
 I have a B.A. in Global Affairs from Yale, and an MSc in Global Governance and Diplomacy from Oxford.
 
-
+![](/images/cover_picture.jpg)
 
 > This website will include updates about my work, including short analyses in the [blog posts section](https://pwyckoff.github.io/year-archive/). If you want to hear about this work by email, you can subscribe below.
 

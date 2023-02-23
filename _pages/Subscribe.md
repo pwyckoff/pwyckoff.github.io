@@ -1,5 +1,5 @@
 ---
-permalink: /
+permalink: /subscribe/
 title: "Subscribe"
 excerpt: "Subscribe"
 author_profile: true
