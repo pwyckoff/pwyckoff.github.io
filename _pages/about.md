@@ -21,8 +21,11 @@ I have previously worked in the OECD's [Directorate on Employment, Labour and So
 
 I have a B.A. in Global Affairs from Yale, and an MSc in Global Governance and Diplomacy from Oxford.
 
+<figure>
 ![](/images/cover_picture.jpg)
-
+<figcaption align = "center>"<b>New Mexico, August 2022</b>
+</figcaption> 
+</figure>
 > This website will include updates about my work, including short analyses in the [blog posts section](https://pwyckoff.github.io/year-archive/). If you want to hear about this work by email, you can subscribe below.
 
 <!-- Begin Mailchimp Signup Form -->
