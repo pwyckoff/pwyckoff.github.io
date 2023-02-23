@@ -13,12 +13,13 @@ tags:
 ---
 
 Media attention has a significant impact on the politics of climate
-change (see Maxwell Boykoff’s work, for example). In this post, I use
+change (see Maxwell Boykoff’s work, for example). Coverage has an impact on public opinion, as well 
+as on how policy questions are debated or framed. In this post, I use
 the New York Times’ API to assess how the newspaper has covered climate change over
 the past few decades.
 
 The dataset for the analysis is the subset of NYT articles from
-1995-2022 that included climate change terms in their abstract.
+1995-2022 that included climate change terms in their abstract (typically a paragraph of text provided by the API about the article).
 
 I look at: 
 * the frequency of climate change articles over time, by
@@ -30,7 +31,7 @@ change coverage has evolved over time
 For more detail about the code used to compile the dataset, take a look
 at my github page.
 
-# A larger share of coverage, a new desk, moving up the pages
+# A larger share of articles, with a new desk, and more front pages
 
 This section highlights the increasing coverage dedicated to climate
 change over the period through various indicators.
@@ -74,9 +75,7 @@ unclassified or in smaller desks.
 
 ![](/images/unnamed-chunk-7-1.png)![](/images/unnamed-chunk-7-2.png)
 
-These charts provide a significant amount of information.
-
-Some basic notes:
+From these charts, some notes:
 
 * The charts highlights the creation of the new climate desk at the NYT
 in [2017](https://www.nytimes.com/2017/03/16/insider/a-sea-change-for-climate-coverage.html),
@@ -116,14 +115,14 @@ there has been an increase in the number of more front page stories
 about climate change. The peaks of front page coverage were in May 2006
 (an Inconvenient Truth was released on May 24) and October of 2021.
 
-# Presidents and Scientists, Nation and World
+# Vocabulary of NYT climate change coverage: Presidents and Scientists, Nation and World
 
 Quanteda tools allow for a deeper dig into the vocabulary used
 in the abstracts.
 
 ![](/images/unnamed-chunk-10-1.png)![](/images/unnamed-chunk-10-2.png)
 
-These exercises to determine the frequency of words used in articles
+These exercises to determine the frequency of stemmed words used in articles
 reveal some key insights. For one thing, *political leaders* stand out –
 “Presid”, but also specifically Bush and Obama. Other actors that are
 key to these debates, and to press discussion, are *scientists*,
@@ -134,7 +133,7 @@ to see how much *money* (“$”) gets mentioned in these articles.
 
 # Natural disasters
 
-## Coverage of disasters in NYT climate change articles
+## Coverage of disasters and climate change in NYT increasingly linked
 Finally, the rest of this project will be focused on looking at how
 natural disasters drive coverage of climate policy, using a dictionary
 for natural disasters to sort through our existing corpus of articles.
@@ -143,15 +142,15 @@ for natural disasters to sort through our existing corpus of articles.
 
 Indeed, while the number of climate change articles has been increasing
 generally, it is also seems like there are more articles specifically
-referencing natural disasters as part of the coverage.
+referencing natural disasters as part of the coverage (though this could just be a reflection of a higher frequency of natural disasters, as well).
 
 ## Estimates of impact of natural disasters covered in NYT articles about climate change
 
-For this next and final section, I go to wikipedia to gather some data
+For this next and final section, I go to Wikipedia to gather some data
 on the impact of these natural disasters that are mentioned in articles
-referencing climate change. By hand, I went through and skimmed the
-selected abstracts for references, and then found the relevant wikipedia
-page url. There are not English wikipedia pages for all disasters.
+referencing climate change. I manually skimmed the
+selected abstracts for references, and then found the relevant Wikipedia
+page url. There are not English Wikipedia pages for all disasters.
 
 As discussed, the NYT is increasingly touching upon specific natural
 disasters in its climate change coverage. Many of the disasters
@@ -169,8 +168,8 @@ natural disasters in the West.
 # Closing thoughts
 
 This analysis of the "newspaper of record" highlights how coverage of climate change has evolved over the past few decades. 
-* The total share of articles has quintupled, with a particular increase surrounding the release of Al Gore's An Inconvenient Truth. A similar trend can be observed in terms of front page articles. 
-* Desks such as Business and Foreign contribute a significant number of articles on climate change.
+* The share of climate change articles as a share of all NYT articles has quintupled, with a particular increase surrounding the release of Al Gore's An Inconvenient Truth, underlining the movie's impact on discussion of climate change. A similar trend can be observed in terms of front page articles. 
+* Desks such as Business and Foreign contribute a significant number of articles on climate change, highlighting the range of perspectives covering the issue.
 * Key actors and dynamics emerge from word use analysis -- coverage emphasizes presidents and scientists, financial considerations, and both "nation" and "world." 
 * Discussion of natural disasters seems to increasingly mention climate change, in line with our growing understanding of how climate change is fuelling more intense and frequent natural disasters.   
 
