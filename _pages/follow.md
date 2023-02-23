@@ -1,14 +1,17 @@
 ---
-permalink: /subscribe/
-title: "Subscribe"
-excerpt: "Subscribe"
+permalink: /follow/
+title: "Follow"
+excerpt: "Follow"
 author_profile: true
 redirect_from: 
   - /subscribe/
   - /subscribe.html
 ---
 
-If you would like to receive the blog posts from this website by email, you can subscribe here: 
+You can find me on [Twitter](https://twitter.com/PeterSWyckoff) or [Github](https://github.com/pwyckoff).
+
+
+If you would like to receive the blog posts from this website by email, you can subscribe to them here: 
 
 <!-- Begin Mailchimp Signup Form -->
 <link href="//cdn-images.mailchimp.com/embedcode/classic-071822.css" rel="stylesheet" type="text/css">
