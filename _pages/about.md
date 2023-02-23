@@ -8,9 +8,6 @@ redirect_from:
   - /about.html
 ---
 
-![](/images/cover_picture.jpg)
-
-
 Current
 ======
 I am an MRes/PhD student at the London School of Economics and Political Science, affiliated with the [Department of Government](https://www.lse.ac.uk/government) and the [Grantham Research Institute](https://www.lse.ac.uk/granthaminstitute/). My research interests include: 
@@ -19,8 +16,7 @@ I am an MRes/PhD student at the London School of Economics and Political Science
 * electoral institutions 
 * just transitions and sustainable employment
 
-
-
+![](/images/cover_picture.jpg)
 
 
 Background 
