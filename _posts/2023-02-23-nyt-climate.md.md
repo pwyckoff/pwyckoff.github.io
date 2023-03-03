@@ -168,10 +168,10 @@ natural disasters in the West.
 # Closing thoughts
 
 This analysis of the "newspaper of record" highlights how coverage of climate change has evolved over the past few decades. 
-* The share of climate change articles as a share of all NYT articles has quintupled, with a particular increase surrounding the release of Al Gore's An Inconvenient Truth, underlining the movie's impact on discussion of climate change. A similar trend can be observed in terms of front page articles. 
-* Desks such as Business and Foreign contribute a significant number of articles on climate change, highlighting the range of perspectives covering the issue.
-* Key actors and dynamics emerge from word use analysis -- coverage emphasizes presidents and scientists, financial considerations, and both "nation" and "world." 
-* Discussion of natural disasters seems to increasingly mention climate change, in line with our growing understanding of how climate change is fuelling more intense and frequent natural disasters.   
+* The share of climate change articles as a share of all NYT articles has been __multiplied by 10__, with a particular increase surrounding the release of Al Gore's An Inconvenient Truth, underlining the movie's impact on discussion of climate change. A similar trend can be observed in terms of front page articles. 
+* Desks such as __Business and Foreign__ contribute a significant number of articles on climate change, highlighting the range of perspectives covering the issue.
+* Key actors and dynamics emerge from word use analysis -- coverage emphasizes __presidents and scientists__, __financial considerations__, and both __"nation" and "world."__ 
+* Discussion of climate change seems to increasingly be included in articles about natural disasters (and vice versa), in line with our growing understanding of __how climate change is fuelling more intense and frequent natural disasters__.   
 
 
 
