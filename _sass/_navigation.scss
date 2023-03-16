@@ -175,7 +175,6 @@
 .greedy-nav {
   position: relative;
   min-width: 250px;
-  min-height: $nav-height;
   background: $background-color;
 
   a {
@@ -386,11 +385,6 @@
     background: $primary-color;
     border-top-left-radius: $border-radius;
     border-top-right-radius: $border-radius;
-  }
-    // Scrollspy marks toc items as .active when they are in focus
-    .active a {
-      @include yiq-contrasted($active-color);
-    }
   }
 }
 
