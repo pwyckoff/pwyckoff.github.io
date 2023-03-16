@@ -6,6 +6,7 @@ date: "2023-02-23"
 permalink: /posts/2023/02/nyt-climate
 toc: true
 toc_label: "Climate Change in the New York Times"
+toc_sticky: true
 tags: 
   - climate change
   - data analysis
