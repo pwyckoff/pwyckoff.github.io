@@ -5,6 +5,7 @@ excerpt: "How has coverage of climate change in the NYT evolved since 1995? Anal
 date: "2023-02-23"
 permalink: /posts/2023/02/nyt-climate
 toc: true
+toc_label: "Climate Change in the New York Times"
 tags: 
   - climate change
   - data analysis
