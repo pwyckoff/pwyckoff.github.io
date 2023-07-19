@@ -14,7 +14,9 @@ tags:
   - sustainable cities
 ---
 
-![](/images/velib_bastille/hourly_strain_maps_dark_fast.gif) ![](/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif)
+Strain                                                        |  Usage
+:------------------------------------------------------------:|:-------------------------------------------------------------------:
+![](/images/velib_bastille/hourly_strain_maps_dark_fast.gif)  |  ![](/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif)
 
 Shifting to more sustainable societies will require more environmentally-friendly ways of getting around. Bike share systems constitute a collective, active and gentle transportation option to get around cities. 
 
