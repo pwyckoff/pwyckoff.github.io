@@ -14,7 +14,7 @@ tags:
   - sustainable cities
 ---
 
-
+![](/images/velib_bastille/hourly_strain_maps_dark_fast.gif) ![](/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif)
 
 Shifting to more sustainable societies will require more environmentally-friendly ways of getting around. Bike share systems constitute a collective, active and gentle transportation option to get around cities. 
 
@@ -25,7 +25,7 @@ In 2007, the Paris Mayor's Office paired the public tender of its advertising di
 
 So what does one of the world's most famous bikeshares look like, on one of its city's most famous nights? 
 
-In this project, I  track usage of the Paris Vélib' system from 1 PM on Bastille day through to 1 PM the next day. To do so, I leverage the [excellent open data system](https://opendata.paris.fr/pages/home/) that the Paris Mayor's Office has put in place, to gather updates on each station in the network, once a minute -- or around 2 million data points total.
+In this project, I  track usage of the Paris Vélib' system from 1 PM on Bastille day through to 1 PM the next day. To do so, I leverage the [excellent open data system](https://opendata.paris.fr/pages/home/) that the Paris Mayor's Office has put in place, to gather updates on each station in the network, once a minute -- or around 2 million data points total. More information about methods, as well as a savable, sortable and searchable table of all cumulative station data is tobe found at the bottom of this post.
 
 # Midnight biking
 Looking at all the bike moves across the entire network, there is a perhaps unsurprisingly cicadian rhythm to the use of the bikeshare system, rising during the day, and falling at night. Some elements stand out -- the 13:00-14:00 hour on the 14th, as Paris resumed life following the parade, and 0:00-1:00 on the 15th, immediately following the fireworks.
@@ -76,7 +76,7 @@ It is also worth mentioning that some stations were closed for all or some part 
 ![](/images/velib_bastille/closed_stations.png)
 
 
-
-# Sortable Table of all Vélib' stations
+# Sortable table of cumulative data
+This table provides the cumulative data over 24 hours, and is available for download. You can also use the buttons to sort the data, or the search bar to find the stats for a specific bike station. 
 
 <iframe src="/images/velib_bastille/sortable_table.html" height="600px" width="100%" style="border:none;"></iframe>
