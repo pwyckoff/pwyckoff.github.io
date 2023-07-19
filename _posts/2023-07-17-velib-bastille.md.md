@@ -15,9 +15,9 @@ tags:
 ---
 
 <p align="center">
-  <img alt="Light" src="/images/velib_bastille/hourly_strain_maps_dark_fast.gif" width="45%">
+  <img alt="Light" src="/images/velib_bastille/hourly_strain_maps_dark_long_nolabels.gif" width="45%">
 &nbsp; &nbsp; &nbsp; &nbsp;
-  <img alt="Dark" src="/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif" width="45%">
+  <img alt="Dark" src="/images/velib_bastille/hourly_totalnumbers_maps_dark_long_nolabels.gif" width="45%">
 </p>
 
 Shifting to more sustainable societies will require more environmentally-friendly ways of getting around. **Bike share systems constitute a collective, active and gentle transportation option to get around cities.** 
@@ -64,12 +64,12 @@ Usage also varies over time. And indeed, zooming in on Bastille Day itself, we c
 ![](/images/velib_bastille/hourly_strain_maps_light_slow.gif) 
 ![](/images/velib_bastille/hourly_totalnumbers_maps_light_slow.gif)
 
-Looking at Vélib' highlights how popular it is, and how far the city has already come in building up bikes as a viable means of transportation. As the network continues to expand, it could strive to fill some of the gaps in the suburbs, and to relieve strain on some of its most popular stations. I stylised these last tow maps a bit, getting rid of the map and legend, to make them look more like fireworks -- a worth celebration of a remarkable bike share system. Bonne fête nationale à tous·tes!
+Looking at Vélib' highlights how popular it is, and how far the city has already come in building up bikes as a viable means of transportation. As the network continues to expand, it could strive to fill some of the gaps in the suburbs, and to relieve strain on some of its most popular stations. I stylised these last two maps a bit, getting rid of the map and legend, and expanding the area considered to make them look more like fireworks, with all the energy and excitement that entails. Bonne fête nationale à tous·tes!
 
 <p align="center">
-  <img alt="Light" src="/images/velib_bastille/hourly_strain_maps_dark_fast.gif" width="45%">
+  <img alt="Light" src="/images/velib_bastille/hourly_strain_maps_dark_long.gif" width="45%">
 &nbsp; &nbsp; &nbsp; &nbsp;
-  <img alt="Dark" src="/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif" width="45%">
+  <img alt="Dark" src="/images/velib_bastille/hourly_totalnumbers_maps_dark_long.gif" width="45%">
 </p>
 
 
