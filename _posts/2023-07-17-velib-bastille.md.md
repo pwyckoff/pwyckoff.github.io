@@ -14,6 +14,8 @@ tags:
   - sustainable cities
 ---
 
+<img src="/images/velib_bastille/hourly_strain_maps_dark_fast.gif" height="300px" width="45%" style="border:none;"></iframe> <img src="/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif" height="300px" width="45%" style="border:none;"></iframe>
+
 Strain                                                        |  Usage
 :------------------------------------------------------------:|:-------------------------------------------------------------------:
 ![](/images/velib_bastille/hourly_strain_maps_dark_fast.gif)  |  ![](/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif)
