@@ -1,11 +1,11 @@
 ---
 title: "Bike Share Fireworks"
 layout: single
-excerpt: "What does bike share use look like in Paris on the afternoon and night of Bastille Day? Plenty of fireworks" 
+excerpt: "What does bike share use look like in Paris around Bastille Day? Plenty of fireworks" 
 date: "2023-07-17"
-permalink: /posts/2023/07/bikeshare-bastille
+permalink: /posts/2023/07/bikeshare-fireworks
 toc: true
-toc_label: "Bike Shares on Bastille Day"
+toc_label: "Bike Share Fireworks"
 tags: 
   - bike share
   - data analysis
