@@ -1,5 +1,5 @@
 ---
-title: "Bike Shares and Bastille Day"
+title: "Bike Share Fireworks"
 layout: single
 excerpt: "What does bike share use look like in Paris on the afternoon and night of Bastille Day? Plenty of fireworks" 
 date: "2023-07-17"
@@ -14,7 +14,11 @@ tags:
   - sustainable cities
 ---
 
-<img src="/images/velib_bastille/hourly_strain_maps_dark_fast.gif" height="300px" width="45%" style="border:none;"></iframe> <img src="/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif" height="300px" width="45%" style="border:none;"></iframe>
+<p align="center">
+  <img alt="Light" src="/images/velib_bastille/hourly_strain_maps_dark_fast.gif" width="45%">
+&nbsp; &nbsp; &nbsp; &nbsp;
+  <img alt="Dark" src="/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif" width="45%">
+</p>
 
 Strain                                                        |  Usage
 :------------------------------------------------------------:|:-------------------------------------------------------------------:
