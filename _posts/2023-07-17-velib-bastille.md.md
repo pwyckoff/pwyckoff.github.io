@@ -29,7 +29,7 @@ In 2007, the Paris Mayor's Office paired the public tender of its advertising di
 
 So what does one of the world's most famous bikeshares look like, on one of its city's most famous nights? 
 
-**In this project, I  track usage of the Paris Vélib' system from 1 PM on Bastille day through to 1 PM the next day.** To do so, I leverage the [excellent open data system](https://opendata.paris.fr/pages/home/) that the Paris Mayor's Office has put in place, to gather updates on each station in the network, once a minute -- or around 2 million data points total. More information about methods, as well as a savable, sortable and searchable table of all cumulative station data is tobe found at the bottom of this post.
+**In this project, I  track usage of the Paris Vélib' system from 1 PM on Bastille day through to 1 PM the next day.** To do so, I leverage the [excellent open data system](https://opendata.paris.fr/pages/home/) that the Paris Mayor's Office has put in place, to gather updates on each station in the network, once a minute -- or around 2 million data points total. More information about methods, as well as a savable, sortable and searchable table of all cumulative station data is to be found at the bottom of this post.
 
 # Midnight biking
 Looking at all the bike moves across the entire network, there is a perhaps unsurprisingly cicadian rhythm to the use of the bikeshare system, rising during the day, and falling at night. Some elements stand out -- the 13:00-14:00 hour on the 14th, as Paris resumed life following the parade, and 0:00-1:00 on the 15th, immediately following the fireworks.
@@ -42,7 +42,7 @@ This same pattern is also borne out when looking at the distribution of bike mov
 ![](/images/velib_bastille/violin_plots.png)
 
 # Usage over 24 hours
-Usage by station can also be mapped, here using the open-source Stamen Design maps, which build on OpenStreetMap data. Here I combine data on the number of bikes taken out over 24 hours (usage), with an indicator of strain, which corresponds to usage as a percentage of station capacity. Station capacity ranges from around 10 bikes, to 74 at the largest location at Emeriau-Beaugrenelle.
+Usage by station can also be mapped, here using the open-source Stamen Design maps, which build on OpenStreetMap data. I combine data on the number of bikes taken out from the station over 24 hours (usage), with an indicator of strain, which corresponds to usage as a percentage of station capacity. Station capacity ranges from around 10 bikes, to 74 at the largest location at Emeriau-Beaugrenelle.
 ![](/images/velib_bastille/strain_usage_24hours.png)
 Some observations based on that map: 
 * **The centre of Paris (unsurprisingly) gets most of the attention**. People are coming in to the centre, or switching modes at the centre.
@@ -59,6 +59,7 @@ The distribution of stations in Paris is not uniform, with the suburbs having ma
   <img alt="Dark" src="/images/velib_bastille/longitude.png" width="45%">
 </p>
 
+
 # Closing thoughts: Fireworks to celebrate the system
 Usage also varies over time. And indeed, zooming in on Bastille Day itself, we can see that the area around the Eiffel Tower, in the Southwest corner, does see a lot of bike usage and strain around the time of the fireworks (23:00 on the 14th through 01:00 on the 15th).
 ![](/images/velib_bastille/hourly_strain_maps_light_slow.gif) 
@@ -73,6 +74,8 @@ Looking at Vélib' highlights how popular it is, and how far the city has alread
 </p>
 
 
+
+
 # A brief note about methods and the data 
 I collect this data by querying the API in real time, every minute over 24 hours. The API returns a status for every station in the system -- combining the with information for the previous minute, I can get a sense of how many bikes are moving in the system. This is therefore likely an undercount. While some bike changes may correspond not to use but to signaling due to malfunction (which would lead to an overcount), more likely will not be counted since, especially at popular stations, it is possible that someone would take out a bike while someone returns a bike in the same minute (leading to an undercount). The data was stored in an SQL database. Feel free to contact me for more information about the methods or for the code used. 
 
@@ -82,13 +85,13 @@ The Paris Mayor's Office open data website, ["Paris Data"](https://opendata.pari
 
 Color choices in charts benefit from Kennedy Design's [color picker](https://www.learnui.design/tools/data-color-picker.html).
 
-# Station closures
+## Station closures
 It is also worth mentioning that some stations were closed for all or some part of the festivities, as visible below. In particular, it is clear that some stations were closed near the Bastille day festivities, including the parade on the Champs-Elysees, and viewing of the fireworks at Trocadero.
 
 ![](/images/velib_bastille/closed_stations.png)
 
 
-# Sortable table of cumulative data
+## Sortable table of cumulative data
 This table provides the cumulative data over 24 hours, and is available for download. You can also use the buttons to sort the data, or the search bar to find the stats for a specific bike station. 
 
 <iframe src="/images/velib_bastille/sortable_table.html" height="600px" width="100%" style="border:none;"></iframe>
