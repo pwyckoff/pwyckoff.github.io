@@ -20,20 +20,16 @@ tags:
   <img alt="Dark" src="/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif" width="45%">
 </p>
 
-Strain                                                        |  Usage
-:------------------------------------------------------------:|:-------------------------------------------------------------------:
-![](/images/velib_bastille/hourly_strain_maps_dark_fast.gif)  |  ![](/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif)
+Shifting to more sustainable societies will require more environmentally-friendly ways of getting around. **Bike share systems constitute a collective, active and gentle transportation option to get around cities.** 
 
-Shifting to more sustainable societies will require more environmentally-friendly ways of getting around. Bike share systems constitute a collective, active and gentle transportation option to get around cities. 
-
-In 2007, the Paris Mayor's Office paired the public tender of its advertising display market with a bikeshare market, leading to the launch of Vélib' that year. 
+In 2007, the Paris Mayor's Office paired the public tender of its advertising display market with a bikeshare market, leading to the launch of **Vélib'** that year. 
 * The bikeshare service now has 1400 docking points in the Greater Paris area, and over 20,000 bicycles (40% of which are electric). In 2020, it had over 400,000 subscribers (see more information [here](https://www.velib-metropole.fr/en/service)). 
 * Alongside efforts by the Paris Mayor's Office to expand bike lanes and bike ownership (more information [here](https://www.paris.fr/pages/un-nouveau-plan-velo-pour-une-ville-100-cyclable-19554), it has contributed to a boom in bike ridership in the French capital. 
 * Bike ridership has increased by more than [5 times over two decades](https://www.lemonde.fr/blog/transports/2022/01/17/paris-le-bilan-des-deplacements-2020-en-dix-chiffres/). 
 
 So what does one of the world's most famous bikeshares look like, on one of its city's most famous nights? 
 
-In this project, I  track usage of the Paris Vélib' system from 1 PM on Bastille day through to 1 PM the next day. To do so, I leverage the [excellent open data system](https://opendata.paris.fr/pages/home/) that the Paris Mayor's Office has put in place, to gather updates on each station in the network, once a minute -- or around 2 million data points total. More information about methods, as well as a savable, sortable and searchable table of all cumulative station data is tobe found at the bottom of this post.
+**In this project, I  track usage of the Paris Vélib' system from 1 PM on Bastille day through to 1 PM the next day.** To do so, I leverage the [excellent open data system](https://opendata.paris.fr/pages/home/) that the Paris Mayor's Office has put in place, to gather updates on each station in the network, once a minute -- or around 2 million data points total. More information about methods, as well as a savable, sortable and searchable table of all cumulative station data is tobe found at the bottom of this post.
 
 # Midnight biking
 Looking at all the bike moves across the entire network, there is a perhaps unsurprisingly cicadian rhythm to the use of the bikeshare system, rising during the day, and falling at night. Some elements stand out -- the 13:00-14:00 hour on the 14th, as Paris resumed life following the parade, and 0:00-1:00 on the 15th, immediately following the fireworks.
@@ -57,16 +53,24 @@ Some observations based on that map:
 # Latitude and Longitudes
 The distribution of stations in Paris is not uniform, with the suburbs having many fewer stations. Looking at the stations' usage by longitude and latitude, we can see that while some downtown stations have lower usage than the more ex-centric stations, on average, usage is higher centrally.
 
-![](/images/velib_bastille/latitude.png) ![](/images/velib_bastille/longitude.png)
-
+<p align="center">
+  <img alt="Light" src="/images/velib_bastille/latitude.png" width="45%">
+&nbsp; &nbsp; &nbsp; &nbsp;
+  <img alt="Dark" src="/images/velib_bastille/longitude.png" width="45%">
+</p>
 
 # Closing thoughts: Fireworks to celebrate the system
 Usage also varies over time. And indeed, zooming in on Bastille Day itself, we can see that the area around the Eiffel Tower, in the Southwest corner, does see a lot of bike usage and strain around the time of the fireworks (23:00 on the 14th through 01:00 on the 15th).
-![](/images/velib_bastille/hourly_strain_maps_light_slow.gif) ![](/images/velib_bastille/hourly_totalnumbers_maps_light_slow.gif)
+![](/images/velib_bastille/hourly_strain_maps_light_slow.gif) 
+![](/images/velib_bastille/hourly_totalnumbers_maps_light_slow.gif)
 
 Looking at Vélib' highlights how popular it is, and how far the city has already come in building up bikes as a viable means of transportation. As the network continues to expand, it could strive to fill some of the gaps in the suburbs, and to relieve strain on some of its most popular stations. I stylised these last tow maps a bit, getting rid of the map and legend, to make them look more like fireworks -- a worth celebration of a remarkable bike share system. Bonne fête nationale à tous·tes!
 
-![](/images/velib_bastille/hourly_strain_maps_dark_fast.gif) ![](/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif)
+<p align="center">
+  <img alt="Light" src="/images/velib_bastille/hourly_strain_maps_dark_fast.gif" width="45%">
+&nbsp; &nbsp; &nbsp; &nbsp;
+  <img alt="Dark" src="/images/velib_bastille/hourly_totalnumbers_maps_dark_fast.gif" width="45%">
+</p>
 
 
 # A brief note about methods and the data 
