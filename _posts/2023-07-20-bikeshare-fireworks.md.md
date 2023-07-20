@@ -21,7 +21,7 @@ tags:
 </p>
 
 
-**What does one of the world's most famous bikeshares look like, on one of its city's most famous holidays?** In this project, I track use of the Paris Vélib' system from 13:00 on Bastille day (July 14, 2023) through to 13:00 the next day (stylized as fireworks, above). Some key findings: 
+**What does one of the world's most famous bikeshares look like, on one of its city's most famous holidays?** In this project, I track use of the Paris Vélib' system from 13:00 on Bastille day (July 14, 2023) through to 13:00 the next day. And I thought I would stylize that day's Vélib usage to look like fireworks -- a reminder of how lively, communal and exciting bikeshares can be when they are popular. Some key findings from this project: 
 * the **city centre** dominates overall in terms of usage, but the area around the Eiffel Tower saw high usage following the fireworks
 * the system saw at least **187,000 docking movements**, or the equivalent of at least around 95,000 trips, over the 24 hours. At peak times, some stations saw around 1 dock movement/minute. 
 * **most stations (1190, 84% of total) had the equivalent of their entire capacity organically replaced over the day**, rising to more than 5 full replacements for 61 stations .
