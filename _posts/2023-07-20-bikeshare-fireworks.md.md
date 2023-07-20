@@ -2,7 +2,7 @@
 title: "Bike Share Fireworks"
 layout: single
 excerpt: "What does bike share use look like in Paris around Bastille Day? Plenty of fireworks" 
-date: "2023-07-17"
+date: "2023-07-20"
 permalink: /posts/2023/07/bikeshare-fireworks
 toc: true
 toc_label: "Bike Share Fireworks"
