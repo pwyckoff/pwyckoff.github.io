@@ -38,7 +38,7 @@ In 2007, the Paris Mayor's Office paired the public tender of its advertising di
 **As mentioned, in this project, I  tracked usage of the Paris Vélib' system from 13:00 EST on Bastille day through to 13:00 EST the next day.** To do so, I leveraged the [excellent open data system](https://opendata.paris.fr/pages/home/) that the Paris Mayor's Office has put in place, to gather updates on each station in the network, once a minute -- or around **2 million data points total**. More information about [methods](#a-brief-note-about-methods-and-the-data), as well as a savable, sortable and searchable [table](#sortable-table-of-cumulative-data) of all cumulative station data is to be found at the bottom of this post.
 
 ## Midnight biking
-Looking at all the bike moves across the entire network, there is a perhaps unsurprisingly cicadian rhythm to the use of the bikeshare system, rising during the day, and falling at night. Some elements stand out -- the **13:00-14:00 hour on the 14th**, as Paris resumed life following the parade, and **00:00-01:00 on the 15th**, the hour that includes and follows the fireworks.
+Looking at all the bike moves across the entire network, there is a perhaps unsurprisingly circadian rhythm to the use of the bikeshare system, rising during the day, and falling at night. Some elements stand out -- the **13:00-14:00 hour on the 14th**, as Paris resumed life following the parade, and **00:00-01:00 on the 15th**, the hour that includes and follows the fireworks.
 
 ![](/images/velib_bastille/hourly_total_evolutions.png)
 
