@@ -21,12 +21,12 @@ tags:
   <img alt="Dark" src="/images/velib_bastille/hourly_totalnumbers_maps_dark_long_nolabels.gif" width="45%">
 </p>
 
+**À quoi ressemble l'un des services de vélo-partage les plus célèbres au monde, lors de l'un des jours les plus célèbres de sa ville-hôte?** Dans ce projet, j'étudie l'utilisation du service Vélib' de 13:00 le jour de la Bastille (14 juillet, 2023) à 13:00 le lendemain. En stylisant les données un peu, cela donne les feux d'artifice ci-dessus - soulignant comment les systèmes de vélo-partage peuvent être vivants, communautaires et excitants lorsqu'ils sont populaires. Quelques résultats clés du projet: 
+* le **centre-ville** domine globalement en utilisation, mais la zone autour de la tour Eiffel a connu une forte utilisation suite aux feux d'artifice
+* le service a enregistré plus de **187,000 mouvements d'accostage**, soit l'équivalent d'au moins environ 95 000 trajets, au cours des 24 heures. Aux heures de pointe, certaines stations ont enregistré environ 1 mouvement/minute.
+* **la plupart des stations (1190, 84 % du total) ont vu l'équivalent de toute leur capacité remplacée de manière organique au cours de la journée.** Les 61 stations les plus populaires ont vu plus de 5 remplacements complets.
+* les abords des pistes cyclables, notamment la rue de Rivoli et le boulevard Sébastopol ont connu une utilisation importante, soulignant **l'importance du développement d'infrastructures intelligentes pour encourager l'utilisation.**
 
-**What does one of the world's most famous bikeshares look like, on one of its city's most famous holidays?** In this project, I track use of the Paris Vélib' system from 13:00 on Bastille day (July 14, 2023) through to 13:00 the next day. And I thought I would stylize that day's Vélib usage to look like fireworks -- a reminder of how lively, communal and exciting bikeshares can be when they are popular. Some key findings from this project: 
-* the **city centre** dominates overall in terms of usage, but the area around the Eiffel Tower saw high usage following the fireworks
-* the system saw at least **187,000 docking movements**, or the equivalent of at least around 95,000 trips, over the 24 hours. At peak times, some stations saw around 1 dock movement/minute. 
-* **most stations (1190, 84% of total) had the equivalent of their entire capacity organically replaced over the day**, rising to more than 5 full replacements for 61 stations .
-* areas around bike lanes, notably the rue de Rivoli and Boulevard Sébastopol saw significant usage, underlying the **importance of smart infrastructure development to encourage usage**.
 
 ## Bike shares, sustainability, Vélib'
 Shifting to more sustainable societies will require more environmentally-friendly ways of getting around. **Bike share systems constitute a collective, active and gentle transportation option to get around cities.** 
