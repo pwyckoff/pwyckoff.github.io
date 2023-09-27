@@ -12,6 +12,7 @@ tags:
   - media
   - text analysis
 ---
+{% include toc %}
 
 Media attention has a significant impact on the politics of climate
 change (see Maxwell Boykoff’s work, for example). Coverage has an impact on public opinion, as well 
