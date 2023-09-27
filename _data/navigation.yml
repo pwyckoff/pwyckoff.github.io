@@ -9,7 +9,10 @@ main:
 
   - title: "Follow"
     url: /follow/
- 
+  
+  - title: "Teaching"
+    url: /teaching
+
   #- title: "CV"
   #  url: /cv/
     
