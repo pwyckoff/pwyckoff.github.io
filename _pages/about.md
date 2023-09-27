@@ -8,7 +8,7 @@ redirect_from:
   - /about.html
 ---
 
-I am an MRes/PhD student at the London School of Economics and Political Science, affiliated with the [Department of Government](https://www.lse.ac.uk/government) and the [Grantham Research Institute](https://www.lse.ac.uk/granthaminstitute/). My research interests include: 
+I am a PhD student at the London School of Economics and Political Science, affiliated with the [Department of Government](https://www.lse.ac.uk/government) and the [Grantham Research Institute](https://www.lse.ac.uk/granthaminstitute/). My research interests include: 
 * political economy
 * distributional impacts of climate change
 * electoral institutions 
