@@ -7,12 +7,12 @@ main:
   - title: "Blog Posts"
     url: /year-archive/
 
-  - title: "Follow"
-    url: /follow/
-  
   - title: "Teaching"
     url: /teaching
 
+  - title: "Follow"
+    url: /follow/
+  
   #- title: "CV"
   #  url: /cv/
     
