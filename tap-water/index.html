@@ -51,6 +51,8 @@ body{
   #mobBtn:hover{background:#334155;}
   #mobBtn.active{background:#1e3a5f;border-color:#3b82f6;color:#60a5fa;}
 }
+/* On phones the globe view is always active — no need for the toggle button */
+@media(max-width:599px){#mobBtn{display:none!important;}}
 
 #outerWrap{position:relative;}
 #svwrap{width:100%;overflow:hidden;}
@@ -610,16 +612,48 @@ async function init(){
   gs.filter(d=>d.lv==='subnational').append('circle').attr('r',R-3.5)
     .attr('fill','none').attr('stroke','rgba(255,255,255,0.55)').attr('stroke-width',1.2);
 
-  gs.on('mouseover',(ev,d)=>{
+  // ── Tooltip content helper ──────────────────────────────────────────────────
+  function showTip(d){
     ttEl.style.display='block';
     ttEl.innerHTML=`<div class="tn">${d.n}</div><div class="ts">${d.lv==='national'?'National':'Subnational'} · ${CL[d.c]}</div>${d.f?`<div class="td">${d.f}</div>`:''}`;
-  }).on('mousemove',ev=>{
+  }
+  // Position tooltip so it never overflows the container.
+  // We read its rendered width/height after setting innerHTML.
+  function placeTip(clientX,clientY){
     const rect=svwEl.getBoundingClientRect();
-    let tx=ev.clientX-rect.left+14,ty=ev.clientY-rect.top-50;
-    if(tx+240>W)tx=ev.clientX-rect.left-248;
-    if(ty<4)ty=4;
+    const TW=Math.min(ttEl.offsetWidth||230,230);
+    const TH=ttEl.offsetHeight||80;
+    const cx=clientX-rect.left;
+    const cy=clientY-rect.top;
+    // Prefer right of cursor; flip left if too close to right edge
+    let tx=(cx+14+TW<=W)?cx+14:cx-TW-10;
+    // Prefer above cursor; clamp to top
+    let ty=cy-TH-8;
+    if(ty<4)ty=cy+20;
+    // Hard clamp within container
+    tx=Math.max(4,Math.min(W-TW-4,tx));
+    ty=Math.max(4,ty);
     ttEl.style.left=tx+'px';ttEl.style.top=ty+'px';
-  }).on('mouseout',()=>{ttEl.style.display='none';});
+  }
+
+  // ── Mouse events (desktop) ──────────────────────────────────────────────────
+  gs.on('mouseover',(ev,d)=>{showTip(d);placeTip(ev.clientX,ev.clientY);})
+    .on('mousemove',ev=>{placeTip(ev.clientX,ev.clientY);})
+    .on('mouseout',()=>{ttEl.style.display='none';});
+
+  // ── Touch events (mobile) ───────────────────────────────────────────────────
+  // On phones there's no hover — use touchstart to show, touchend to position.
+  // Tapping anywhere else on the SVG dismisses the tooltip.
+  gs.on('touchstart',(ev,d)=>{
+    ev.preventDefault(); // prevent ghost mouse events
+    showTip(d);
+    const t=ev.touches[0];
+    placeTip(t.clientX,t.clientY);
+  },true);
+  svEl.on('touchstart.dismiss',(ev)=>{
+    // Dismiss if the touch didn't land on a bubble
+    if(!ev.target.closest('g.b'))ttEl.style.display='none';
+  });
 
   document.getElementById('btn').addEventListener('click',toggleChart);
   mobBtn.addEventListener('click',toggleGlobe);
@@ -679,7 +713,7 @@ function toMap(){
     .attr('transform',d=>bubPos(d));
   setTimeout(()=>{
     svEl.transition().duration(500).attr('height',H);
-    mobBtn.style.display='';
+    if(!IS_PHONE)mobBtn.style.display='';
     busy=false;mode='map';
   },1180);
 }
