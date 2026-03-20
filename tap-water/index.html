@@ -3,114 +3,679 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Can I get some tap water? — world map</title>
+<title>The price of a glass of water — Peter Wyckoff</title>
+<meta name="description" content="Why some countries mandate free restaurant tap water and others don't — and what the data shows about who's paying the price.">
+<meta property="og:title" content="The price of a glass of water">
+<meta property="og:description" content="Why some countries mandate free restaurant tap water and others don't — and what the data shows.">
+<meta property="og:url" content="https://pwyckoff.github.io/tap-water/">
+<meta property="og:type" content="article">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-  background:#f8fafc;color:#1e293b;
-  padding:16px;max-width:960px;margin:0 auto;
+/* ── Reset & base ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --text:       #1a1a1a;
+  --text-light: #555;
+  --text-muted: #999;
+  --bg:         #fafaf8;
+  --bg-card:    #fff;
+  --border:     #e8e8e4;
+  --accent:     #1a6faf;
+  --accent-dk:  #0f4a7a;
+  --green:      #16a34a;
+  --max-w:      740px;
+  --serif:      'DM Serif Display', Georgia, serif;
+  --sans:       'DM Sans', system-ui, sans-serif;
 }
-@media(prefers-color-scheme:dark){body{background:#0f172a;color:#e2e8f0;}}
 
-#vis{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
-@media(prefers-color-scheme:dark){#vis{background:#1e293b;border-color:#334155;}}
-
-#headline{font-size:20px;font-weight:700;line-height:1.3;margin:0 0 4px;}
-#subtitle{font-size:14px;line-height:1.4;margin:0 0 5px;}
-#caption{font-size:11px;color:#64748b;padding-bottom:9px;border-bottom:1px solid #e2e8f0;margin-bottom:10px;}
-@media(prefers-color-scheme:dark){#caption{color:#94a3b8;border-color:#334155;}}
-
-/* ── Legend — above the map, in normal flow ── */
-#leg{
-  display:flex;flex-wrap:wrap;gap:6px 16px;
-  background:#f8fafc;border:1px solid #e2e8f0;
-  border-radius:8px;padding:9px 12px;font-size:10.5px;
-  margin-bottom:10px;
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 17px;
+  font-weight: 400;
 }
-@media(prefers-color-scheme:dark){#leg{background:#0f172a;border-color:#334155;}}
-.leg-group{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:center;}
-.leg-label{font-size:8.5px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-right:4px;white-space:nowrap;}
-.li{display:flex;align-items:center;gap:5px;color:#1e293b;white-space:nowrap;}
-@media(prefers-color-scheme:dark){.li{color:#e2e8f0;}}
-.ld{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
 
-/* ── Topbar ── */
-#topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;}
-#scalebar{display:flex;align-items:center;gap:6px;font-size:10px;color:#64748b;}
-@media(prefers-color-scheme:dark){#scalebar{color:#94a3b8;}}
-#scaleramp{height:10px;width:90px;border-radius:3px;}
-#buttons{display:flex;gap:6px;align-items:center;}
-#btn{background:#16a34a;border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;}
-#btn:hover{background:#15803d;}
-#mobBtn{background:#f1f5f9;border:1px solid #cbd5e1;color:#475569;padding:8px 11px;border-radius:8px;cursor:pointer;font-size:12px;white-space:nowrap;}
-#mobBtn:hover{background:#e2e8f0;}
-#mobBtn.active{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8;font-weight:500;}
-@media(prefers-color-scheme:dark){
-  #mobBtn{background:#1e293b;border-color:#475569;color:#94a3b8;}
-  #mobBtn:hover{background:#334155;}
-  #mobBtn.active{background:#1e3a5f;border-color:#3b82f6;color:#60a5fa;}
+/* ── Layout ─────────────────────────────────────────────── */
+.container {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 24px;
 }
-/* On phones the globe view is always active — no need for the toggle button */
+
+/* Allow visuals to bleed slightly wider than text */
+.wide {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 16px;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 28px 0 24px;
+  margin-bottom: 52px;
+}
+
+.site-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.site-name:hover { color: var(--accent); }
+
+/* ── Article header ─────────────────────────────────────── */
+.article-header { margin-bottom: 40px; }
+
+.article-kicker {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+
+h1 {
+  font-family: var(--serif);
+  font-size: clamp(28px, 5vw, 42px);
+  line-height: 1.18;
+  color: #111;
+  margin-bottom: 18px;
+  font-weight: 400;
+}
+
+.article-dek {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--text-light);
+  line-height: 1.55;
+  margin-bottom: 22px;
+}
+
+.byline {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.byline a { color: var(--accent); text-decoration: none; }
+.byline a:hover { text-decoration: underline; }
+.byline-sep { color: var(--border); }
+
+/* ── Body text ──────────────────────────────────────────── */
+.prose p {
+  margin-bottom: 22px;
+  color: var(--text);
+}
+.prose p:last-child { margin-bottom: 0; }
+
+.prose a { color: var(--accent); }
+.prose a:hover { color: var(--accent-dk); }
+
+h2 {
+  font-family: var(--serif);
+  font-size: clamp(20px, 3vw, 26px);
+  font-weight: 400;
+  color: #111;
+  margin: 48px 0 18px;
+  line-height: 1.25;
+}
+
+/* ── Pull quote ─────────────────────────────────────────── */
+.pullquote {
+  border-left: 3px solid var(--accent);
+  margin: 36px 0;
+  padding: 4px 0 4px 22px;
+  font-family: var(--serif);
+  font-size: clamp(18px, 2.5vw, 22px);
+  font-style: italic;
+  color: var(--text-light);
+  line-height: 1.45;
+}
+
+/* ── Visual container ───────────────────────────────────── */
+.visual-wrap {
+  margin: 44px 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
+.visual-inner {
+  padding: 24px 20px 16px;
+}
+
+.visual-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 14px;
+  border-top: 1px solid var(--border);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.visual-credit {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-weight: 300;
+  line-height: 1.5;
+}
+.visual-credit a {
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 1px dotted #ccc;
+}
+.visual-credit a:hover { color: var(--accent); }
+
+.visual-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.share-btn, .replay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: none;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.share-btn:hover, .replay-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.share-btn svg, .replay-btn svg {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+/* Copied feedback */
+.share-btn.copied {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* ── Footnote / aside ───────────────────────────────────── */
+.aside {
+  background: #f0f4f8;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 32px 0;
+  font-size: 14px;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+.aside strong { color: var(--text); }
+
+/* ── Article footer ─────────────────────────────────────── */
+.article-footer {
+  margin-top: 64px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.license-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+.license-block a { color: var(--accent); text-decoration: none; }
+.license-block a:hover { text-decoration: underline; }
+
+.cc-badge {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+/* ── Bar chart ──────────────────────────────────────────── */
+#bar-svg { width: 100%; display: block; overflow: visible; }
+.country-label { font-family: var(--sans); dominant-baseline: middle; text-anchor: end; fill: #444; }
+.bar-label { font-family: var(--sans); dominant-baseline: middle; fill: #999; }
+.median-line { stroke: #ccc; stroke-dasharray: 3 3; }
+.median-label { font-family: var(--sans); fill: #bbb; }
+.x-gridline { stroke: #ebebeb; stroke-width: 1; }
+.x-tick { font-family: var(--sans); fill: #bbb; text-anchor: middle; }
+
+/* ── Map styles ─────────────────────────────────────────── */
+#map-wrap { font-family: var(--sans); }
+#map-vis { background: var(--bg-card); }
+#map-headline { font-size: 16px; font-weight: 600; line-height: 1.3; margin: 0 0 4px; color: var(--text); }
+#map-subtitle { font-size: 13px; color: var(--text-light); margin: 0 0 5px; }
+#map-caption { font-size: 11px; color: #94a3b8; padding-bottom: 9px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+#leg { display:flex; flex-wrap:wrap; gap:6px 16px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:10.5px; margin-bottom:10px; }
+.leg-group { display:flex; flex-wrap:wrap; gap:2px 10px; align-items:center; }
+.leg-label { font-size:8.5px; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; margin-right:4px; white-space:nowrap; }
+.li { display:flex; align-items:center; gap:5px; color:var(--text); white-space:nowrap; }
+.ld { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+#topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; flex-wrap:wrap; }
+#scalebar { display:flex; align-items:center; gap:6px; font-size:10px; color:#94a3b8; }
+#scaleramp { height:10px; width:90px; border-radius:3px; }
+#map-buttons { display:flex; gap:6px; align-items:center; }
+#map-btn { background:#16a34a; border:none; color:#fff; padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:500; white-space:nowrap; font-family:var(--sans); }
+#map-btn:hover { background:#15803d; }
+#mobBtn { background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; padding:7px 10px; border-radius:8px; cursor:pointer; font-size:12px; white-space:nowrap; font-family:var(--sans); }
+#mobBtn:hover { background:#e2e8f0; }
+#mobBtn.active { background:#dbeafe; border-color:#93c5fd; color:#1d4ed8; font-weight:500; }
 @media(max-width:599px){#mobBtn{display:none!important;}}
+#outerWrap { position:relative; }
+#svwrap { width:100%; overflow:hidden; }
+#sv { display:block; }
+.tt { position:absolute; display:none; background:#fff; border:1px solid #cbd5e1; box-shadow:0 4px 20px rgba(0,0,0,.18); padding:9px 12px; border-radius:8px; font-size:11.5px; pointer-events:none; max-width:230px; z-index:20; line-height:1.45; }
+.tn { font-weight:600; font-size:12px; color:var(--text); margin-bottom:2px; }
+.ts { color:#64748b; font-size:10.5px; }
+.td { color:#64748b; font-size:10.5px; margin-top:3px; }
 
-#outerWrap{position:relative;}
-#svwrap{width:100%;overflow:hidden;}
-svg{display:block;}
-
-/* ── Tooltip — fully opaque in both modes ── */
-.tt{
-  position:absolute;display:none;
-  background:#ffffff;
-  border:1px solid #cbd5e1;
-  box-shadow:0 4px 20px rgba(0,0,0,0.22);
-  padding:9px 12px;border-radius:8px;
-  font-size:11.5px;pointer-events:none;max-width:230px;z-index:20;line-height:1.45;
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 600px) {
+  body { font-size: 16px; }
+  .container, .wide { padding: 0 16px; }
+  .visual-inner { padding: 16px 12px 12px; }
+  .visual-footer { padding: 8px 12px 12px; }
 }
-@media(prefers-color-scheme:dark){
-  .tt{background:#1e293b;border-color:#475569;box-shadow:0 4px 20px rgba(0,0,0,0.6);}
-}
-.tn{font-weight:600;font-size:12px;color:#1e293b;margin-bottom:2px;}
-@media(prefers-color-scheme:dark){.tn{color:#e2e8f0;}}
-.ts{color:#64748b;font-size:10.5px;}
-.td{color:#64748b;font-size:10.5px;margin-top:3px;}
-@media(prefers-color-scheme:dark){.ts,.td{color:#94a3b8;}}
-
-footer{margin-top:12px;font-size:11px;color:#94a3b8;text-align:right;}
 </style>
 </head>
 <body>
-<div id="vis">
-  <div id="headline">Can I get some tap water? (It depends where you are)</div>
-  <div id="subtitle">Only 4 countries require free tap water in all restaurants, though more are working on it</div>
-  <div id="caption">Countries shaded by Yale EPI 2024 drinking water quality score (0–100) · bubbles show jurisdictions with laws or pending legislation · hover for details</div>
 
-  <!-- Legend above the map, in normal document flow -->
-  <div id="leg"></div>
+<!-- ── Site header ── -->
+<header>
+  <div class="container">
+    <a class="site-name" href="https://pwyckoff.github.io">Peter Wyckoff</a>
+  </div>
+</header>
 
-  <div id="topbar">
-    <div id="scalebar">
-      <span>Low general drinking water quality</span>
-      <canvas id="scaleramp" width="90" height="10"></canvas>
-      <span>High</span>
+<!-- ── Article ── -->
+<main>
+  <div class="container">
+    <div class="article-header">
+      <div class="article-kicker">Data · Policy · Economics</div>
+      <h1>The price of a glass of water</h1>
+      <p class="article-dek">Free tap water in restaurants is legally mandated in some countries and culturally unthinkable in others. Pricing data shed light on what that difference costs diners, as more countries consider adopting legislation.</p>
+      <div class="byline">
+        <span>By <a href="https://pwyckoff.github.io">Peter Wyckoff</a></span>
+        <span class="byline-sep">|</span>
+        <time datetime="2026-03">March 2026</time>
+      </div>
     </div>
-    <div id="buttons">
-      <button id="mobBtn">🌐 Globes</button>
-      <button id="btn">Switch to chart view →</button>
+
+    <div class="prose">
+      <p>The <em>carafe d'eau</em> has been a fixture of French restaurant tables since 1967, when an administrative decree (Arrêté n°25-268) required all restaurants to provide tap water free of charge as part of the standard table service. In Germany, no equivalent obligation exists, and bottled sparkling mineral water is the near-universal default.</p>
+
+      <p>Anglophone tourists visiting Europe may therefore often be surprised to find that they cannot get free tap water at a restaurant, but instead will have to pay for bottled.</p>
+
+      <p class="placeholder-note" style="background:#f0f4f8;border-radius:6px;padding:12px 16px;font-size:13px;color:#888;font-style:italic;">[Placeholder: reviews visual, if it comes]</p>
+
+      <p>To get a sense of how this varies across countries, we broadly estimate the share of revenue that food service establishments make off bottled water sales in 53 countries over 2011–2019, using Euromonitor Passport data.</p>
+
+      <p>France records a ratio of 1.8%. Germany's is 17.0%. Both countries have comparable incomes, comparable restaurant cultures, and major domestic bottled water industries. France is home to Evian, Volvic, and Perrier; Germany is Europe's largest per-capita sparkling water market by volume.</p>
     </div>
   </div>
 
-  <div id="outerWrap">
-    <div id="svwrap"><svg id="sv"></svg></div>
-    <div class="tt" id="tt"></div>
+  <!-- ── Chart 1: Bar chart ── -->
+  <div class="wide">
+    <div class="visual-wrap">
+      <div class="visual-inner">
+        <svg id="bar-svg"></svg>
+      </div>
+      <div class="visual-footer">
+        <div class="visual-credit">
+          <strong>Peter Wyckoff</strong> &nbsp;·&nbsp;
+          <a href="https://pwyckoff.github.io/tap-water/" target="_blank">pwyckoff.github.io/tap-water</a><br>
+          Source: Euromonitor Passport (March 2026). On-trade RSP value ÷ Consumer Foodservice value, avg. 2011–2019.
+          Values in local currency (within-country share). Pre-COVID average excludes 2020–21 distortions.
+        </div>
+        <div class="visual-actions">
+          <button class="replay-btn" id="barReplayBtn">
+            <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+            Replay
+          </button>
+          <button class="share-btn" data-url="https://pwyckoff.github.io/tap-water/" data-title="The price of a glass of water — Peter Wyckoff">
+            <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+            Share
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
-<footer>Data: Yale EPI 2024 · Laws verified to March 2026</footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+  <div class="container">
+    <div class="prose">
+      <p>The chart above ranks all 53 countries in the dataset by this measure. At the high end, Egypt (22%) and the UAE (18%) sit alongside Germany (17%) and Belgium (15%). The first two reflect genuine constraints on tap water access — but Germany and Belgium are less easily explained: both have excellent municipal water systems, and both lack any legal requirement for restaurants to offer free tap water.</p>
+
+      <p>At the low end, France sits at 1.8% and the United Kingdom at 0.9%.</p>
+    </div>
+
+    <div class="aside">
+      <strong>Data note.</strong> Both series are from Euromonitor Passport and denominated in local currency, so cross-country price-level differences do not affect the ratio — a country where restaurants charge more for everything will have a proportionally larger denominator. Euromonitor's modelled forecasts (from 2026 onwards) are excluded; only historical observations are used.
+    </div>
+
+    <h2>The regulatory landscape</h2>
+
+    <div class="prose">
+      <p>The regulatory landscape around these rules is generally unclear, partly due to slight variations in application across jurisdictions, and misleading websites. A 2017 poll by Keep Britain Tidy found that only 25% of the public knew when they could ask for water for free.</p>
+
+      <p>Across the world, 24 jurisdictions have free tap water rules for at least some types of restaurants. The logics behind these laws vary from consumer protection, to environmentalism, to public health.</p>
+
+      <p>In France, the obligation fits broadly within consumer protection: tap water became part of a mandatory and standardized table service bundle that also includes bread and cutlery. Water is a component of the meal price rather than a separately priced item.</p>
+
+      <p>In a number of countries, the focus has been more squarely on environmental sustainability. Spain introduced a national requirement in April 2022 through its Circular Economy Law. Romania followed in March 2024 under Government Ordinance 7/2023. Life-cycle assessments find that producing a litre of bottled water requires between 11 and 2,000 times the energy of delivering an equivalent litre through a tap system, depending on methodology and product (Bouhlel et al., <em>Sustainability</em>, 2023; Dettore, University of Michigan, 2009). The European Commission has estimated that universal restaurant tap water provision could save EU households over €600 million annually on bottled water costs. The Right2Water European Citizens' Initiative — which gathered 1.86 million signatures between 2012 and 2013, making it the first initiative to surpass the threshold — cited these figures in its demands, and contributed to the revised EU Drinking Water Directive (2020/2184), which encourages but does not require member states to mandate free tap water in food service.</p>
+
+      <p>Other countries have focused on public health reasoning. Israel is notable as the only country requiring water to be brought to the table proactively, without being requested, broadly as part of a concern for hydration of customers. The United Kingdom and New Zealand anchor their requirements in alcohol licensing law rather than consumer protection. The UK's Mandatory Licensing Conditions Order (2010) requires any premises licensed to sell alcohol to provide free tap water on request — a rationale grounded in reducing alcohol-related harm rather than protecting consumers from overcharging.</p>
+
+      <p>All Australian states replicate this model through their respective liquor licensing acts. Enforcement is variable: a 2017 survey by Keep Britain Tidy found only 25% of the UK public were aware of the right. Mexico City mandated water filters in all restaurants in 2014–15, framed as a public health intervention in a country that leads the world in per-capita bottled water consumption, in part because of deep-seated distrust of municipal water following the 1985 earthquake.</p>
+
+      <p>In Argentina, a "Derecho de Jarras" movement has built a patchwork of provincial and municipal laws since 2009, covering Buenos Aires Province, the city of Buenos Aires, Rosario, Córdoba, Neuquén, La Pampa, and Santa Fe. In Brazil, Rio de Janeiro state has had a law since 1995 and the Distrito Federal since 1998, while São Paulo's 2023 state-level law was declared unconstitutional by the court of justice within 24 hours of coming into force — with the Supreme Court upholding that ruling in September 2025 on the grounds that it violated free enterprise principles.</p>
+    </div>
+  </div>
+
+  <!-- ── Chart 2: Map ── -->
+  <div class="wide">
+    <div class="visual-wrap" id="map-wrap">
+      <div class="visual-inner" id="map-vis">
+        <div id="map-headline">Can I get some tap water? (It depends where you are)</div>
+        <div id="map-subtitle">Laws requiring free restaurant tap water, and drinking water quality</div>
+        <div id="map-caption">Countries shaded by Yale EPI 2024 drinking water quality score (0–100) · bubbles show jurisdictions with laws or pending legislation · hover for details</div>
+        <div id="leg"></div>
+        <div id="topbar">
+          <div id="scalebar">
+            <span>Low water quality</span>
+            <canvas id="scaleramp" width="90" height="10"></canvas>
+            <span>High</span>
+          </div>
+          <div id="map-buttons">
+            <button id="mobBtn">🌐 Globes</button>
+            <button id="map-btn">Switch to chart view →</button>
+          </div>
+        </div>
+        <div id="outerWrap">
+          <div id="svwrap"><svg id="sv"></svg></div>
+          <div class="tt" id="tt"></div>
+        </div>
+      </div>
+      <div class="visual-footer">
+        <div class="visual-credit">
+          <strong>Peter Wyckoff</strong> &nbsp;·&nbsp;
+          <a href="https://pwyckoff.github.io/tap-water/" target="_blank">pwyckoff.github.io/tap-water</a><br>
+          Law coding: author's own, verified to March 2026. Water quality: Yale EPI 2024.
+        </div>
+        <div class="visual-actions">
+          <button class="share-btn" data-url="https://pwyckoff.github.io/tap-water/" data-title="The price of a glass of water — Peter Wyckoff">
+            <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+            Share
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="aside">
+      <strong>Map data note.</strong> Law coding is the author's own, based on primary legislation and verified to March 2026. Subnational laws are shown separately from national mandates. "Legislation pending" denotes bills that have passed at least one parliamentary stage. Countries without an EPI score are shown in grey.
+    </div>
+
+    <div class="prose">
+      <p>Several further countries have legislation in progress. Chile's "Ley del Vaso de Agua" passed the Chamber of Deputies in December 2025. Peru's Health Committee approved a bill unanimously in September 2025. Poland has a pending proposal with 77.8% public support in March 2026 polling.</p>
+    </div>
+
+    <h2>"Hydraulic Hospitality"</h2>
+
+    <div class="prose">
+      <p>While legislation can help, it is not necessary to shift consumers away from bottled water. A number of countries — including the US, Canada, South Korea and Japan — have free tap water as a norm rather than a legal requirement. Chelcea's "Hydraulic Hospitality and the Waters of New York City Restaurants" (<em>Current Anthropology</em>, 2024) constitutes an ethnographic study of free water norms in American restaurants, and introduces the concept of "hydraulic hospitality" — the practice of providing abundant free water as what Chelcea calls "an almost costless loss leader, a lubricating gift that facilitates marketplace transactions." Chelcea traces the American norm to the temperance movement and early twentieth-century hospitality culture, and shows how servers simultaneously maintain the free water norm while also promoting bottled alternatives.</p>
+
+      <p>Norm-based priming can reinforce this message. Dorigoni and Bonini's field experiment in the <em>Journal of Environmental Psychology</em> (2023) tested whether a social-norm message — informing diners that two in three people in the area drink tap water — could shift ordering behaviour in an Italian restaurant where bottled water was the default. Bottled water orders fell by 12 percentage points, from 96% to 84% of water requests. The finding suggests that norm-based interventions can move behaviour even in contexts where bottled water is deeply embedded as the expected choice.</p>
+    </div>
+
+    <h2>Profits down the drain</h2>
+
+    <div class="prose">
+      <p>Beverage companies have been vociferous in protesting potential legislation. In 2010, Coca-Cola's "Cap the Tap" campaign framed the issue in starkly commercial terms:</p>
+    </div>
+
+    <div class="pullquote">
+      "Every time your business fills a cup or glass with tap water, it pours potential profits down the drain. The good news: Cap the Tap changes these dynamics by teaching crew members or wait staff suggestive selling techniques to convert requests for tap water into orders for revenue-generating beverages."
+      <div style="font-size:14px;margin-top:8px;font-style:normal;color:#999;">— Coca-Cola "Cap the Tap" campaign materials, 2010 (subsequently retired)</div>
+    </div>
+
+    <div class="prose">
+      <p>The campaign was eventually retired, but it highlights the ways in which customers' need for drinking water is viewed as a potential commodity, even where safe and freely available tap water exists. The cross-country pattern in this data is consistent with tap water mandates having a real effect on restaurant behaviour over the long run. Whether that effect runs through legal enforcement, norm change, or some combination is harder to say. The French case has now been running for long enough that it deserves a proper look.</p>
+    </div>
+  </div>
+</main>
+
+<!-- ── Article footer ── -->
+<footer class="article-footer">
+  <div class="container">
+    <div class="license-block">
+      <div class="cc-badge">🄯</div>
+      <div>
+        <strong>Peter Wyckoff</strong> &nbsp;·&nbsp;
+        <a href="mailto:p.s.wyckoff@lse.ac.uk">p.s.wyckoff@lse.ac.uk</a><br>
+        This work is licensed under
+        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">
+          CC BY-NC-SA 4.0
+        </a>
+        (Attribution–NonCommercial–ShareAlike). You may share and adapt this material
+        for non-commercial purposes, provided you credit the author and share under the same licence.
+        <a href="https://pwyckoff.github.io/tap-water/" target="_blank">pwyckoff.github.io/tap-water</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════════════════════
+     SCRIPT BLOCK 1 — Bar chart
+════════════════════════════════════════════════════════ -->
 <script>
-// ── Colour scheme ─────────────────────────────────────────────────────────────
+(function() {
+const dataFull = [
+  {country:"Nigeria",          short:"Nigeria",    value:0.01},
+  {country:"South Korea",      short:"S. Korea",   value:0.18},
+  {country:"Ireland",          short:"Ireland",    value:0.59},
+  {country:"Japan",            short:"Japan",      value:0.60},
+  {country:"China",            short:"China",      value:0.61},
+  {country:"New Zealand",      short:"NZ",         value:0.89},
+  {country:"United Kingdom",   short:"UK",         value:0.93},
+  {country:"Singapore",        short:"Singapore",  value:1.00},
+  {country:"Malaysia",         short:"Malaysia",   value:1.02},
+  {country:"Australia",        short:"Australia",  value:1.07},
+  {country:"Canada",           short:"Canada",     value:1.21},
+  {country:"Peru",             short:"Peru",       value:1.22},
+  {country:"Taiwan",           short:"Taiwan",     value:1.28},
+  {country:"Russia",           short:"Russia",     value:1.43},
+  {country:"Indonesia",        short:"Indonesia",  value:1.53},
+  {country:"Vietnam",          short:"Vietnam",    value:1.60},
+  {country:"Finland",          short:"Finland",    value:1.70},
+  {country:"France",           short:"France",     value:1.78},
+  {country:"Norway",           short:"Norway",     value:1.93},
+  {country:"South Africa",     short:"S. Africa",  value:2.12},
+  {country:"Slovakia",         short:"Slovakia",   value:2.23},
+  {country:"Hungary",          short:"Hungary",    value:2.25},
+  {country:"Israel",           short:"Israel",     value:2.28},
+  {country:"Chile",            short:"Chile",      value:2.32},
+  {country:"Brazil",           short:"Brazil",     value:2.37},
+  {country:"India",            short:"India",      value:2.37},
+  {country:"Sweden",           short:"Sweden",     value:2.68},
+  {country:"Colombia",         short:"Colombia",   value:3.35},
+  {country:"Morocco",          short:"Morocco",    value:3.67},
+  {country:"USA",              short:"USA",        value:3.88},
+  {country:"Spain",            short:"Spain",      value:4.29},
+  {country:"Ukraine",          short:"Ukraine",    value:4.36},
+  {country:"Romania",          short:"Romania",    value:4.38},
+  {country:"Argentina",        short:"Argentina",  value:4.51},
+  {country:"Czech Republic",   short:"Czech Rep.", value:4.90},
+  {country:"Netherlands",      short:"Netherlands",value:4.97},
+  {country:"Italy",            short:"Italy",      value:4.99},
+  {country:"Saudi Arabia",     short:"Saudi Ar.",  value:5.51},
+  {country:"Thailand",         short:"Thailand",   value:5.78},
+  {country:"Bulgaria",         short:"Bulgaria",   value:6.09},
+  {country:"Denmark",          short:"Denmark",    value:6.45},
+  {country:"Poland",           short:"Poland",     value:6.53},
+  {country:"Greece",           short:"Greece",     value:6.70},
+  {country:"Portugal",         short:"Portugal",   value:6.81},
+  {country:"Mexico",           short:"Mexico",     value:7.18},
+  {country:"Austria",          short:"Austria",    value:7.39},
+  {country:"Philippines",      short:"Philippines",value:8.06},
+  {country:"Switzerland",      short:"Switzerland",value:9.94},
+  {country:"Turkey",           short:"Turkey",     value:11.23},
+  {country:"Belgium",          short:"Belgium",    value:14.87},
+  {country:"Germany",          short:"Germany",    value:16.97},
+  {country:"United Arab Emirates",short:"UAE",     value:17.86},
+  {country:"Egypt",            short:"Egypt",      value:21.95},
+];
+
+const MEDIAN = 2.68;
+
+function getLayout() {
+  const w = document.getElementById('bar-svg').parentElement.offsetWidth;
+  const narrow = w < 480;
+  return {
+    w, narrow,
+    BAR_H:   narrow ? 6   : 8,
+    BAR_GAP: narrow ? 2   : 2.5,
+    LABEL_W: narrow ? 72  : 118,
+    RIGHT_M: narrow ? 36  : 46,
+    TOP_M:   18, BOTTOM_M: 28,
+    FONT_BAR:narrow ? 8.5 : 10.5,
+    FONT_CTY:narrow ? 8.5 : 11,
+    FONT_MED:narrow ? 8   : 10,
+    FONT_AXS:narrow ? 8   : 10,
+    labelKey:narrow ? 'short' : 'country',
+  };
+}
+
+const maxVal = d3.max(dataFull, d => d.value);
+const colScale = d3.scaleSequential()
+  .domain([0, maxVal])
+  .interpolator(d3.interpolate("#cce3f5", "#1a6faf"));
+
+let cancelTokens = [];
+
+function buildBar() {
+  const L = getLayout();
+  const n = dataFull.length;
+  const ROW_H = L.BAR_H + L.BAR_GAP;
+  const innerW = L.w - L.LABEL_W - L.RIGHT_M;
+  const svgH = L.TOP_M + n * ROW_H + L.BOTTOM_M;
+  const x = d3.scaleLinear().domain([0, 24]).range([0, innerW]);
+
+  const svg = d3.select("#bar-svg");
+  svg.selectAll("*").remove();
+  svg.attr("height", svgH).attr("viewBox", `0 0 ${L.w} ${svgH}`);
+
+  const g = svg.append("g").attr("transform", `translate(${L.LABEL_W},${L.TOP_M})`);
+
+  [0,5,10,15,20].forEach(t => {
+    g.append("line").attr("class","x-gridline")
+      .attr("x1",x(t)).attr("x2",x(t)).attr("y1",0).attr("y2",n*ROW_H);
+    g.append("text").attr("class","x-tick")
+      .style("font-size",`${L.FONT_AXS}px`)
+      .attr("x",x(t)).attr("y",n*ROW_H+16)
+      .text(t===0?"0%":`${t}%`);
+  });
+
+  g.append("line").attr("class","median-line")
+    .attr("x1",x(MEDIAN)).attr("x2",x(MEDIAN))
+    .attr("y1",0).attr("y2",n*ROW_H);
+  g.append("text").attr("class","median-label")
+    .style("font-size",`${L.FONT_MED}px`)
+    .attr("x",x(MEDIAN)+3).attr("y",9)
+    .text(`Median ${MEDIAN}%`);
+
+  dataFull.forEach((d,i) => {
+    svg.append("text").attr("class","country-label")
+      .style("font-size",`${L.FONT_CTY}px`)
+      .attr("x",L.LABEL_W-6)
+      .attr("y",L.TOP_M+i*ROW_H+L.BAR_H/2)
+      .text(d[L.labelKey]);
+  });
+
+  cancelTokens.forEach(clearTimeout);
+  cancelTokens = [];
+  g.selectAll(".bar,.bar-label").remove();
+
+  dataFull.forEach((d,i) => {
+    const yPos = i * ROW_H;
+    const bar = g.append("rect").attr("class","bar")
+      .attr("x",0).attr("y",yPos)
+      .attr("height",L.BAR_H).attr("width",0)
+      .attr("rx",1.5).attr("fill",colScale(d.value));
+    const lbl = g.append("text").attr("class","bar-label")
+      .style("font-size",`${L.FONT_BAR}px`)
+      .attr("x",2).attr("y",yPos+L.BAR_H/2)
+      .attr("opacity",0).text(`${d.value.toFixed(1)}%`);
+    const t = setTimeout(() => {
+      bar.transition().duration(220).ease(d3.easeCubicOut).attr("width",x(d.value));
+      lbl.transition().delay(180).duration(130).attr("x",x(d.value)+4).attr("opacity",1);
+    }, i * 42);
+    cancelTokens.push(t);
+  });
+}
+
+buildBar();
+let rTimer;
+window.addEventListener("resize", () => { clearTimeout(rTimer); rTimer = setTimeout(buildBar, 120); });
+document.getElementById("barReplayBtn").addEventListener("click", buildBar);
+})();
+</script>
+
+<!-- ════════════════════════════════════════════════════════
+     SCRIPT BLOCK 2 — Share buttons
+════════════════════════════════════════════════════════ -->
+<script>
+document.querySelectorAll('.share-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const url   = btn.dataset.url   || location.href;
+    const title = btn.dataset.title || document.title;
+    if (navigator.share) {
+      try { await navigator.share({ title, url }); } catch(e) {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        btn.classList.add('copied');
+        const orig = btn.innerHTML;
+        btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:11px;height:11px;fill:currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Copied!`;
+        setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
+      } catch(e) {}
+    }
+  });
+});
+</script>
+
+<!-- ════════════════════════════════════════════════════════
+     SCRIPT BLOCK 3 — Map (from original file)
+════════════════════════════════════════════════════════ -->
+<script>
 const dk=window.matchMedia('(prefers-color-scheme:dark)').matches;
 const K={
   bd:dk?'#2d5272':'#5e8fa8', gr:dk?'#1a3a52':'#9bbdce',
@@ -120,605 +685,142 @@ const K={
   sa:'#16a34a', sl:'#3d9e50', sn:dk?'#64748b':'#94a3b8',
   sp:dk?'#93c5fd':'#2563eb', nt:dk?'#7dd3fc':'#0369a1',
   sb:dk?'#4ade80':'#15803d', nodata:dk?'#1a2535':'#d0d8e0',
-  // Solid backgrounds for SVG overlays (globe labels etc.)
   labBg:dk?'rgba(15,23,42,0.92)':'rgba(255,255,255,0.92)',
   labTx:dk?'#cbd5e1':'#334155'
 };
-const BC={all:'#16a34a', licensed:'#86efac', pending:dk?'#60a5fa':'#2563eb'};
-const SC={all:'#15803d', licensed:'#4ade80', pending:dk?'#3b82f6':'#1d4ed8'};
-const CL={
-  all:'All hospitality — required',
-  licensed:'Licensed / conditional',
-  none:'No evidence found of a legal requirement',
-  pending:'Legislation pending'
-};
+const BC={all:'#16a34a',licensed:'#86efac',pending:dk?'#60a5fa':'#2563eb'};
+const SC={all:'#15803d',licensed:'#4ade80',pending:dk?'#3b82f6':'#1d4ed8'};
+const CL={all:'All hospitality — required',licensed:'Licensed / conditional',none:'No evidence found of a legal requirement',pending:'Legislation pending'};
 
-// ── Yale EPI 2024 ─────────────────────────────────────────────────────────────
-const YALE={
-  'Finland':100,'Germany':100,'Greece':100,'Ireland':100,'Italy':100,
-  'Switzerland':100,'United Kingdom':100,'United States of America':100,
-  'Norway':99.9,'Luxembourg':99.8,'Canada':99.7,'Iceland':99.4,'Australia':99.2,
-  'Austria':99.2,'Singapore':98.7,'Portugal':97.6,'Sweden':97.4,'Malta':97.1,
-  'Spain':95.7,'Montenegro':95.2,'Belgium':93.9,'Israel':93.8,'Denmark':93.4,
-  'Netherlands':91.3,'South Korea':88.9,'Cyprus':88.8,'Slovenia':88.2,
-  'France':87.6,'Slovakia':87.6,'Brunei Darussalam':87,'New Zealand':85.7,
-  'Latvia':83.4,'Chile':82.3,'Estonia':81.2,'Serbia':81,'Croatia':80.8,
-  'Russia':79.6,'Armenia':79.4,'Belarus':79.2,'Bosnia and Herzegovina':78.7,
-  'Poland':77.8,'Lithuania':77.1,'Uzbekistan':76.8,'Japan':76.7,'Georgia':76.1,
-  'Kazakhstan':75.9,'Ukraine':75.9,'China':75.7,'Uruguay':74.4,'Kuwait':73.6,
-  'Bulgaria':73.2,'Qatar':72.9,'Czech Republic':72.8,'Argentina':72.2,
-  'Hungary':71.4,'Albania':69.6,'Romania':69.6,'North Macedonia':69.4,
-  'Moldova':68.8,'Taiwan':68,'United Arab Emirates':67.8,'Iran':67.5,
-  'Bahrain':67,'Jordan':65.5,'Ecuador':64.5,'Mongolia':63.6,'Mauritius':63.4,
-  'Costa Rica':62.7,'Kyrgyzstan':62.6,'Oman':62.4,'Bahamas':61.9,
-  'Saudi Arabia':61.9,'Algeria':61.3,'Turkmenistan':61,'Turkiye':60.8,
-  'Brazil':60.1,'Tunisia':60.1,'Colombia':58.9,'Paraguay':58.3,'Barbados':58.1,
-  'Trinidad and Tobago':57.8,'Peru':57.7,'Iraq':57.4,'Mexico':57.4,'Cuba':57,
-  'Antigua and Barbuda':56.2,'Lebanon':55.8,'Viet Nam':55.2,'Egypt':54.3,
-  'Jamaica':53.5,'El Salvador':50.9,'Malaysia':50.9,'Azerbaijan':49.8,
-  'Morocco':49.5,'Panama':49.2,'Nicaragua':48.7,'Bolivia':47.7,'Venezuela':47.1,
-  'Thailand':44.6,'Philippines':40.4,'Nepal':34.7,'Bangladesh':32.6,
-  'Guatemala':31,'Indonesia':31,'Pakistan':27.9,'Ghana':27.8,'India':25.5,
-  'South Africa':25.2,'Kenya':21.7,'Nigeria':14.5,'Chad':4.6
-};
-const NM={
-  'Turkey':'Turkiye','Vietnam':'Viet Nam','South Korea':'South Korea',
-  'Dem. Rep. Congo':'Dem. Rep. Congo',"Côte d'Ivoire":"Cote d'Ivoire",
-  'Bosnia and Herz.':'Bosnia and Herzegovina','N. Macedonia':'North Macedonia',
-  'Brunei':'Brunei Darussalam','UAE':'United Arab Emirates',
-  'Central African Rep.':'Central African Republic','Eq. Guinea':'Equatorial Guinea'
-};
-const colorScale=dk
-  ?d3.scaleSequential(d3.interpolate('#2a1f0a','#4a90d9')).domain([0,100])
-  :d3.scaleSequential(d3.interpolate('#e8d5b0','#1a5a8a')).domain([0,100]);
-function landColor(f){
-  const n=f.properties&&f.properties.name;
-  const yn=NM[n]||n;const s=YALE[yn];
-  return s!==undefined?colorScale(s):K.nodata;
-}
+const YALE={'Finland':100,'Germany':100,'Greece':100,'Ireland':100,'Italy':100,'Switzerland':100,'United Kingdom':100,'United States of America':100,'Norway':99.9,'Luxembourg':99.8,'Canada':99.7,'Iceland':99.4,'Australia':99.2,'Austria':99.2,'Singapore':98.7,'Portugal':97.6,'Sweden':97.4,'Malta':97.1,'Spain':95.7,'Montenegro':95.2,'Belgium':93.9,'Israel':93.8,'Denmark':93.4,'Netherlands':91.3,'South Korea':88.9,'Cyprus':88.8,'Slovenia':88.2,'France':87.6,'Slovakia':87.6,'Brunei Darussalam':87,'New Zealand':85.7,'Latvia':83.4,'Chile':82.3,'Estonia':81.2,'Serbia':81,'Croatia':80.8,'Russia':79.6,'Armenia':79.4,'Belarus':79.2,'Bosnia and Herzegovina':78.7,'Poland':77.8,'Lithuania':77.1,'Uzbekistan':76.8,'Japan':76.7,'Georgia':76.1,'Kazakhstan':75.9,'Ukraine':75.9,'China':75.7,'Uruguay':74.4,'Kuwait':73.6,'Bulgaria':73.2,'Qatar':72.9,'Czech Republic':72.8,'Argentina':72.2,'Hungary':71.4,'Albania':69.6,'Romania':69.6,'North Macedonia':69.4,'Moldova':68.8,'Taiwan':68,'United Arab Emirates':67.8,'Iran':67.5,'Bahrain':67,'Jordan':65.5,'Ecuador':64.5,'Mongolia':63.6,'Mauritius':63.4,'Costa Rica':62.7,'Kyrgyzstan':62.6,'Oman':62.4,'Bahamas':61.9,'Saudi Arabia':61.9,'Algeria':61.3,'Turkmenistan':61,'Turkiye':60.8,'Brazil':60.1,'Tunisia':60.1,'Colombia':58.9,'Paraguay':58.3,'Barbados':58.1,'Trinidad and Tobago':57.8,'Peru':57.7,'Iraq':57.4,'Mexico':57.4,'Cuba':57,'Antigua and Barbuda':56.2,'Lebanon':55.8,'Viet Nam':55.2,'Egypt':54.3,'Jamaica':53.5,'El Salvador':50.9,'Malaysia':50.9,'Azerbaijan':49.8,'Morocco':49.5,'Panama':49.2,'Nicaragua':48.7,'Bolivia':47.7,'Venezuela':47.1,'Thailand':44.6,'Philippines':40.4,'Nepal':34.7,'Bangladesh':32.6,'Guatemala':31,'Indonesia':31,'Pakistan':27.9,'Ghana':27.8,'India':25.5,'South Africa':25.2,'Kenya':21.7,'Nigeria':14.5,'Chad':4.6};
+const NM={'Turkey':'Turkiye','Vietnam':'Viet Nam','South Korea':'South Korea','Dem. Rep. Congo':'Dem. Rep. Congo',"Côte d'Ivoire":"Cote d'Ivoire",'Bosnia and Herz.':'Bosnia and Herzegovina','N. Macedonia':'North Macedonia','Brunei':'Brunei Darussalam','UAE':'United Arab Emirates','Central African Rep.':'Central African Republic','Eq. Guinea':'Equatorial Guinea'};
+const colorScale=dk?d3.scaleSequential(d3.interpolate('#2a1f0a','#4a90d9')).domain([0,100]):d3.scaleSequential(d3.interpolate('#e8d5b0','#1a5a8a')).domain([0,100]);
+function landColor(f){const n=f.properties&&f.properties.name;const yn=NM[n]||n;const s=YALE[yn];return s!==undefined?colorScale(s):K.nodata;}
 
-// ── Data ──────────────────────────────────────────────────────────────────────
 const DATA=[
-  {id:'fr',  n:'France',                      f:'The carafe d\'eau has been a legal right since 1967. A restaurant was fined €8,000 in January 2026 for refusing.',                 lv:'national',    c:'all',     lat:46.23, lng:2.21},
-  {id:'es',  n:'Spain',                       f:'Embedded in the 2022 circular economy law. 98.5% of Spanish tap water meets WHO standards.',                                        lv:'national',    c:'all',     lat:40.46, lng:-3.75},
-  {id:'il',  n:'Israel',                      f:'A chilled pitcher must arrive before customers ask — the only country requiring proactive service. Charging is a criminal offence.', lv:'national',    c:'all',     lat:31.05, lng:34.85},
-  {id:'ro',  n:'Romania',                     f:'Government Ordinance 7/2023, enacted March 2024. Restaurants and catering services must provide free tap water on request.',         lv:'national',    c:'all',     lat:45.94, lng:24.96},
-  {id:'mx1', n:'Mexico City, Mexico',         f:'~65,000 restaurants must install purification filters. Enacted 2014 as an obesity-reduction measure.',                               lv:'subnational', c:'all',     lat:19.43, lng:-99.13},
-  {id:'br_rj',n:'Rio de Janeiro, Brazil',     f:'One of Latin America\'s oldest free-water laws (1995). Survived a constitutional challenge at the STF in 2024.',                    lv:'subnational', c:'all',     lat:-22.5, lng:-43.2},
-  {id:'br_df',n:'Brasília, Brazil',           f:'Requires water pitchers on tables during meals — no request needed. Upheld 16–1 on appeal in 2018.',                                lv:'subnational', c:'all',     lat:-15.78,lng:-47.93},
-  {id:'br_se',n:'Sergipe, Brazil',            f:'Enacted 2008, citing the human right to water two years before the UN formally recognised it.',                                     lv:'subnational', c:'all',     lat:-10.57,lng:-37.39},
-  {id:'ar_co',n:'Córdoba, Argentina',         f:'Partly aimed at nightclub owners who cut off bathroom taps to pressure patrons into buying drinks.',                                 lv:'subnational', c:'all',     lat:-31.42,lng:-64.19},
-  {id:'ar_ro',n:'Rosario, Argentina',         f:'Birthplace of the "derecho de jarras" movement, pioneered by Prof. Aníbal Faccendini in 2012.',                                     lv:'subnational', c:'all',     lat:-32.95,lng:-60.64},
-  {id:'ar_nq',n:'Neuquén, Argentina',         f:'Ley 3064/2017 — first Argentine province to adopt the derecho de jarras model.',                                                    lv:'subnational', c:'all',     lat:-38.95,lng:-68.07},
-  {id:'ar_lp',n:'La Pampa, Argentina',        f:'Ley 3.069/2018 — adopted a year after Neuquén.',                                                                                   lv:'subnational', c:'all',     lat:-36.62,lng:-64.29},
-  {id:'ar_sf',n:'Santa Fe, Argentina',        f:'Ley 13.935/2019 — covers 365 municipalities and 3.4 million people.',                                                              lv:'subnational', c:'all',     lat:-30.71,lng:-60.95},
-  {id:'ar_ba2',n:'Bariloche, Argentina',      f:'Ordinance cited that one in three local children had obesity, linking free water to child health.',                                  lv:'subnational', c:'all',     lat:-41.13,lng:-71.31},
-  {id:'gb',  n:'UK (Eng., Wales & Scotland)', f:'Mandatory in all licensed premises since 2008–2010. Justified by the £13bn annual cost of alcohol-related harm.',                   lv:'national',    c:'licensed',lat:54.37, lng:-2.3},
-  {id:'nz',  n:'New Zealand',                 f:'Part of a 2012 alcohol reform following nearly 10,000 public submissions to the Law Commission.',                                   lv:'national',    c:'licensed',lat:-40.90,lng:174.90},
-  {id:'au_ns',n:'New South Wales, Australia', f:'NSW Liquor Act 2007 — one of Australia\'s earliest state free-water provisions.',                                                   lv:'subnational', c:'licensed',lat:-33.87,lng:151.21},
-  {id:'au_vi',n:'Victoria, Australia',        f:'VGCCC actively monitors compliance at licensed premises.',                                                                          lv:'subnational', c:'licensed',lat:-37.81,lng:144.96},
-  {id:'au_wa',n:'W. Australia',               f:'Liquor Control Act 1988.',                                                                                                         lv:'subnational', c:'licensed',lat:-31.95,lng:115.86},
-  {id:'au_ql',n:'Queensland, Australia',      f:'Liquor Act 1992. Free water on request across all on-licence types.',                                                               lv:'subnational', c:'licensed',lat:-27.47,lng:153.03},
-  {id:'au_ta',n:'Tasmania, Australia',        f:'Recognised best practice under the Liquor Licensing Act.',                                                                         lv:'subnational', c:'licensed',lat:-42.88,lng:147.32},
-  {id:'us_il',n:'Illinois, USA',              f:'State law requires water at venues with capacity ≥100 or public area ≥5,000 sq ft.',                                               lv:'subnational', c:'licensed',lat:41.88, lng:-87.63},
-  {id:'ar_bp',n:'Buenos Aires, Argentina',    f:'Ley 15.439/2023, passed unanimously. ≥250ml free water per table at alcohol-licensed venues.',                                      lv:'subnational', c:'licensed',lat:-36.62,lng:-60.03},
-  {id:'ar_bc',n:'Buenos Aires city, Argentina',f:'Ley CABA 4.407/2013 — only when a cubierto (cover charge) is levied.',                                                            lv:'subnational', c:'licensed',lat:-34.60,lng:-58.38},
-  {id:'cl',  n:'Chile',                       f:'Ley del Vaso de Agua passed Chamber December 2025 (21–2–6). In second Senate stage.',                                               lv:'national',    c:'pending', lat:-33.0, lng:-70.5},
-  {id:'pl',  n:'Poland',                      f:'Lewica amendment: 0.5L free water per diner. 77.8% public support (March 2026) — coalition split.',                                 lv:'national',    c:'pending', lat:51.92, lng:19.15},
-  {id:'pa',  n:'Panama',                      f:'PL 498 passed first committee 2 March 2026. Narrow scope: fast-food combos only.',                                                  lv:'national',    c:'pending', lat:8.54,  lng:-80.78},
-  {id:'si',  n:'Slovenia',                    f:'ZPS consumer campaign 2024; a third of restaurants found refusing or charging. No bill yet.',                                        lv:'national',    c:'pending', lat:46.15, lng:14.99},
-  {id:'ar0', n:'Argentina',                   f:'Multiple federal bills stalled despite subnational laws across seven provinces and cities.',                                         lv:'national',    c:'pending', lat:-34.0, lng:-67.0},
-  {id:'us_ny',n:'New York, USA',              f:'Senate Bill S2981 (2023) would extend the free-water mandate to all food-service establishments.',                                   lv:'subnational', c:'pending', lat:42.9,  lng:-75.6},
-  {id:'pe',  n:'Peru',                        f:'Health Committee approved 19–0 a bill requiring restaurants and stores to provide up to 1L free on request (September 2025).',      lv:'national',    c:'pending', lat:-9.19, lng:-75.02},
-  // No legal requirement — shading + chart list only
-  {id:'at',n:'Austria',lv:'national',c:'none',lat:47.52,lng:14.55},
-  {id:'be',n:'Belgium',lv:'national',c:'none',lat:50.50,lng:4.47},
-  {id:'cz',n:'Czech Republic',lv:'national',c:'none',lat:49.82,lng:15.47},
-  {id:'dk2',n:'Denmark',lv:'national',c:'none',lat:56.26,lng:9.50},
-  {id:'ee',n:'Estonia',lv:'national',c:'none',lat:58.60,lng:25.01},
-  {id:'fi',n:'Finland',lv:'national',c:'none',lat:61.92,lng:25.75},
-  {id:'de',n:'Germany',lv:'national',c:'none',lat:51.17,lng:10.45},
-  {id:'gr',n:'Greece',lv:'national',c:'none',lat:39.07,lng:21.82},
-  {id:'hu',n:'Hungary',lv:'national',c:'none',lat:47.16,lng:19.50},
-  {id:'is',n:'Iceland',lv:'national',c:'none',lat:64.96,lng:-19.02},
-  {id:'ie',n:'Ireland',lv:'national',c:'none',lat:53.41,lng:-8.24},
-  {id:'it',n:'Italy',lv:'national',c:'none',lat:41.87,lng:12.57},
-  {id:'lv2',n:'Latvia',lv:'national',c:'none',lat:56.88,lng:24.60},
-  {id:'lt',n:'Lithuania',lv:'national',c:'none',lat:55.17,lng:23.88},
-  {id:'lu',n:'Luxembourg',lv:'national',c:'none',lat:49.82,lng:6.13},
-  {id:'nl',n:'Netherlands',lv:'national',c:'none',lat:52.13,lng:5.29},
-  {id:'no',n:'Norway',lv:'national',c:'none',lat:60.47,lng:8.47},
-  {id:'pt',n:'Portugal',lv:'national',c:'none',lat:39.40,lng:-8.22},
-  {id:'sk',n:'Slovakia',lv:'national',c:'none',lat:48.67,lng:19.70},
-  {id:'se',n:'Sweden',lv:'national',c:'none',lat:60.13,lng:18.64},
-  {id:'ch',n:'Switzerland',lv:'national',c:'none',lat:46.82,lng:8.23},
-  {id:'tr',n:'Turkey',lv:'national',c:'none',lat:38.96,lng:35.24},
-  {id:'ru',n:'Russia',lv:'national',c:'none',lat:60.0,lng:99.0},
-  {id:'rs',n:'Serbia',lv:'national',c:'none',lat:44.02,lng:21.01},
-  {id:'hr',n:'Croatia',lv:'national',c:'none',lat:45.10,lng:15.20},
-  {id:'am',n:'Armenia',lv:'national',c:'none',lat:40.07,lng:45.04},
-  {id:'by',n:'Belarus',lv:'national',c:'none',lat:53.71,lng:27.97},
-  {id:'ba',n:'Bosnia & Herzegovina',lv:'national',c:'none',lat:44.17,lng:17.68},
-  {id:'uz',n:'Uzbekistan',lv:'national',c:'none',lat:41.38,lng:64.59},
-  {id:'ge',n:'Georgia',lv:'national',c:'none',lat:42.32,lng:43.36},
-  {id:'kz',n:'Kazakhstan',lv:'national',c:'none',lat:48.02,lng:66.92},
-  {id:'ua',n:'Ukraine',lv:'national',c:'none',lat:49.38,lng:31.17},
-  {id:'bg',n:'Bulgaria',lv:'national',c:'none',lat:42.73,lng:25.49},
-  {id:'mk',n:'N. Macedonia',lv:'national',c:'none',lat:41.61,lng:21.75},
-  {id:'md',n:'Moldova',lv:'national',c:'none',lat:47.41,lng:28.37},
-  {id:'al',n:'Albania',lv:'national',c:'none',lat:41.15,lng:20.17},
-  {id:'me',n:'Montenegro',lv:'national',c:'none',lat:42.71,lng:19.37},
-  {id:'uy',n:'Uruguay',lv:'national',c:'none',lat:-32.52,lng:-55.77},
-  {id:'co',n:'Colombia',lv:'national',c:'none',lat:4.57,lng:-74.30},
-  {id:'ec',n:'Ecuador',lv:'national',c:'none',lat:-1.83,lng:-78.18},
-  {id:'py',n:'Paraguay',lv:'national',c:'none',lat:-23.44,lng:-58.44},
-  {id:'tt',n:'Trinidad & Tobago',lv:'national',c:'none',lat:10.65,lng:-61.52},
-  {id:'tw',n:'Taiwan',lv:'national',c:'none',lat:23.70,lng:120.96},
-  {id:'ir',n:'Iran',lv:'national',c:'none',lat:32.43,lng:53.69},
-  {id:'mn',n:'Mongolia',lv:'national',c:'none',lat:46.86,lng:103.85},
-  {id:'ca',n:'Canada',lv:'national',c:'none',lat:56.13,lng:-96.35},
-  {id:'mx0',n:'Mexico (national)',lv:'national',c:'none',lat:26.0,lng:-104.5},
-  {id:'us0',n:'United States (national)',lv:'national',c:'none',lat:39.0,lng:-99.0},
-  {id:'br0',n:'Brazil (national)',lv:'national',c:'none',lat:-10.0,lng:-53.0},
-  {id:'cr',n:'Costa Rica',lv:'national',c:'none',lat:9.75,lng:-83.75},
-  {id:'cn',n:'China',lv:'national',c:'none',lat:35.86,lng:104.2},
-  {id:'jp',n:'Japan',lv:'national',c:'none',lat:36.20,lng:138.25},
-  {id:'my',n:'Malaysia',lv:'national',c:'none',lat:4.21,lng:108.96},
-  {id:'sg',n:'Singapore',lv:'national',c:'none',lat:1.35,lng:103.82},
-  {id:'kr',n:'South Korea',lv:'national',c:'none',lat:35.91,lng:127.77},
-  {id:'bh',n:'Bahrain',lv:'national',c:'none',lat:26.07,lng:50.55},
-  {id:'jo',n:'Jordan',lv:'national',c:'none',lat:30.59,lng:36.24},
-  {id:'kw',n:'Kuwait',lv:'national',c:'none',lat:29.31,lng:47.48},
-  {id:'qa',n:'Qatar',lv:'national',c:'none',lat:25.35,lng:51.18},
-  {id:'sa',n:'Saudi Arabia',lv:'national',c:'none',lat:24.0,lng:45.08},
-  {id:'ae',n:'UAE',lv:'national',c:'none',lat:24.47,lng:54.37},
-  {id:'au0',n:'Australia (national)',lv:'national',c:'none',lat:-25.0,lng:133.0},
+  {id:'fr',n:'France',f:"The carafe d'eau has been a legal right since 1967. A restaurant was fined €8,000 in January 2026 for refusing.",lv:'national',c:'all',lat:46.23,lng:2.21},
+  {id:'es',n:'Spain',f:'Embedded in the 2022 circular economy law. 98.5% of Spanish tap water meets WHO standards.',lv:'national',c:'all',lat:40.46,lng:-3.75},
+  {id:'il',n:'Israel',f:'A chilled pitcher must arrive before customers ask — the only country requiring proactive service. Charging is a criminal offence.',lv:'national',c:'all',lat:31.05,lng:34.85},
+  {id:'ro',n:'Romania',f:'Government Ordinance 7/2023, enacted March 2024. Restaurants and catering services must provide free tap water on request.',lv:'national',c:'all',lat:45.94,lng:24.96},
+  {id:'mx1',n:'Mexico City, Mexico',f:'~65,000 restaurants must install purification filters. Enacted 2014 as an obesity-reduction measure.',lv:'subnational',c:'all',lat:19.43,lng:-99.13},
+  {id:'br_rj',n:'Rio de Janeiro, Brazil',f:"One of Latin America's oldest free-water laws (1995). Survived a constitutional challenge at the STF in 2024.",lv:'subnational',c:'all',lat:-22.5,lng:-43.2},
+  {id:'br_df',n:'Brasília, Brazil',f:'Requires water pitchers on tables during meals — no request needed. Upheld 16–1 on appeal in 2018.',lv:'subnational',c:'all',lat:-15.78,lng:-47.93},
+  {id:'br_se',n:'Sergipe, Brazil',f:'Enacted 2008, citing the human right to water two years before the UN formally recognised it.',lv:'subnational',c:'all',lat:-10.57,lng:-37.39},
+  {id:'ar_co',n:'Córdoba, Argentina',f:'Partly aimed at nightclub owners who cut off bathroom taps to pressure patrons into buying drinks.',lv:'subnational',c:'all',lat:-31.42,lng:-64.19},
+  {id:'ar_ro',n:'Rosario, Argentina',f:'Birthplace of the "derecho de jarras" movement, pioneered by Prof. Aníbal Faccendini in 2012.',lv:'subnational',c:'all',lat:-32.95,lng:-60.64},
+  {id:'ar_nq',n:'Neuquén, Argentina',f:'Ley 3064/2017 — first Argentine province to adopt the derecho de jarras model.',lv:'subnational',c:'all',lat:-38.95,lng:-68.07},
+  {id:'ar_lp',n:'La Pampa, Argentina',f:'Ley 3.069/2018 — adopted a year after Neuquén.',lv:'subnational',c:'all',lat:-36.62,lng:-64.29},
+  {id:'ar_sf',n:'Santa Fe, Argentina',f:'Ley 13.935/2019 — covers 365 municipalities and 3.4 million people.',lv:'subnational',c:'all',lat:-30.71,lng:-60.95},
+  {id:'ar_ba2',n:'Bariloche, Argentina',f:'Ordinance cited that one in three local children had obesity, linking free water to child health.',lv:'subnational',c:'all',lat:-41.13,lng:-71.31},
+  {id:'gb',n:'UK (Eng., Wales & Scotland)',f:'Mandatory in all licensed premises since 2008–2010. Justified by the £13bn annual cost of alcohol-related harm.',lv:'national',c:'licensed',lat:54.37,lng:-2.3},
+  {id:'nz',n:'New Zealand',f:'Part of a 2012 alcohol reform following nearly 10,000 public submissions to the Law Commission.',lv:'national',c:'licensed',lat:-40.90,lng:174.90},
+  {id:'au_ns',n:'New South Wales, Australia',f:"NSW Liquor Act 2007 — one of Australia's earliest state free-water provisions.",lv:'subnational',c:'licensed',lat:-33.87,lng:151.21},
+  {id:'au_vi',n:'Victoria, Australia',f:'VGCCC actively monitors compliance at licensed premises.',lv:'subnational',c:'licensed',lat:-37.81,lng:144.96},
+  {id:'au_wa',n:'W. Australia',f:'Liquor Control Act 1988.',lv:'subnational',c:'licensed',lat:-31.95,lng:115.86},
+  {id:'au_ql',n:'Queensland, Australia',f:'Liquor Act 1992. Free water on request across all on-licence types.',lv:'subnational',c:'licensed',lat:-27.47,lng:153.03},
+  {id:'au_ta',n:'Tasmania, Australia',f:'Recognised best practice under the Liquor Licensing Act.',lv:'subnational',c:'licensed',lat:-42.88,lng:147.32},
+  {id:'us_il',n:'Illinois, USA',f:'State law requires water at venues with capacity ≥100 or public area ≥5,000 sq ft.',lv:'subnational',c:'licensed',lat:41.88,lng:-87.63},
+  {id:'ar_bp',n:'Buenos Aires, Argentina',f:'Ley 15.439/2023, passed unanimously. ≥250ml free water per table at alcohol-licensed venues.',lv:'subnational',c:'licensed',lat:-36.62,lng:-60.03},
+  {id:'ar_bc',n:'Buenos Aires city, Argentina',f:'Ley CABA 4.407/2013 — only when a cubierto (cover charge) is levied.',lv:'subnational',c:'licensed',lat:-34.60,lng:-58.38},
+  {id:'cl',n:'Chile',f:"Ley del Vaso de Agua passed Chamber December 2025 (21–2–6). In second Senate stage.",lv:'national',c:'pending',lat:-33.0,lng:-70.5},
+  {id:'pl',n:'Poland',f:"Lewica amendment: 0.5L free water per diner. 77.8% public support (March 2026) — coalition split.",lv:'national',c:'pending',lat:51.92,lng:19.15},
+  {id:'pa',n:'Panama',f:'PL 498 passed first committee 2 March 2026. Narrow scope: fast-food combos only.',lv:'national',c:'pending',lat:8.54,lng:-80.78},
+  {id:'si',n:'Slovenia',f:'ZPS consumer campaign 2024; a third of restaurants found refusing or charging. No bill yet.',lv:'national',c:'pending',lat:46.15,lng:14.99},
+  {id:'ar0',n:'Argentina',f:'Multiple federal bills stalled despite subnational laws across seven provinces and cities.',lv:'national',c:'pending',lat:-34.0,lng:-67.0},
+  {id:'us_ny',n:'New York, USA',f:'Senate Bill S2981 (2023) would extend the free-water mandate to all food-service establishments.',lv:'subnational',c:'pending',lat:42.9,lng:-75.6},
+  {id:'pe',n:'Peru',f:'Health Committee approved 19–0 a bill requiring restaurants and stores to provide up to 1L free on request (September 2025).',lv:'national',c:'pending',lat:-9.19,lng:-75.02},
+  {id:'at',n:'Austria',lv:'national',c:'none',lat:47.52,lng:14.55},{id:'be',n:'Belgium',lv:'national',c:'none',lat:50.50,lng:4.47},
+  {id:'cz',n:'Czech Republic',lv:'national',c:'none',lat:49.82,lng:15.47},{id:'dk2',n:'Denmark',lv:'national',c:'none',lat:56.26,lng:9.50},
+  {id:'ee',n:'Estonia',lv:'national',c:'none',lat:58.60,lng:25.01},{id:'fi',n:'Finland',lv:'national',c:'none',lat:61.92,lng:25.75},
+  {id:'de',n:'Germany',lv:'national',c:'none',lat:51.17,lng:10.45},{id:'gr',n:'Greece',lv:'national',c:'none',lat:39.07,lng:21.82},
+  {id:'hu',n:'Hungary',lv:'national',c:'none',lat:47.16,lng:19.50},{id:'is',n:'Iceland',lv:'national',c:'none',lat:64.96,lng:-19.02},
+  {id:'ie',n:'Ireland',lv:'national',c:'none',lat:53.41,lng:-8.24},{id:'it',n:'Italy',lv:'national',c:'none',lat:41.87,lng:12.57},
+  {id:'lv2',n:'Latvia',lv:'national',c:'none',lat:56.88,lng:24.60},{id:'lt',n:'Lithuania',lv:'national',c:'none',lat:55.17,lng:23.88},
+  {id:'lu',n:'Luxembourg',lv:'national',c:'none',lat:49.82,lng:6.13},{id:'nl',n:'Netherlands',lv:'national',c:'none',lat:52.13,lng:5.29},
+  {id:'no',n:'Norway',lv:'national',c:'none',lat:60.47,lng:8.47},{id:'pt',n:'Portugal',lv:'national',c:'none',lat:39.40,lng:-8.22},
+  {id:'sk',n:'Slovakia',lv:'national',c:'none',lat:48.67,lng:19.70},{id:'se',n:'Sweden',lv:'national',c:'none',lat:60.13,lng:18.64},
+  {id:'ch',n:'Switzerland',lv:'national',c:'none',lat:46.82,lng:8.23},{id:'tr',n:'Turkey',lv:'national',c:'none',lat:38.96,lng:35.24},
+  {id:'ru',n:'Russia',lv:'national',c:'none',lat:60.0,lng:99.0},{id:'rs',n:'Serbia',lv:'national',c:'none',lat:44.02,lng:21.01},
+  {id:'hr',n:'Croatia',lv:'national',c:'none',lat:45.10,lng:15.20},{id:'am',n:'Armenia',lv:'national',c:'none',lat:40.07,lng:45.04},
+  {id:'by',n:'Belarus',lv:'national',c:'none',lat:53.71,lng:27.97},{id:'ba',n:'Bosnia & Herzegovina',lv:'national',c:'none',lat:44.17,lng:17.68},
+  {id:'uz',n:'Uzbekistan',lv:'national',c:'none',lat:41.38,lng:64.59},{id:'ge',n:'Georgia',lv:'national',c:'none',lat:42.32,lng:43.36},
+  {id:'kz',n:'Kazakhstan',lv:'national',c:'none',lat:48.02,lng:66.92},{id:'ua',n:'Ukraine',lv:'national',c:'none',lat:49.38,lng:31.17},
+  {id:'bg',n:'Bulgaria',lv:'national',c:'none',lat:42.73,lng:25.49},{id:'mk',n:'N. Macedonia',lv:'national',c:'none',lat:41.61,lng:21.75},
+  {id:'md',n:'Moldova',lv:'national',c:'none',lat:47.41,lng:28.37},{id:'al',n:'Albania',lv:'national',c:'none',lat:41.15,lng:20.17},
+  {id:'me',n:'Montenegro',lv:'national',c:'none',lat:42.71,lng:19.37},{id:'uy',n:'Uruguay',lv:'national',c:'none',lat:-32.52,lng:-55.77},
+  {id:'co',n:'Colombia',lv:'national',c:'none',lat:4.57,lng:-74.30},{id:'ec',n:'Ecuador',lv:'national',c:'none',lat:-1.83,lng:-78.18},
+  {id:'py',n:'Paraguay',lv:'national',c:'none',lat:-23.44,lng:-58.44},{id:'tw',n:'Taiwan',lv:'national',c:'none',lat:23.70,lng:120.96},
+  {id:'ir',n:'Iran',lv:'national',c:'none',lat:32.43,lng:53.69},{id:'mn',n:'Mongolia',lv:'national',c:'none',lat:46.86,lng:103.85},
+  {id:'ca',n:'Canada',lv:'national',c:'none',lat:56.13,lng:-96.35},{id:'mx0',n:'Mexico (national)',lv:'national',c:'none',lat:26.0,lng:-104.5},
+  {id:'us0',n:'United States (national)',lv:'national',c:'none',lat:39.0,lng:-99.0},{id:'br0',n:'Brazil (national)',lv:'national',c:'none',lat:-10.0,lng:-53.0},
+  {id:'cn',n:'China',lv:'national',c:'none',lat:35.86,lng:104.2},{id:'jp',n:'Japan',lv:'national',c:'none',lat:36.20,lng:138.25},
+  {id:'my',n:'Malaysia',lv:'national',c:'none',lat:4.21,lng:108.96},{id:'sg',n:'Singapore',lv:'national',c:'none',lat:1.35,lng:103.82},
+  {id:'kr',n:'South Korea',lv:'national',c:'none',lat:35.91,lng:127.77},{id:'sa',n:'Saudi Arabia',lv:'national',c:'none',lat:24.0,lng:45.08},
+  {id:'ae',n:'UAE',lv:'national',c:'none',lat:24.47,lng:54.37},{id:'au0',n:'Australia (national)',lv:'national',c:'none',lat:-25.0,lng:133.0},
 ];
 
 const allH=DATA.filter(d=>d.c==='all');
 const licH=DATA.filter(d=>d.c==='licensed');
 const pendH=DATA.filter(d=>d.c==='pending');
 const norqH=DATA.filter(d=>d.c==='none');
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-const R=7, COL_GAP=8, HDR=42, VPAD=7;
-const SQ2=Math.sqrt(2);
-const TOP_CTR=[90,5];
+const R=7,COL_GAP=8,HDR=42,VPAD=7,SQ2=Math.sqrt(2),TOP_CTR=[90,5];
 const FORCE_BOT=new Set(['fr','es','gb']);
+const IS_PHONE=(()=>{const ua=navigator.userAgent||'';const t=/Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);return t||window.innerWidth<600||(navigator.maxTouchPoints>1&&window.innerWidth<900);})();
+let W,H,mode='map',busy=false,world=null,isMob=false,forceGlobe=IS_PHONE;
+let proj,proj2,gpf,gpf2,mobTopCY,mobBotCY,mobR,cPos={},cTH=0,cSY={},rowHeights=[],rowTops=[];
+let mapL,chartBL,chartTL,bubL;
+const svEl=d3.select('#sv');
+const svwEl=document.getElementById('svwrap');
+const ttEl=document.getElementById('tt');
+const mobBtn=document.getElementById('mobBtn');
 
-// ── Phone detection ───────────────────────────────────────────────────────────
-// Use touchpoints + user-agent. This is the most reliable combo for defaulting
-// to the globe layout on mobile without breaking desktop touch screens.
-const IS_PHONE=(()=>{
-  const ua=navigator.userAgent||'';
-  const touchPhone=/Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-  const touchPoints=navigator.maxTouchPoints>1;
-  // Narrow screen is a strong signal even if UA is ambiguous
-  const narrowScreen=window.innerWidth<600;
-  return touchPhone||narrowScreen||(touchPoints&&window.innerWidth<900);
-})();
-
-// ── State ─────────────────────────────────────────────────────────────────────
-let W, H, mode='map', busy=false, world=null;
-let isMob=false;
-// forceGlobe starts true on phones, false on desktop
-let forceGlobe=IS_PHONE;
-let proj, proj2, gpf, gpf2;
-let mobTopCY, mobBotCY, mobR;
-let cPos={}, cTH=0, cSY={}, rowHeights=[], rowTops=[];
-let mapL, chartBL, chartTL, bubL;
-
-const svEl    = d3.select('#sv');
-const svwEl   = document.getElementById('svwrap');
-const ttEl    = document.getElementById('tt');
-const mobBtn  = document.getElementById('mobBtn');
-
-// ── Utilities ─────────────────────────────────────────────────────────────────
-function angDist(lng1,lat1,lng2,lat2){
-  const r=Math.PI/180;
-  return Math.acos(Math.max(-1,Math.min(1,
-    Math.sin(lat1*r)*Math.sin(lat2*r)+
-    Math.cos(lat1*r)*Math.cos(lat2*r)*Math.cos((lng1-lng2)*r))))*180/Math.PI;
-}
-
-// Text wrapping — uses available pixel width and font size
-function wrapTxt(txt,availPx,fs){
-  if(!txt)return[];
-  const cpl=Math.max(5,Math.floor(availPx/(fs*0.58)));
-  if(txt.length<=cpl)return[txt];
-  const words=txt.split(' ');const lines=[];let cur='';
-  for(const w of words){
-    const next=cur?cur+' '+w:w;
-    if(next.length>cpl&&cur){lines.push(cur);cur=w;}else cur=next;
-  }
-  if(cur)lines.push(cur);return lines;
-}
-
-// Row height measurement — driven by actual available text width
-function measRowH(d,tw,nameFontSz,factFontSz){
-  const nL=wrapTxt(d.n,tw,nameFontSz).length;
-  const fL=wrapTxt(d.f||'',tw,factFontSz).length;
-  return Math.max(28,VPAD+nL*Math.ceil(nameFontSz*1.3)+13+(fL>0?fL*Math.ceil(factFontSz*1.3)+2:0)+VPAD);
-}
-
-// ── Layout helpers ────────────────────────────────────────────────────────────
+function angDist(lng1,lat1,lng2,lat2){const r=Math.PI/180;return Math.acos(Math.max(-1,Math.min(1,Math.sin(lat1*r)*Math.sin(lat2*r)+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.cos((lng1-lng2)*r))))*180/Math.PI;}
+function wrapTxt(txt,availPx,fs){if(!txt)return[];const cpl=Math.max(5,Math.floor(availPx/(fs*0.58)));if(txt.length<=cpl)return[txt];const words=txt.split(' ');const lines=[];let cur='';for(const w of words){const next=cur?cur+' '+w:w;if(next.length>cpl&&cur){lines.push(cur);cur=w;}else cur=next;}if(cur)lines.push(cur);return lines;}
+function measRowH(d,tw,nfs,ffs){const nL=wrapTxt(d.n,tw,nfs).length;const fL=wrapTxt(d.f||'',tw,ffs).length;return Math.max(28,VPAD+nL*Math.ceil(nfs*1.3)+13+(fL>0?fL*Math.ceil(ffs*1.3)+2:0)+VPAD);}
 function useGlobe(){return isMob||forceGlobe;}
-
-function computeLayout(w){
-  const naturalMob=w<600;
-  return{W:w,mob:naturalMob,H:naturalMob?null:Math.round(Math.min(Math.max(w*0.52,320),560))};
-}
-
-function makeMobProjs(w){
-  const pad=5,r=w/2-pad,sc=r/SQ2;
-  const topCY=pad+r,overlap=Math.round(r*0.22),botCY=topCY+2*r-overlap;
-  const totalH=Math.round(botCY+r+pad+18);
-  mobR=r;mobTopCY=topCY;mobBotCY=botCY;
-  const p1=d3.geoAzimuthalEqualArea().scale(sc).translate([w/2,topCY]).rotate([-90,-5]).clipAngle(91);
-  const p2=d3.geoAzimuthalEqualArea().scale(sc).translate([w/2,botCY]).rotate([65,-5]).clipAngle(91);
-  return{proj:p1,proj2:p2,gpf:d3.geoPath().projection(p1),gpf2:d3.geoPath().projection(p2),H:totalH};
-}
-
-function makeDeskProjs(w,h){
-  const p=d3.geoNaturalEarth1().scale(w/960*150).translate([w*0.5,h*0.545]);
-  return{proj:p,proj2:null,gpf:d3.geoPath().projection(p),gpf2:null};
-}
-
-// clipAngle only clips path rendering — proj() always returns a value.
-// Use great-circle distance to decide which globe to route a point to.
-function projPt(d){
-  if(!useGlobe())return proj([d.lng,d.lat]);
-  if(FORCE_BOT.has(d.id))return proj2([d.lng,d.lat]);
-  const dTop=angDist(d.lng,d.lat,...TOP_CTR);
-  return dTop<=90?proj([d.lng,d.lat]):proj2([d.lng,d.lat]);
-}
-function bubPos(d){
-  if(d.c==='none')return'translate(-9999,-9999)';
-  const xy=projPt(d);return xy?`translate(${xy[0]},${xy[1]})`:'translate(-9999,-9999)';
-}
-
-// ── Chart layout — font sizes scale with column width ─────────────────────────
-function chartFontSizes(colW){
-  // Scale name and fact font sizes down gracefully on narrow columns
-  const nameFontSz=Math.max(8,  Math.min(11, colW/18));
-  const factFontSz=Math.max(7,  Math.min(9.5,colW/22));
-  const badgeFontSz=Math.max(6.5,Math.min(8.5,colW/24));
-  const nameLH=Math.ceil(nameFontSz*1.28);
-  const factLH=Math.ceil(factFontSz*1.28);
-  const badgeH=Math.ceil(badgeFontSz*1.6);
-  return{nameFontSz,factFontSz,badgeFontSz,nameLH,factLH,badgeH};
-}
-
-function buildLayout(){
-  cPos={};cSY={};
-  const colW=Math.floor((W-COL_GAP*2)/3);
-  const textX_rel=R*2+8,tw=colW-textX_rel-6;
-  const {nameFontSz,factFontSz,nameLH,factLH,badgeH}=chartFontSizes(colW);
-  const cols=[allH,licH,pendH];
-  const colStarts=[0,colW+COL_GAP,(colW+COL_GAP)*2];
-  const maxRows=Math.max(...cols.map(c=>c.length));
-  rowHeights=[];
-  for(let ri=0;ri<maxRows;ri++){
-    let h=28;
-    cols.forEach(items=>{if(items[ri])h=Math.max(h,measRowH(items[ri],tw,nameFontSz,factFontSz));});
-    rowHeights.push(h);
-  }
-  rowTops=[];let y=HDR;
-  for(let ri=0;ri<maxRows;ri++){rowTops.push(y);y+=rowHeights[ri];}
-  const tableBot=y;
-  cols.forEach((items,ci)=>{
-    const cs=colStarts[ci];
-    items.forEach((d,ri)=>{cPos[d.id]={x:cs+R+4,y:rowTops[ri]+rowHeights[ri]/2};});
-  });
-  cSY.none=tableBot+12;
-  const ns=tableBot+36,nc=Math.max(2,Math.floor((W-16)/100)),cw=(W-16)/nc;
-  norqH.forEach((d,i)=>{cPos[d.id]={x:8+(i%nc)*cw+R+2,y:ns+Math.floor(i/nc)*22+11};});
-  cTH=ns+Math.ceil(norqH.length/nc)*22+44;
-  buildLayout._colW=colW;buildLayout._tw=tw;buildLayout._textX_rel=textX_rel;buildLayout._tableBot=tableBot;
-}
-
-function addText(){
-  const{_colW:colW,_tw:tw,_textX_rel:textX_rel,_tableBot:tableBot}=buildLayout;
-  const cols=[allH,licH,pendH];
-  const colStarts=[0,colW+COL_GAP,(colW+COL_GAP)*2];
-  const colColors=[K.sa,K.sl,K.sp];
-  const colLabels=['All hospitality','Licensed / cond.','Legislation pending'];
-  const {nameFontSz,factFontSz,badgeFontSz,nameLH,factLH,badgeH}=chartFontSizes(colW);
-
-  // Column backgrounds + headers
-  cols.forEach((items,ci)=>{
-    const cs=colStarts[ci];
-    chartTL.append('rect').attr('x',cs).attr('y',0).attr('width',colW).attr('height',tableBot)
-      .attr('fill',ci===0?'rgba(22,163,74,0.04)':ci===1?'rgba(22,163,74,0.02)':'rgba(37,99,235,0.04)').attr('rx',4);
-    chartTL.append('text').attr('x',cs+5).attr('y',13)
-      .attr('fill',colColors[ci]).attr('font-size','7.5').attr('font-weight','500')
-      .attr('font-family','sans-serif').attr('letter-spacing','0.5')
-      .text(colLabels[ci].toUpperCase());
-    chartTL.append('text').attr('x',cs+5).attr('y',26)
-      .attr('fill',colColors[ci]).attr('font-size','10').attr('font-family','sans-serif')
-      .text(items.length+' jurisdictions');
-    chartTL.append('line').attr('x1',cs).attr('x2',cs+colW).attr('y1',HDR-2).attr('y2',HDR-2)
-      .attr('stroke',K.dv).attr('stroke-width',0.5);
-  });
-
-  // Row separators
-  rowTops.forEach(ry=>{
-    chartTL.append('line').attr('x1',0).attr('x2',W).attr('y1',ry).attr('y2',ry)
-      .attr('stroke',K.dv).attr('stroke-width',0.5);
-  });
-
-  // Row content
-  cols.forEach((items,ci)=>{
-    const cs=colStarts[ci];
-    items.forEach((d,ri)=>{
-      const ry=rowTops[ri],rhi=rowHeights[ri],isN=d.lv==='national';
-      const textX=cs+textX_rel;
-      const nameLines=wrapTxt(d.n,tw,nameFontSz);
-      const factLines=wrapTxt(d.f||'',tw,factFontSz);
-      const totalH=nameLines.length*nameLH+badgeH+(factLines.length>0?factLines.length*factLH+2:0);
-      let ty=ry+Math.max(VPAD,(rhi-totalH)/2);
-      nameLines.forEach(line=>{
-        ty+=nameLH;
-        chartTL.append('text').attr('x',textX).attr('y',ty)
-          .attr('fill',K.tx).attr('font-size',nameFontSz).attr('font-weight','500')
-          .attr('font-family','sans-serif').text(line);
-      });
-      ty+=badgeH;
-      chartTL.append('text').attr('x',textX).attr('y',ty)
-        .attr('fill',isN?K.nt:K.sb).attr('font-size',badgeFontSz)
-        .attr('font-family','sans-serif').text(isN?'national':'subnational');
-      if(factLines.length>0){
-        ty+=2;
-        factLines.forEach(line=>{
-          ty+=factLH;
-          chartTL.append('text').attr('x',textX).attr('y',ty)
-            .attr('fill',K.su).attr('font-size',factFontSz)
-            .attr('font-family','sans-serif').text(line);
-        });
-      }
-    });
-  });
-
-  // No-evidence section
-  chartTL.append('text').attr('x',0).attr('y',cSY.none+12)
-    .attr('fill',K.sn).attr('font-size','7.5').attr('font-weight','500')
-    .attr('font-family','sans-serif').attr('letter-spacing','0.5')
-    .text(('No evidence found of a legal requirement ('+norqH.length+')').toUpperCase());
-  chartTL.append('line').attr('x1',0).attr('x2',W).attr('y1',cSY.none+16).attr('y2',cSY.none+16)
-    .attr('stroke',K.dv).attr('stroke-width',0.5);
-  const nc=Math.max(2,Math.floor((W-16)/100)),cw=(W-16)/nc;
-  norqH.forEach(d=>{
-    const p=cPos[d.id];
-    chartTL.append('text').attr('x',p.x+R+4).attr('y',p.y+4)
-      .attr('fill',K.su).attr('font-size',Math.max(8,Math.min(10.5,colW/17)))
-      .attr('font-family','sans-serif').text(d.n);
-  });
-}
-
-// ── Map drawing ───────────────────────────────────────────────────────────────
-// Globe labels rendered with a solid background rect for legibility in dark mode
-function drawGlobeLabel(layer,cx,cy,r,lbl){
-  if(!lbl)return;
-  const fs=10,padX=8,padY=3,approxW=lbl.length*fs*0.58+padX*2,bh=fs+padY*2;
-  const bx=cx-approxW/2,by=cy+r+4;
-  layer.append('rect').attr('x',bx).attr('y',by).attr('width',approxW).attr('height',bh)
-    .attr('fill',K.labBg).attr('rx',3);
-  layer.append('text').attr('x',cx).attr('y',by+fs+1).attr('text-anchor','middle')
-    .attr('font-size',fs).attr('font-weight','500').attr('font-family','sans-serif')
-    .attr('fill',K.labTx).text(lbl);
-}
-
-function drawGlobe(layer,defs,gp,cx,cy,r,lbl,clipId){
-  defs.append('clipPath').attr('id',clipId).append('circle').attr('cx',cx).attr('cy',cy).attr('r',r);
-  layer.append('circle').attr('cx',cx).attr('cy',cy).attr('r',r)
-    .attr('fill',dk?'#0c1a28':'#c5dcea');
-  const g=layer.append('g').attr('clip-path',`url(#${clipId})`);
-  g.append('path').datum(d3.geoGraticule()()).attr('d',gp)
-    .attr('fill','none').attr('stroke',K.gr).attr('stroke-width',0.45);
-  if(world){
-    g.selectAll(null).data(topojson.feature(world,world.objects.countries).features)
-      .join('path').attr('d',gp).attr('fill',d=>landColor(d)).attr('stroke',K.bd).attr('stroke-width',0.4);
-    g.append('path').datum(topojson.mesh(world,world.objects.countries,(a,b)=>a!==b))
-      .attr('d',gp).attr('fill','none').attr('stroke',K.bd).attr('stroke-width',0.65);
-  }
-  layer.append('circle').attr('cx',cx).attr('cy',cy).attr('r',r)
-    .attr('fill','none').attr('stroke',K.bd).attr('stroke-width',1.2);
-  drawGlobeLabel(layer,cx,cy,r,lbl);
-}
-
-function drawMap(){
-  mapL.selectAll('*').remove();
-  svEl.select('defs.mapDefs').remove();
-  if(useGlobe()){
-    const defs=svEl.insert('defs','g').attr('class','mapDefs');
-    mapL.append('rect').attr('width',W).attr('height',H).attr('fill',K.cb);
-    drawGlobe(mapL,defs,gpf, W/2,mobTopCY,mobR,'Europe · Asia · Oceania','clip-top');
-    drawGlobe(mapL,defs,gpf2,W/2,mobBotCY,mobR,'','clip-bot');
-  } else {
-    mapL.append('rect').attr('width',W).attr('height',H).attr('fill',K.ocean);
-    mapL.append('path').datum(d3.geoGraticule()()).attr('d',gpf)
-      .attr('fill','none').attr('stroke',K.gr).attr('stroke-width',0.3);
-    if(world){
-      mapL.selectAll('path.lnd').data(topojson.feature(world,world.objects.countries).features)
-        .join('path').attr('class','lnd').attr('d',gpf).attr('fill',d=>landColor(d))
-        .attr('stroke',K.bd).attr('stroke-width',0.45);
-      mapL.append('path').datum(topojson.mesh(world,world.objects.countries,(a,b)=>a!==b))
-        .attr('d',gpf).attr('fill','none').attr('stroke',K.bd).attr('stroke-width',0.75);
-    }
-  }
-}
-
-function drawScaleBar(){
-  const c=document.getElementById('scaleramp');
-  if(!c)return;
-  const ctx=c.getContext('2d');
-  for(let i=0;i<90;i++){ctx.fillStyle=colorScale(i/90*100);ctx.fillRect(i,0,1,10);}
-}
-
-function buildLegend(){
-  document.getElementById('leg').innerHTML=`
-    <div class="leg-group">
-      <span class="leg-label">Requirements</span>
-      <div class="li"><div class="ld" style="background:#16a34a"></div>All hospitality</div>
-      <div class="li"><div class="ld" style="background:#86efac;border:1px solid #4ade80"></div>Licensed / conditional</div>
-      <div class="li"><div class="ld" style="background:${BC.pending}"></div>Legislation pending</div>
-    </div>
-    <div class="leg-group">
-      <span class="leg-label">Level</span>
-      <div class="li"><div class="ld" style="background:#888"></div>National</div>
-      <div class="li"><div class="ld" style="background:#888;outline:1.5px solid rgba(128,128,128,0.6);outline-offset:2px"></div>Subnational</div>
-    </div>`;
-}
-
+function computeLayout(w){const mob=w<600;return{W:w,mob,H:mob?null:Math.round(Math.min(Math.max(w*0.52,320),560))};}
+function makeMobProjs(w){const pad=5,r=w/2-pad,sc=r/SQ2;const topCY=pad+r,overlap=Math.round(r*0.22),botCY=topCY+2*r-overlap;const totalH=Math.round(botCY+r+pad+18);mobR=r;mobTopCY=topCY;mobBotCY=botCY;const p1=d3.geoAzimuthalEqualArea().scale(sc).translate([w/2,topCY]).rotate([-90,-5]).clipAngle(91);const p2=d3.geoAzimuthalEqualArea().scale(sc).translate([w/2,botCY]).rotate([65,-5]).clipAngle(91);return{proj:p1,proj2:p2,gpf:d3.geoPath().projection(p1),gpf2:d3.geoPath().projection(p2),H:totalH};}
+function makeDeskProjs(w,h){const p=d3.geoNaturalEarth1().scale(w/960*150).translate([w*0.5,h*0.545]);return{proj:p,proj2:null,gpf:d3.geoPath().projection(p),gpf2:null};}
+function projPt(d){if(!useGlobe())return proj([d.lng,d.lat]);if(FORCE_BOT.has(d.id))return proj2([d.lng,d.lat]);const dTop=angDist(d.lng,d.lat,...TOP_CTR);return dTop<=90?proj([d.lng,d.lat]):proj2([d.lng,d.lat]);}
+function bubPos(d){if(d.c==='none')return'translate(-9999,-9999)';const xy=projPt(d);return xy?`translate(${xy[0]},${xy[1]})`:'translate(-9999,-9999)';}
+function chartFontSizes(colW){const nfs=Math.max(8,Math.min(11,colW/18));const ffs=Math.max(7,Math.min(9.5,colW/22));const bfs=Math.max(6.5,Math.min(8.5,colW/24));const nLH=Math.ceil(nfs*1.28);const fLH=Math.ceil(ffs*1.28);const bH=Math.ceil(bfs*1.6);return{nameFontSz:nfs,factFontSz:ffs,badgeFontSz:bfs,nameLH:nLH,factLH:fLH,badgeH:bH};}
+function buildLayout(){cPos={};cSY={};const colW=Math.floor((W-COL_GAP*2)/3);const textX_rel=R*2+8,tw=colW-textX_rel-6;const{nameFontSz,factFontSz,nameLH,factLH,badgeH}=chartFontSizes(colW);const cols=[allH,licH,pendH];const colStarts=[0,colW+COL_GAP,(colW+COL_GAP)*2];const maxRows=Math.max(...cols.map(c=>c.length));rowHeights=[];for(let ri=0;ri<maxRows;ri++){let h=28;cols.forEach(items=>{if(items[ri])h=Math.max(h,measRowH(items[ri],tw,nameFontSz,factFontSz));});rowHeights.push(h);}rowTops=[];let y=HDR;for(let ri=0;ri<maxRows;ri++){rowTops.push(y);y+=rowHeights[ri];}const tableBot=y;cols.forEach((items,ci)=>{const cs=colStarts[ci];items.forEach((d,ri)=>{cPos[d.id]={x:cs+R+4,y:rowTops[ri]+rowHeights[ri]/2};});});cSY.none=tableBot+12;const ns=tableBot+36,nc=Math.max(2,Math.floor((W-16)/100)),cw=(W-16)/nc;norqH.forEach((d,i)=>{cPos[d.id]={x:8+(i%nc)*cw+R+2,y:ns+Math.floor(i/nc)*22+11};});cTH=ns+Math.ceil(norqH.length/nc)*22+44;buildLayout._colW=colW;buildLayout._tw=tw;buildLayout._textX_rel=textX_rel;buildLayout._tableBot=tableBot;}
+function addText(){const{_colW:colW,_tw:tw,_textX_rel:textX_rel,_tableBot:tableBot}=buildLayout;const cols=[allH,licH,pendH];const colStarts=[0,colW+COL_GAP,(colW+COL_GAP)*2];const colColors=[K.sa,K.sl,K.sp];const colLabels=['All hospitality','Licensed / cond.','Legislation pending'];const{nameFontSz,factFontSz,badgeFontSz,nameLH,factLH,badgeH}=chartFontSizes(colW);cols.forEach((items,ci)=>{const cs=colStarts[ci];chartTL.append('rect').attr('x',cs).attr('y',0).attr('width',colW).attr('height',tableBot).attr('fill',ci===0?'rgba(22,163,74,0.04)':ci===1?'rgba(22,163,74,0.02)':'rgba(37,99,235,0.04)').attr('rx',4);chartTL.append('text').attr('x',cs+5).attr('y',13).attr('fill',colColors[ci]).attr('font-size','7.5').attr('font-weight','500').attr('font-family','sans-serif').attr('letter-spacing','0.5').text(colLabels[ci].toUpperCase());chartTL.append('text').attr('x',cs+5).attr('y',26).attr('fill',colColors[ci]).attr('font-size','10').attr('font-family','sans-serif').text(items.length+' jurisdictions');chartTL.append('line').attr('x1',cs).attr('x2',cs+colW).attr('y1',HDR-2).attr('y2',HDR-2).attr('stroke',K.dv).attr('stroke-width',0.5);});rowTops.forEach(ry=>{chartTL.append('line').attr('x1',0).attr('x2',W).attr('y1',ry).attr('y2',ry).attr('stroke',K.dv).attr('stroke-width',0.5);});cols.forEach((items,ci)=>{const cs=colStarts[ci];items.forEach((d,ri)=>{const ry=rowTops[ri],rhi=rowHeights[ri],isN=d.lv==='national';const textX=cs+textX_rel;const nameLines=wrapTxt(d.n,tw,nameFontSz);const factLines=wrapTxt(d.f||'',tw,factFontSz);const totalH=nameLines.length*nameLH+badgeH+(factLines.length>0?factLines.length*factLH+2:0);let ty=ry+Math.max(VPAD,(rhi-totalH)/2);nameLines.forEach(line=>{ty+=nameLH;chartTL.append('text').attr('x',textX).attr('y',ty).attr('fill',K.tx).attr('font-size',nameFontSz).attr('font-weight','500').attr('font-family','sans-serif').text(line);});ty+=badgeH;chartTL.append('text').attr('x',textX).attr('y',ty).attr('fill',isN?K.nt:K.sb).attr('font-size',badgeFontSz).attr('font-family','sans-serif').text(isN?'national':'subnational');if(factLines.length>0){ty+=2;factLines.forEach(line=>{ty+=factLH;chartTL.append('text').attr('x',textX).attr('y',ty).attr('fill',K.su).attr('font-size',factFontSz).attr('font-family','sans-serif').text(line);});}});});chartTL.append('text').attr('x',0).attr('y',cSY.none+12).attr('fill',K.sn).attr('font-size','7.5').attr('font-weight','500').attr('font-family','sans-serif').attr('letter-spacing','0.5').text(('No evidence found of a legal requirement ('+norqH.length+')').toUpperCase());chartTL.append('line').attr('x1',0).attr('x2',W).attr('y1',cSY.none+16).attr('y2',cSY.none+16).attr('stroke',K.dv).attr('stroke-width',0.5);const nc=Math.max(2,Math.floor((W-16)/100)),cw=(W-16)/nc;norqH.forEach(d=>{const p=cPos[d.id];chartTL.append('text').attr('x',p.x+R+4).attr('y',p.y+4).attr('fill',K.su).attr('font-size',Math.max(8,Math.min(10.5,buildLayout._colW/17))).attr('font-family','sans-serif').text(d.n);});}
+function drawGlobeLabel(layer,cx,cy,r,lbl){if(!lbl)return;const fs=10,padX=8,padY=3,approxW=lbl.length*fs*0.58+padX*2,bh=fs+padY*2;const bx=cx-approxW/2,by=cy+r+4;layer.append('rect').attr('x',bx).attr('y',by).attr('width',approxW).attr('height',bh).attr('fill',K.labBg).attr('rx',3);layer.append('text').attr('x',cx).attr('y',by+fs+1).attr('text-anchor','middle').attr('font-size',fs).attr('font-weight','500').attr('font-family','sans-serif').attr('fill',K.labTx).text(lbl);}
+function drawGlobe(layer,defs,gp,cx,cy,r,lbl,clipId){defs.append('clipPath').attr('id',clipId).append('circle').attr('cx',cx).attr('cy',cy).attr('r',r);layer.append('circle').attr('cx',cx).attr('cy',cy).attr('r',r).attr('fill',dk?'#0c1a28':'#c5dcea');const g=layer.append('g').attr('clip-path',`url(#${clipId})`);g.append('path').datum(d3.geoGraticule()()).attr('d',gp).attr('fill','none').attr('stroke',K.gr).attr('stroke-width',0.45);if(world){g.selectAll(null).data(topojson.feature(world,world.objects.countries).features).join('path').attr('d',gp).attr('fill',d=>landColor(d)).attr('stroke',K.bd).attr('stroke-width',0.4);g.append('path').datum(topojson.mesh(world,world.objects.countries,(a,b)=>a!==b)).attr('d',gp).attr('fill','none').attr('stroke',K.bd).attr('stroke-width',0.65);}layer.append('circle').attr('cx',cx).attr('cy',cy).attr('r',r).attr('fill','none').attr('stroke',K.bd).attr('stroke-width',1.2);drawGlobeLabel(layer,cx,cy,r,lbl);}
+function drawMap(){mapL.selectAll('*').remove();svEl.select('defs.mapDefs').remove();if(useGlobe()){const defs=svEl.insert('defs','g').attr('class','mapDefs');mapL.append('rect').attr('width',W).attr('height',H).attr('fill',K.cb);drawGlobe(mapL,defs,gpf,W/2,mobTopCY,mobR,'Europe · Asia · Oceania','clip-top');drawGlobe(mapL,defs,gpf2,W/2,mobBotCY,mobR,'','clip-bot');}else{mapL.append('rect').attr('width',W).attr('height',H).attr('fill',K.ocean);mapL.append('path').datum(d3.geoGraticule()()).attr('d',gpf).attr('fill','none').attr('stroke',K.gr).attr('stroke-width',0.3);if(world){mapL.selectAll('path.lnd').data(topojson.feature(world,world.objects.countries).features).join('path').attr('class','lnd').attr('d',gpf).attr('fill',d=>landColor(d)).attr('stroke',K.bd).attr('stroke-width',0.45);mapL.append('path').datum(topojson.mesh(world,world.objects.countries,(a,b)=>a!==b)).attr('d',gpf).attr('fill','none').attr('stroke',K.bd).attr('stroke-width',0.75);}}}
+function drawScaleBar(){const c=document.getElementById('scaleramp');if(!c)return;const ctx=c.getContext('2d');for(let i=0;i<90;i++){ctx.fillStyle=colorScale(i/90*100);ctx.fillRect(i,0,1,10);}}
+function buildLegend(){document.getElementById('leg').innerHTML=`<div class="leg-group"><span class="leg-label">Requirements</span><div class="li"><div class="ld" style="background:#16a34a"></div>All hospitality</div><div class="li"><div class="ld" style="background:#86efac;border:1px solid #4ade80"></div>Licensed / conditional</div><div class="li"><div class="ld" style="background:${BC.pending}"></div>Legislation pending</div></div><div class="leg-group"><span class="leg-label">Level</span><div class="li"><div class="ld" style="background:#888"></div>National</div><div class="li"><div class="ld" style="background:#888;outline:1.5px solid rgba(128,128,128,0.6);outline-offset:2px"></div>Subnational</div></div>`;}
 function repositionBubbles(){bubL.selectAll('g.b').attr('transform',d=>bubPos(d));}
+function updateMobBtn(){const on=useGlobe();mobBtn.textContent=on?'🗺 Flat map':'🌐 Globes';mobBtn.classList.toggle('active',on);}
+function applyLayout(){const layout=computeLayout(W);isMob=layout.mob;let projs;if(useGlobe()){projs=makeMobProjs(W);H=projs.H;}else{H=layout.H;projs=makeDeskProjs(W,H);}proj=projs.proj;proj2=projs.proj2;gpf=projs.gpf;gpf2=projs.gpf2;}
+function toChart(){if(busy)return;busy=true;buildLayout();document.getElementById('map-btn').textContent='← Back to map';document.getElementById('map-btn').style.background='#1d4ed8';mobBtn.style.display='none';ttEl.style.display='none';const flatH=useGlobe()?Math.round(Math.min(Math.max(W*0.52,320),560)):H;const p=makeDeskProjs(W,flatH);proj=p.proj;proj2=p.proj2;gpf=p.gpf;gpf2=p.gpf2;const th=Math.max(H,cTH);chartBL.select('rect').attr('width',W).attr('height',th);svEl.transition().duration(500).attr('height',th);mapL.transition().duration(500).attr('opacity',0);chartBL.transition().duration(500).attr('opacity',1);bubL.selectAll('g.b').transition().duration(880).delay((_,i)=>i*7).ease(d3.easeCubicInOut).attr('transform',d=>{const p=cPos[d.id];return p?`translate(${p.x},${p.y})`:'translate(-9999,-9999)';});setTimeout(()=>{addText();chartTL.attr('opacity',0).transition().duration(400).attr('opacity',1);busy=false;mode='chart';},980);}
+function toMap(){if(busy)return;busy=true;document.getElementById('map-btn').textContent='Switch to chart view →';document.getElementById('map-btn').style.background='#16a34a';ttEl.style.display='none';applyLayout();chartTL.transition().duration(300).attr('opacity',0);setTimeout(()=>chartTL.selectAll('*').remove(),360);chartBL.transition().duration(500).delay(200).attr('opacity',0);mapL.transition().duration(600).delay(600).attr('opacity',1);bubL.selectAll('g.b').transition().duration(880).delay((_,i)=>220+i*6).ease(d3.easeCubicInOut).attr('transform',d=>bubPos(d));setTimeout(()=>{svEl.transition().duration(500).attr('height',H);if(!IS_PHONE)mobBtn.style.display='';busy=false;mode='map';},1180);}
+function toggleChart(){if(mode==='map')toChart();else toMap();}
+function resize(){if(mode!=='map')return;const nw=svwEl.clientWidth||800;if(Math.abs(nw-W)<3)return;W=nw;applyLayout();svEl.attr('width',W).attr('height',H);chartBL.select('rect').attr('width',W).attr('height',H);drawMap();repositionBubbles();updateMobBtn();}
 
-function updateMobBtn(){
-  const on=useGlobe();
-  mobBtn.textContent=on?'🗺 Flat map':'🌐 Globes';
-  mobBtn.classList.toggle('active',on);
-}
-
-function applyLayout(){
-  const layout=computeLayout(W);isMob=layout.mob;
-  let projs;
-  if(useGlobe()){projs=makeMobProjs(W);H=projs.H;}
-  else{H=layout.H;projs=makeDeskProjs(W,H);}
-  proj=projs.proj;proj2=projs.proj2;gpf=projs.gpf;gpf2=projs.gpf2;
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────────
 async function init(){
-  W=svwEl.clientWidth||800;
-  applyLayout();
+  W=svwEl.clientWidth||800;applyLayout();
   svEl.attr('width',W).attr('height',H);
-  mapL=svEl.append('g');
-  chartBL=svEl.append('g').attr('opacity',0);
+  mapL=svEl.append('g');chartBL=svEl.append('g').attr('opacity',0);
   chartBL.append('rect').attr('fill',K.cb).attr('width',W).attr('height',H);
-  chartTL=svEl.append('g').attr('opacity',0);
-  bubL=svEl.append('g');
-
-  try{
-    const res=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
-    world=await res.json();
-  }catch(e){console.warn('TopoJSON load failed:',e);}
-
+  chartTL=svEl.append('g').attr('opacity',0);bubL=svEl.append('g');
+  try{const res=await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');world=await res.json();}catch(e){console.warn('TopoJSON load failed:',e);}
   drawMap();drawScaleBar();buildLegend();
-
   const bubData=DATA.filter(d=>d.c!=='none');
-  const gs=bubL.selectAll('g.b').data(bubData,d=>d.id).join('g')
-    .attr('class','b').attr('transform',d=>bubPos(d)).style('cursor','pointer');
-  gs.append('circle').attr('r',R).attr('fill',d=>BC[d.c]).attr('fill-opacity',0.92)
-    .attr('stroke',d=>SC[d.c]).attr('stroke-width',1.5);
-  gs.filter(d=>d.lv==='subnational').append('circle').attr('r',R-3.5)
-    .attr('fill','none').attr('stroke','rgba(255,255,255,0.55)').attr('stroke-width',1.2);
-
-  // ── Tooltip content helper ──────────────────────────────────────────────────
-  function showTip(d){
-    ttEl.style.display='block';
-    ttEl.innerHTML=`<div class="tn">${d.n}</div><div class="ts">${d.lv==='national'?'National':'Subnational'} · ${CL[d.c]}</div>${d.f?`<div class="td">${d.f}</div>`:''}`;
-  }
-  // Position tooltip so it never overflows the container.
-  // We read its rendered width/height after setting innerHTML.
-  function placeTip(clientX,clientY){
-    const rect=svwEl.getBoundingClientRect();
-    const TW=Math.min(ttEl.offsetWidth||230,230);
-    const TH=ttEl.offsetHeight||80;
-    const cx=clientX-rect.left;
-    const cy=clientY-rect.top;
-    // Prefer right of cursor; flip left if too close to right edge
-    let tx=(cx+14+TW<=W)?cx+14:cx-TW-10;
-    // Prefer above cursor; clamp to top
-    let ty=cy-TH-8;
-    if(ty<4)ty=cy+20;
-    // Hard clamp within container
-    tx=Math.max(4,Math.min(W-TW-4,tx));
-    ty=Math.max(4,ty);
-    ttEl.style.left=tx+'px';ttEl.style.top=ty+'px';
-  }
-
-  // ── Mouse events (desktop) ──────────────────────────────────────────────────
-  gs.on('mouseover',(ev,d)=>{showTip(d);placeTip(ev.clientX,ev.clientY);})
-    .on('mousemove',ev=>{placeTip(ev.clientX,ev.clientY);})
-    .on('mouseout',()=>{ttEl.style.display='none';});
-
-  // ── Touch events (mobile) ───────────────────────────────────────────────────
-  // On phones there's no hover — use touchstart to show, touchend to position.
-  // Tapping anywhere else on the SVG dismisses the tooltip.
-  gs.on('touchstart',(ev,d)=>{
-    ev.preventDefault(); // prevent ghost mouse events
-    showTip(d);
-    const t=ev.touches[0];
-    placeTip(t.clientX,t.clientY);
-  },true);
-  svEl.on('touchstart.dismiss',(ev)=>{
-    // Dismiss if the touch didn't land on a bubble
-    if(!ev.target.closest('g.b'))ttEl.style.display='none';
-  });
-
-  document.getElementById('btn').addEventListener('click',toggleChart);
-  mobBtn.addEventListener('click',toggleGlobe);
+  const gs=bubL.selectAll('g.b').data(bubData,d=>d.id).join('g').attr('class','b').attr('transform',d=>bubPos(d)).style('cursor','pointer');
+  gs.append('circle').attr('r',R).attr('fill',d=>BC[d.c]).attr('fill-opacity',0.92).attr('stroke',d=>SC[d.c]).attr('stroke-width',1.5);
+  gs.filter(d=>d.lv==='subnational').append('circle').attr('r',R-3.5).attr('fill','none').attr('stroke','rgba(255,255,255,0.55)').attr('stroke-width',1.2);
+  function showTip(d){ttEl.style.display='block';ttEl.innerHTML=`<div class="tn">${d.n}</div><div class="ts">${d.lv==='national'?'National':'Subnational'} · ${CL[d.c]}</div>${d.f?`<div class="td">${d.f}</div>`:''}`;};
+  function placeTip(cx,cy){const rect=svwEl.getBoundingClientRect();const TW=Math.min(ttEl.offsetWidth||230,230);const TH=ttEl.offsetHeight||80;const x=cx-rect.left,y=cy-rect.top;let tx=(x+14+TW<=W)?x+14:x-TW-10;let ty=y-TH-8;if(ty<4)ty=y+20;tx=Math.max(4,Math.min(W-TW-4,tx));ty=Math.max(4,ty);ttEl.style.left=tx+'px';ttEl.style.top=ty+'px';}
+  gs.on('mouseover',(ev,d)=>{showTip(d);placeTip(ev.clientX,ev.clientY);}).on('mousemove',ev=>{placeTip(ev.clientX,ev.clientY);}).on('mouseout',()=>{ttEl.style.display='none';});
+  gs.on('touchstart',(ev,d)=>{ev.preventDefault();showTip(d);const t=ev.touches[0];placeTip(t.clientX,t.clientY);},true);
+  svEl.on('touchstart.dismiss',ev=>{if(!ev.target.closest('g.b'))ttEl.style.display='none';});
+  document.getElementById('map-btn').addEventListener('click',toggleChart);
+  mobBtn.addEventListener('click',()=>{if(mode!=='map')return;forceGlobe=!forceGlobe;updateMobBtn();applyLayout();svEl.attr('width',W).attr('height',H);chartBL.select('rect').attr('width',W).attr('height',H);drawMap();repositionBubbles();});
   new ResizeObserver(()=>resize()).observe(svwEl);
   updateMobBtn();
 }
-
-function toggleGlobe(){
-  if(mode!=='map')return;
-  forceGlobe=!forceGlobe;
-  updateMobBtn();
-  applyLayout();
-  svEl.attr('width',W).attr('height',H);
-  chartBL.select('rect').attr('width',W).attr('height',H);
-  drawMap();repositionBubbles();
-}
-
-function resize(){
-  if(mode!=='map')return;
-  const nw=svwEl.clientWidth||800;
-  if(Math.abs(nw-W)<3)return;
-  W=nw;applyLayout();
-  svEl.attr('width',W).attr('height',H);
-  chartBL.select('rect').attr('width',W).attr('height',H);
-  drawMap();repositionBubbles();updateMobBtn();
-}
-
-function toChart(){
-  if(busy)return;busy=true;buildLayout();
-  document.getElementById('btn').textContent='← Back to map';
-  document.getElementById('btn').style.background='#1d4ed8';
-  mobBtn.style.display='none';
-  ttEl.style.display='none';
-  const flatH=useGlobe()?Math.round(Math.min(Math.max(W*0.52,320),560)):H;
-  const p=makeDeskProjs(W,flatH);proj=p.proj;proj2=p.proj2;gpf=p.gpf;gpf2=p.gpf2;
-  const th=Math.max(H,cTH);
-  chartBL.select('rect').attr('width',W).attr('height',th);
-  svEl.transition().duration(500).attr('height',th);
-  mapL.transition().duration(500).attr('opacity',0);
-  chartBL.transition().duration(500).attr('opacity',1);
-  bubL.selectAll('g.b').transition().duration(880).delay((_,i)=>i*7).ease(d3.easeCubicInOut)
-    .attr('transform',d=>{const p=cPos[d.id];return p?`translate(${p.x},${p.y})`:'translate(-9999,-9999)';});
-  setTimeout(()=>{addText();chartTL.attr('opacity',0).transition().duration(400).attr('opacity',1);busy=false;mode='chart';},980);
-}
-
-function toMap(){
-  if(busy)return;busy=true;
-  document.getElementById('btn').textContent='Switch to chart view →';
-  document.getElementById('btn').style.background='#16a34a';
-  ttEl.style.display='none';
-  applyLayout();
-  chartTL.transition().duration(300).attr('opacity',0);
-  setTimeout(()=>chartTL.selectAll('*').remove(),360);
-  chartBL.transition().duration(500).delay(200).attr('opacity',0);
-  mapL.transition().duration(600).delay(600).attr('opacity',1);
-  bubL.selectAll('g.b').transition().duration(880).delay((_,i)=>220+i*6).ease(d3.easeCubicInOut)
-    .attr('transform',d=>bubPos(d));
-  setTimeout(()=>{
-    svEl.transition().duration(500).attr('height',H);
-    if(!IS_PHONE)mobBtn.style.display='';
-    busy=false;mode='map';
-  },1180);
-}
-
-function toggleChart(){if(mode==='map')toChart();else toMap();}
 init();
 </script>
 </body>
