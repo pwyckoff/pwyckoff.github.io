@@ -8,6 +8,13 @@ permalink: /walk/
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta property="og:title" content="Walking the canal!!!" />
+<meta property="og:description" content="6 June 2026 — Regent's Canal, Limehouse to Angel. Come join us!" />
+<meta property="og:image" content="https://pwyckoff.github.io/files/map_screenshot.png" />
+<meta property="og:url" content="https://pwyckoff.github.io/walk/" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://pwyckoff.github.io/files/map_screenshot.png" />
 <title>Walking the canal!!!</title>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
 <style>
@@ -36,9 +43,20 @@ section { padding:1.5rem 1.5rem; border-bottom:1px solid #eee; }
 section h2 { font-size:0.67rem; letter-spacing:0.16em; text-transform:uppercase; color:#aaa; margin-bottom:1rem; }
 
 .join-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.7rem; }
-.jcard { border:1px solid #eee; border-radius:6px; padding:0.75rem 1rem; }
+.jcard { border:1px solid #eee; border-radius:6px; padding:0.75rem 1rem; cursor:pointer; transition:border-color 0.15s, background 0.15s; user-select:none; }
+.jcard:active { transform:scale(0.97); }
+.jcard.selected { border-color:#2d7aee; background:#f0f6ff; }
+.jcard.cant { border-style:dashed; }
+.jcard.cant.selected { border-color:#aaa; background:#f7f7f7; }
 .jcard-name { font-size:0.87rem; font-weight:500; margin-bottom:0.25rem; }
 .jcard-info { font-size:0.77rem; color:#888; line-height:1.5; }
+.join-form { margin-top:1rem; display:none; gap:0.6rem; align-items:center; flex-wrap:wrap; }
+.join-form.visible { display:flex; }
+.join-name-input { flex:1; min-width:140px; padding:0.55rem 0.75rem; border:1px solid #ddd; border-radius:5px; font-size:0.9rem; font-family:inherit; }
+.join-name-input:focus { outline:none; border-color:#2d7aee; }
+.join-submit { padding:0.55rem 1.1rem; background:#111; color:#fff; border:none; border-radius:5px; font-size:0.84rem; font-family:inherit; cursor:pointer; white-space:nowrap; }
+.join-submit:active { opacity:0.8; }
+.join-thanks { margin-top:0.9rem; font-size:0.86rem; color:#555; display:none; font-style:italic; }
 
 /* Wikipedia carousel */
 .wiki-scroll {
@@ -74,17 +92,23 @@ footer { padding:1.2rem 1.5rem; font-size:0.75rem; color:#ccc; }
   <div id="weather-bar"><span style="font-size:0.78rem;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-right:0.4rem;">Weather for 6 June</span><span id="weather-inner">Loading&hellip;</span><span id="weather-asof" style="font-size:0.72rem;color:#bbb;margin-left:0.5rem;"></span></div>
 </header>
 
-<div id="status"><span class="dot"></span><div class="status-main"><span id="status-text">Walk starts at 13:30 &mdash; Limehouse Basin</span><span id="status-meta"></span></div></div>
+<div id="status"><span class="dot"></span><div class="status-main"><span id="status-text">The walk will start from Limehouse Basin on June 6 at 13:30.</span><span id="status-meta"></span></div></div>
 <div id="map"></div>
 
 <section>
   <h2>Where do you want to join?</h2>
-  <div class="join-grid">
-    <div class="jcard"><div class="jcard-name">Limehouse Basin</div><div class="jcard-info">13:30<br>DLR: Limehouse</div></div>
-    <div class="jcard"><div class="jcard-name">Mile End</div><div class="jcard-info">14:00<br>Central line: Mile End</div></div>
-    <div class="jcard"><div class="jcard-name">Broadway Market</div><div class="jcard-info">15:00<br>Overground: London Fields</div></div>
-    <div class="jcard"><div class="jcard-name">City Road Lock</div><div class="jcard-info">16:00<br>Northern line: Angel</div></div>
+  <div class="join-grid" id="join-grid">
+    <div class="jcard" data-value="Limehouse Basin (13:30)" onclick="selectJoin(this)"><div class="jcard-name">Limehouse Basin</div><div class="jcard-info">13:30 &middot; DLR: Limehouse</div></div>
+    <div class="jcard" data-value="Mile End (14:00)" onclick="selectJoin(this)"><div class="jcard-name">Mile End</div><div class="jcard-info">14:00 &middot; Central line: Mile End</div></div>
+    <div class="jcard" data-value="Broadway Market (15:00)" onclick="selectJoin(this)"><div class="jcard-name">Broadway Market</div><div class="jcard-info">15:00 &middot; Overground: London Fields</div></div>
+    <div class="jcard" data-value="City Road Lock (16:00)" onclick="selectJoin(this)"><div class="jcard-name">City Road Lock / Peter's apartment</div><div class="jcard-info">16:00 &middot; Northern line: Angel</div></div>
+    <div class="jcard cant" data-value="Can't join" onclick="selectJoin(this)" style="grid-column:span 2;"><div class="jcard-name" style="color:#888;">Can't join</div></div>
   </div>
+  <div class="join-form" id="join-form">
+    <input class="join-name-input" id="join-name" type="text" placeholder="Your name" autocomplete="given-name" />
+    <button class="join-submit" onclick="submitJoin()">Send &#8594;</button>
+  </div>
+  <div class="join-thanks" id="join-thanks"></div>
 </section>
 
 <section>
@@ -456,6 +480,41 @@ async function refreshStatus() {
 }
 refreshStatus();
 setInterval(refreshStatus, 60000);
+
+// ── Join selection ────────────────────────────────────
+// Submit responses via Formspree — sign up at formspree.io,
+// create a form, and replace YOUR_FORMSPREE_ID below.
+const FORMSPREE_JOIN_ID = 'mpqndyzd';
+
+let selectedJoin = null;
+function selectJoin(el) {
+  document.querySelectorAll('#join-grid .jcard').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedJoin = el.dataset.value;
+  document.getElementById('join-form').classList.add('visible');
+  document.getElementById('join-name').focus();
+}
+async function submitJoin() {
+  const name = document.getElementById('join-name').value.trim();
+  if (!name) { document.getElementById('join-name').focus(); return; }
+  const thanks = document.getElementById('join-thanks');
+  const msg = selectedJoin === "Can't join"
+    ? `Thanks ${name} — Peter will miss you! 🙏`
+    : `Thanks ${name} — see you at ${selectedJoin}! 🎉`;
+  if (FORMSPREE_JOIN_ID !== 'YOUR_FORMSPREE_ID') {
+    try {
+      await fetch(`https://formspree.io/f/${FORMSPREE_JOIN_ID}`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body: JSON.stringify({ name, joining: selectedJoin })
+      });
+    } catch(e) {}
+  }
+  document.getElementById('join-form').style.display = 'none';
+  document.getElementById('join-grid').style.pointerEvents = 'none';
+  thanks.textContent = msg;
+  thanks.style.display = 'block';
+}
 
 // ── Wikipedia carousel ─────────────────────────────────
 const WIKI_ARTICLES = [
