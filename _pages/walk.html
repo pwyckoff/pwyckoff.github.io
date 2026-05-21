@@ -1,0 +1,544 @@
+---
+layout: none
+title: Walking the canal
+permalink: /walk/
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walking the canal!!!</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#fff; color:#111; max-width:560px; margin:0 auto; }
+
+header { padding:2rem 1.5rem 1.5rem; border-bottom:1px solid #eee; }
+header h1 { font-size:1.5rem; font-weight:700; margin-bottom:0.35rem; }
+.header-date { font-size:0.88rem; color:#666; margin-bottom:0.75rem; }
+.header-desc { font-size:0.88rem; color:#444; line-height:1.65; }
+
+#weather-bar { margin-top:0.9rem; font-size:0.82rem; color:#555; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+.weather-icon { font-size:1.1rem; }
+.weather-detail { color:#888; }
+#status { background:#f7f7f7; border-bottom:1px solid #eee; padding:0.55rem 1.5rem; font-size:0.84rem; color:#444; display:flex; align-items:center; gap:0.55rem; min-height:40px; }
+.dot { width:7px; height:7px; border-radius:50%; background:#2d7aee; flex-shrink:0; animation:blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.status-main { display:flex; flex-direction:column; gap:2px; }
+#status-text { font-size:0.84rem; }
+#status-meta { font-size:0.72rem; color:#aaa; }
+
+#map { width:100%; height:420px; }
+.maplibregl-ctrl-bottom-right { display:none; }
+
+section { padding:1.5rem 1.5rem; border-bottom:1px solid #eee; }
+section h2 { font-size:0.67rem; letter-spacing:0.16em; text-transform:uppercase; color:#aaa; margin-bottom:1rem; }
+
+.join-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.7rem; }
+.jcard { border:1px solid #eee; border-radius:6px; padding:0.75rem 1rem; }
+.jcard-name { font-size:0.87rem; font-weight:500; margin-bottom:0.25rem; }
+.jcard-info { font-size:0.77rem; color:#888; line-height:1.5; }
+
+/* Wikipedia carousel */
+.wiki-scroll {
+  display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
+  gap:0.75rem; padding:0 1.5rem 0.5rem; margin:0 -1.5rem;
+  scrollbar-width:none; -ms-overflow-style:none;
+}
+.wiki-scroll::-webkit-scrollbar { display:none; }
+.wiki-card {
+  flex-shrink:0; width:195px; scroll-snap-align:start;
+  border:1px solid #eee; border-radius:8px; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+.wiki-img { width:100%; height:110px; object-fit:cover; background:#f0f0f0; }
+.wiki-img-placeholder { width:100%; height:110px; background:#f5f5f5; display:flex; align-items:center; justify-content:center; font-size:1.5rem; }
+.wiki-body { padding:0.7rem 0.8rem; flex:1; display:flex; flex-direction:column; }
+.wiki-title { font-weight:600; font-size:0.84rem; margin-bottom:0.3rem; color:#111; }
+.wiki-extract { font-size:0.76rem; color:#666; line-height:1.45; flex:1;
+  display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:0.5rem; }
+.wiki-link { font-size:0.75rem; color:#2d7aee; text-decoration:none; }
+.wiki-loading { font-size:0.8rem; color:#aaa; font-style:italic; padding:0 1.5rem; }
+
+
+footer { padding:1.2rem 1.5rem; font-size:0.75rem; color:#ccc; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Walking the canal!!!</h1>
+  <p class="header-date">6 June 2026 &mdash; Limehouse to Angel</p>
+  <p class="header-desc">🎉 Celebrating 32 walking the Regent's Canal from the Thames to the Tunnel.<br>🧭 Wear something nautical if you are so inclined (and maybe bring some rainproofs if the weather changes)<br>⚓ Meet at Limehouse Basin at 13:30. We'll reunite at the apartment for snacks &amp; drinks towards 16:00.<br>📍 This page will update as we walk — jump in at any point along the way, or head straight to the apartment.</p>
+  <div id="weather-bar"><span style="font-size:0.78rem;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-right:0.4rem;">Weather for 6 June</span><span id="weather-inner">Loading&hellip;</span><span id="weather-asof" style="font-size:0.72rem;color:#bbb;margin-left:0.5rem;"></span></div>
+</header>
+
+<div id="status"><span class="dot"></span><div class="status-main"><span id="status-text">Walk starts at 13:30 &mdash; Limehouse Basin</span><span id="status-meta"></span></div></div>
+<div id="map"></div>
+
+<section>
+  <h2>Where do you want to join?</h2>
+  <div class="join-grid">
+    <div class="jcard"><div class="jcard-name">Limehouse Basin</div><div class="jcard-info">13:30<br>DLR: Limehouse</div></div>
+    <div class="jcard"><div class="jcard-name">Mile End</div><div class="jcard-info">14:00<br>Central line: Mile End</div></div>
+    <div class="jcard"><div class="jcard-name">Broadway Market</div><div class="jcard-info">15:00<br>Overground: London Fields</div></div>
+    <div class="jcard"><div class="jcard-name">City Road Lock</div><div class="jcard-info">16:00<br>Northern line: Angel</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Along the way</h2>
+  <p class="wiki-loading" id="wiki-loading">Loading&hellip;</p>
+  <div class="wiki-scroll" id="wiki-carousel"></div>
+</section>
+
+
+
+<footer>Regent's Canal &middot; 6 June 2026</footer>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+const SHEET_ID   = '1G5YDpWvpNLJ8dJmlsR1vhRHsqCf2pqPt4r5FYTQkgYU';
+
+const WPS = [
+  { name:"Limehouse Basin", planned:"13:30", lat:51.5116792, lng:-0.0363694 },
+  { name:"Victory Bridge", planned:null, lat:51.5184123, lng:-0.0354337 },
+  { name:"Mile End", planned:"14:00", lat:51.5241872, lng:-0.0368804 },
+  { name:"Old Ford Lock", planned:null, lat:51.5324406, lng:-0.0453745 },
+  { name:"Broadway Market", planned:"15:00", lat:51.5356861, lng:-0.0622035 },
+  { name:"Kingsland Basin", planned:null, lat:51.5367771, lng:-0.0780988 },
+  { name:"City Road Lock", planned:"16:00", lat:51.5327512, lng:-0.0988534 }
+];
+const ROUTE = [
+  [-0.036370,51.511680],
+  [-0.036600,51.511680],
+  [-0.036620,51.511690],
+  [-0.036620,51.511730],
+  [-0.036540,51.511930],
+  [-0.036510,51.512040],
+  [-0.036480,51.512050],
+  [-0.036380,51.512040],
+  [-0.036360,51.512070],
+  [-0.036400,51.512090],
+  [-0.036480,51.512110],
+  [-0.036470,51.512220],
+  [-0.036360,51.512550],
+  [-0.036270,51.512770],
+  [-0.036250,51.512800],
+  [-0.036220,51.512840],
+  [-0.036200,51.512940],
+  [-0.036110,51.513170],
+  [-0.036030,51.513290],
+  [-0.035960,51.513380],
+  [-0.035930,51.513450],
+  [-0.035720,51.513710],
+  [-0.035350,51.514150],
+  [-0.035080,51.514380],
+  [-0.034950,51.514520],
+  [-0.034790,51.514780],
+  [-0.034600,51.514980],
+  [-0.034520,51.515020],
+  [-0.034450,51.515070],
+  [-0.034220,51.515340],
+  [-0.033850,51.515890],
+  [-0.033700,51.516160],
+  [-0.033610,51.516400],
+  [-0.033610,51.516760],
+  [-0.033750,51.517070],
+  [-0.034030,51.517390],
+  [-0.034460,51.517730],
+  [-0.035100,51.518210],
+  [-0.035330,51.518360],
+  [-0.035430,51.518410],
+  [-0.035490,51.518430],
+  [-0.035660,51.518560],
+  [-0.035870,51.518850],
+  [-0.035970,51.519060],
+  [-0.035990,51.519130],
+  [-0.036110,51.519440],
+  [-0.036130,51.519660],
+  [-0.036130,51.520020],
+  [-0.036170,51.520440],
+  [-0.036240,51.521270],
+  [-0.036290,51.521850],
+  [-0.036290,51.521980],
+  [-0.036310,51.522170],
+  [-0.036270,51.522560],
+  [-0.036220,51.522570],
+  [-0.036210,51.522600],
+  [-0.036270,51.522730],
+  [-0.036290,51.522920],
+  [-0.036330,51.523190],
+  [-0.036430,51.523410],
+  [-0.036550,51.523760],
+  [-0.036670,51.523990],
+  [-0.036850,51.524160],
+  [-0.037080,51.524380],
+  [-0.037220,51.524610],
+  [-0.037410,51.524800],
+  [-0.037670,51.525010],
+  [-0.038260,51.525570],
+  [-0.038890,51.526150],
+  [-0.039410,51.526820],
+  [-0.039850,51.527410],
+  [-0.040150,51.527840],
+  [-0.040310,51.528070],
+  [-0.040830,51.528780],
+  [-0.041150,51.529220],
+  [-0.041550,51.529770],
+  [-0.041810,51.530130],
+  [-0.042020,51.530360],
+  [-0.042170,51.530570],
+  [-0.042380,51.530820],
+  [-0.042880,51.531170],
+  [-0.043330,51.531430],
+  [-0.043850,51.531690],
+  [-0.044100,51.531800],
+  [-0.044160,51.531830],
+  [-0.044360,51.531900],
+  [-0.044560,51.532020],
+  [-0.044670,51.532110],
+  [-0.044840,51.532200],
+  [-0.045000,51.532270],
+  [-0.045360,51.532430],
+  [-0.045500,51.532500],
+  [-0.045630,51.532570],
+  [-0.045700,51.532620],
+  [-0.045830,51.532700],
+  [-0.046000,51.532780],
+  [-0.046280,51.532870],
+  [-0.046720,51.533020],
+  [-0.047000,51.533110],
+  [-0.048020,51.533440],
+  [-0.049030,51.533800],
+  [-0.050310,51.534210],
+  [-0.051490,51.534600],
+  [-0.052720,51.535000],
+  [-0.053480,51.535190],
+  [-0.053850,51.535240],
+  [-0.054230,51.535270],
+  [-0.054760,51.535250],
+  [-0.055030,51.535210],
+  [-0.055310,51.535160],
+  [-0.055630,51.535070],
+  [-0.056410,51.534840],
+  [-0.056670,51.534760],
+  [-0.056870,51.534670],
+  [-0.057020,51.534590],
+  [-0.057160,51.534500],
+  [-0.057460,51.534430],
+  [-0.057710,51.534380],
+  [-0.058280,51.534270],
+  [-0.058520,51.534230],
+  [-0.058740,51.534210],
+  [-0.058840,51.534200],
+  [-0.059120,51.534190],
+  [-0.059330,51.534190],
+  [-0.059670,51.534220],
+  [-0.059770,51.534260],
+  [-0.059920,51.534300],
+  [-0.059870,51.534430],
+  [-0.060090,51.534500],
+  [-0.060270,51.534570],
+  [-0.060430,51.534650],
+  [-0.060630,51.534820],
+  [-0.060860,51.535020],
+  [-0.061220,51.535350],
+  [-0.061450,51.535480],
+  [-0.061590,51.535540],
+  [-0.061760,51.535590],
+  [-0.062110,51.535670],
+  [-0.062270,51.535610],
+  [-0.061970,51.535550],
+  [-0.062390,51.535590],
+  [-0.062750,51.535680],
+  [-0.063030,51.535730],
+  [-0.063280,51.535730],
+  [-0.063460,51.535690],
+  [-0.063700,51.535680],
+  [-0.064010,51.535680],
+  [-0.064330,51.535730],
+  [-0.064970,51.535740],
+  [-0.066520,51.535740],
+  [-0.068550,51.535810],
+  [-0.069070,51.535840],
+  [-0.069440,51.535870],
+  [-0.070110,51.535940],
+  [-0.070350,51.535970],
+  [-0.070860,51.536020],
+  [-0.071550,51.536090],
+  [-0.071730,51.536080],
+  [-0.071890,51.536060],
+  [-0.072100,51.536080],
+  [-0.072270,51.536140],
+  [-0.072640,51.536170],
+  [-0.073270,51.536230],
+  [-0.073690,51.536260],
+  [-0.074510,51.536320],
+  [-0.074880,51.536360],
+  [-0.075690,51.536450],
+  [-0.076260,51.536510],
+  [-0.076550,51.536530],
+  [-0.076760,51.536530],
+  [-0.076910,51.536540],
+  [-0.077040,51.536570],
+  [-0.077220,51.536620],
+  [-0.077830,51.536720],
+  [-0.077980,51.536750],
+  [-0.078100,51.536780],
+  [-0.078410,51.536800],
+  [-0.079380,51.536930],
+  [-0.080800,51.537130],
+  [-0.081210,51.537180],
+  [-0.081640,51.537190],
+  [-0.081790,51.537190],
+  [-0.081930,51.537240],
+  [-0.082150,51.537300],
+  [-0.082560,51.537360],
+  [-0.083570,51.537520],
+  [-0.084000,51.537570],
+  [-0.084360,51.537590],
+  [-0.084510,51.537590],
+  [-0.084790,51.537560],
+  [-0.085360,51.537480],
+  [-0.085810,51.537420],
+  [-0.086320,51.537340],
+  [-0.086610,51.537290],
+  [-0.086830,51.537240],
+  [-0.087140,51.537170],
+  [-0.087350,51.537110],
+  [-0.087630,51.536990],
+  [-0.088160,51.536740],
+  [-0.088650,51.536500],
+  [-0.089350,51.536160],
+  [-0.089550,51.536030],
+  [-0.089740,51.535920],
+  [-0.089870,51.535890],
+  [-0.090010,51.535840],
+  [-0.090690,51.535540],
+  [-0.091190,51.535310],
+  [-0.091430,51.535170],
+  [-0.091600,51.535070],
+  [-0.091850,51.534960],
+  [-0.092060,51.534880],
+  [-0.092750,51.534560],
+  [-0.093120,51.534390],
+  [-0.093700,51.534150],
+  [-0.094140,51.533970],
+  [-0.094390,51.533880],
+  [-0.094950,51.533670],
+  [-0.095540,51.533450],
+  [-0.096360,51.533160],
+  [-0.096660,51.533080],
+  [-0.097090,51.532970],
+  [-0.097450,51.532880],
+  [-0.097790,51.532800],
+  [-0.098160,51.532750],
+  [-0.098390,51.532730],
+  [-0.098800,51.532750]
+];
+
+const lngs = ROUTE.map(c=>c[0]), lats = ROUTE.map(c=>c[1]);
+const bounds = [[Math.min(...lngs),Math.min(...lats)],[Math.max(...lngs),Math.max(...lats)]];
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: 'https://tiles.openfreemap.org/styles/positron',
+  bearing: 270,
+  pitchWithRotate: false,
+  scrollZoom: false,
+  attributionControl: false
+});
+map.addControl(new maplibregl.AttributionControl({ compact:true }), 'bottom-left');
+
+// Compass rose — shows N → since west is up (bearing 270)
+class NorthArrow {
+  onAdd(map) {
+    this._el = document.createElement('div');
+    this._el.style.cssText = 'background:rgba(255,255,255,0.88);padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;color:#555;letter-spacing:0.04em;margin:8px;border:0.5px solid #ddd;';
+    this._el.textContent = 'N →';
+    return this._el;
+  }
+  onRemove() { this._el.parentNode.removeChild(this._el); }
+}
+map.addControl(new NorthArrow(), 'top-right');
+
+let currentPositionMarker = null;
+
+map.on('load', () => {
+  map.fitBounds(bounds, { padding:36, bearing:270 });
+
+  map.addSource('canal', { type:'geojson', data:{ type:'Feature', geometry:{ type:'LineString', coordinates:ROUTE } } });
+  map.addLayer({ id:'canal', type:'line', source:'canal',
+    layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':'#c0c0c0','line-width':4} });
+
+  map.addSource('progress', { type:'geojson', data:{ type:'Feature', geometry:{ type:'LineString', coordinates:[] } } });
+  map.addLayer({ id:'progress', type:'line', source:'progress',
+    layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':'#2d7aee','line-width':5} });
+
+  WPS.forEach(w => {
+    const el = document.createElement('div');
+    const sz = w.planned ? 13 : 9;
+    el.style.cssText = `width:${sz}px;height:${sz}px;border-radius:50%;background:${w.planned?'#2d7aee':'#fff'};border:2.5px solid ${w.planned?'#2d7aee':'#bbb'};${w.planned?'box-shadow:0 0 0 2.5px #fff,0 0 0 4px #2d7aee;':''}cursor:pointer`;
+    const popup = new maplibregl.Popup({ offset:10, closeButton:false })
+      .setHTML(`<strong style="font-size:13px">${w.name}</strong>${w.planned?`<br><span style="color:#2d7aee;font-size:12px">${w.planned}</span>`:''}`);
+    new maplibregl.Marker({ element:el, anchor:'center' }).setLngLat([w.lng,w.lat]).setPopup(popup).addTo(map);
+  });
+});
+
+// Haversine distance in miles between two lat/lng points
+function haversine(lat1,lng1,lat2,lng2) {
+  const R=3958.8, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.asin(Math.sqrt(a));
+}
+function distanceRemainingFromIdx(routeIdx) {
+  let d=0;
+  for(let i=routeIdx;i<ROUTE.length-1;i++){
+    const [l1,a1]=ROUTE[i],[l2,a2]=ROUTE[i+1];
+    d+=haversine(a1,l1,a2,l2);
+  }
+  return d;
+}
+
+function closestIdx(lng, lat) {
+  let best=0, bestD=Infinity;
+  ROUTE.forEach(([rlng,rlat],i) => { const d=(rlat-lat)**2+(rlng-lng)**2; if(d<bestD){bestD=d;best=i;} });
+  return best;
+}
+
+function updateProgress(passedTimes) {
+  let lastIdx=-1;
+  for(let i=WPS.length-1;i>=0;i--){ if(passedTimes[i]){lastIdx=i;break;} }
+  const coords = lastIdx>=0 ? ROUTE.slice(0, closestIdx(WPS[lastIdx].lng,WPS[lastIdx].lat)+1) : [];
+  if(map.getSource('progress')) map.getSource('progress').setData({type:'Feature',geometry:{type:'LineString',coordinates:coords}});
+  if(currentPositionMarker){currentPositionMarker.remove();currentPositionMarker=null;}
+  if(lastIdx>=0){
+    const el=document.createElement('div');
+    el.style.cssText='width:16px;height:16px;border-radius:50%;background:#e8a020;border:2.5px solid #fff;box-shadow:0 0 0 2px #e8a020';
+    currentPositionMarker=new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([WPS[lastIdx].lng,WPS[lastIdx].lat]).addTo(map);
+  }
+}
+
+function parseCSVRow(row) {
+  const out=[]; let cur='',inQ=false;
+  for(const c of row){ if(c==='"')inQ=!inQ; else if(c===','&&!inQ){out.push(cur.trim());cur='';} else cur+=c; }
+  out.push(cur.trim()); return out;
+}
+
+async function refreshStatus() {
+  try {
+    const r=await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`);
+    const csv=await r.text();
+    const rows=csv.trim().split('\n').map(parseCSVRow);
+    const passedTimes=rows.map((r,i)=>i<WPS.length?r[1]?.replace(/"/g,'').trim()||null:null);
+    const messages=rows.map((r,i)=>i<WPS.length?r[2]?.replace(/"/g,'').trim()||null:null);
+    let lastIdx=-1;
+    for(let i=WPS.length-1;i>=0;i--){if(passedTimes[i]){lastIdx=i;break;}}
+    if(lastIdx>=0) document.getElementById('status-text').textContent=messages[lastIdx]||`At ${WPS[lastIdx].name}`;
+    // Timestamp + distance remaining
+    const now=new Date();
+    const hm=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+    let metaStr=`Updated ${hm}`;
+    if(lastIdx>=0 && lastIdx<WPS.length-1){
+      const routeIdx=closestIdx(WPS[lastIdx].lng,WPS[lastIdx].lat);
+      const miles=distanceRemainingFromIdx(routeIdx);
+      metaStr+=` · ${miles.toFixed(1)} mi to City Road Lock`;
+    } else if(lastIdx===WPS.length-1){
+      metaStr+=` · Arrived!`;
+    }
+    document.getElementById('status-meta').textContent=metaStr;
+    updateProgress(passedTimes);
+  } catch(e){}
+}
+refreshStatus();
+setInterval(refreshStatus, 60000);
+
+// ── Wikipedia carousel ─────────────────────────────────
+const WIKI_ARTICLES = [
+  "Broadway_Market%2C_London",
+  "Gongoozler",
+  "Sylvia_Pankhurst_(artwork)",
+  "Pool_of_London",
+  "Regent%27s_Canal_Act_1812",
+  "Sharks!",
+  "John_Nash_(architect)",
+  "City_Road_Basin",
+  "Victoria_Park%2C_Tower_Hamlets",
+  "Angela_Georgina_Burdett-Coutts",
+  "Haggerston",
+  "Narrowboat",
+  "Mile_End_Park",
+  "Wenlock_Basin"
+];
+
+async function loadWikiCards() {
+  const container = document.getElementById('wiki-carousel');
+  const loading   = document.getElementById('wiki-loading');
+  let loaded = 0;
+  for (const slug of WIKI_ARTICLES) {
+    try {
+      const r    = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`);
+      const data = await r.json();
+      if (!data.title) continue;
+      const card = document.createElement('div');
+      card.className = 'wiki-card';
+      const imgHtml = data.thumbnail
+        ? `<img class="wiki-img" src="${data.thumbnail.source}" alt="${data.title}" />`
+        : `<div class="wiki-img-placeholder">&#127758;</div>`;
+      const extract = (data.extract||'').split('. ').slice(0,3).join('. ').replace(/\.$/,'') + '.';
+      card.innerHTML = `${imgHtml}<div class="wiki-body">
+        <div class="wiki-title">${data.title}</div>
+        <div class="wiki-extract">${extract}</div>
+        <a class="wiki-link" href="${data.content_urls?.desktop?.page||'#'}" target="_blank">Read more &rarr;</a>
+      </div>`;
+      container.appendChild(card);
+      loaded++;
+      if (loaded === 1) loading.style.display = 'none';
+    } catch(e) { continue; }
+  }
+  if (loaded === 0) loading.textContent = 'Could not load articles.';
+}
+// Weather via wttr.in (no API key needed)
+const WEATHER_CODES = {
+  113:'☀️',116:'⛅',119:'☁️',122:'☁️',143:'🌫️',
+  176:'🌦️',185:'🌦️',248:'🌫️',260:'🌫️',263:'🌦️',266:'🌦️',
+  281:'🌧️',284:'🌧️',293:'🌧️',296:'🌧️',299:'🌧️',302:'🌧️',
+  305:'🌧️',308:'🌧️',311:'🌧️',314:'🌧️',317:'🌧️',320:'🌨️',
+  323:'🌨️',326:'🌨️',329:'🌨️',332:'🌨️',335:'🌨️',338:'🌨️',
+  350:'🌨️',353:'🌦️',356:'🌧️',359:'🌧️',362:'🌨️',365:'🌨️',
+  368:'🌨️',371:'🌨️',374:'🌨️',377:'🌨️',386:'⛈️',389:'⛈️',
+  392:'⛈️',395:'⛈️',200:'⛈️'
+};
+async function loadWeather() {
+  try {
+    const r=await fetch('https://wttr.in/Limehouse,London?format=j1');
+    const d=await r.json();
+    const cc=d.current_condition[0];
+    const code=parseInt(cc.weatherCode);
+    const icon=WEATHER_CODES[code]||'🌡️';
+    const desc=cc.weatherDesc[0].value;
+    const temp=cc.temp_C+'°C';
+    const wind=Math.round(cc.windspeedKmph)+' km/h';
+    const rain=cc.precipMM;
+    const now=new Date();
+    const hh=now.getHours().toString().padStart(2,'0');
+    const dateStr=now.toLocaleDateString('en-GB',{day:'numeric',month:'long'});
+    document.getElementById('weather-asof').textContent=`as of ${hh}:00, ${dateStr}`;
+    document.getElementById('weather-inner').innerHTML=
+      `<span class="weather-icon">${icon}</span>`+
+      `<span>${temp} &middot; ${desc}</span>`+
+      `<span class="weather-detail">&middot; Wind ${wind} &middot; Rain ${rain}mm</span>`;
+  } catch(e){
+    document.getElementById('weather-inner').textContent='Unavailable';
+  }
+}
+loadWeather();
+loadWikiCards();
+
+</script>
+</body>
+</html>
