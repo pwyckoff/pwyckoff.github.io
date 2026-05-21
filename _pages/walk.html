@@ -59,9 +59,9 @@ section h2 { font-size:0.67rem; letter-spacing:0.16em; text-transform:uppercase;
 .join-thanks { margin-top:0.9rem; font-size:0.86rem; color:#555; display:none; font-style:italic; }
 
 /* Wikipedia carousel */
-.swipe-hint { text-align:center; font-size:0.88rem; color:#888; margin-top:0.75rem; transition:opacity 0.3s; font-style:italic; }
-.swipe-hint span { display:inline-block; font-style:normal; font-size:1.1rem; animation:nudge 1s ease-in-out infinite; }
-@keyframes nudge { 0%,100%{transform:translateX(0)} 50%{transform:translateX(6px)} }
+.swipe-dots { display:flex; justify-content:center; gap:5px; margin-top:0.6rem; }
+.swipe-dot { width:5px; height:5px; border-radius:50%; background:#e0e0e0; transition:background 0.25s; flex-shrink:0; }
+.swipe-dot.active { background:#999; }
 .wiki-scroll {
   display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
   gap:0.75rem; padding:0 1.5rem 0.5rem; margin:0 -1.5rem;
@@ -118,7 +118,7 @@ footer { padding:1.2rem 1.5rem; font-size:0.75rem; color:#ccc; }
   <h2>Along the way</h2>
   <p class="wiki-loading" id="wiki-loading">Loading&hellip;</p>
   <div class="wiki-scroll" id="wiki-carousel"></div>
-  <p class="swipe-hint" id="swipe-hint">swipe to explore <span>&#8594;</span></p>
+  <div class="swipe-dots" id="swipe-dots"></div>
 </section>
 
 
@@ -564,6 +564,20 @@ async function loadWikiCards() {
     } catch(e) { continue; }
   }
   if (loaded === 0) loading.textContent = 'Could not load articles.';
+  // Build pagination dots
+  const dotsEl = document.getElementById('swipe-dots');
+  const cards = container.querySelectorAll('.wiki-card');
+  cards.forEach((_, i) => {
+    const d = document.createElement('span');
+    d.className = 'swipe-dot' + (i === 0 ? ' active' : '');
+    dotsEl.appendChild(d);
+  });
+  container.addEventListener('scroll', () => {
+    const atEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 8;
+    const cardW = 195 + 12;
+    const idx = atEnd ? cards.length - 1 : Math.min(Math.round(container.scrollLeft / cardW), cards.length - 1);
+    dotsEl.querySelectorAll('.swipe-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+  });
 }
 // Weather — forecast (Open-Meteo) before the walk, current (wttr.in) on the day
 const WALK_DATETIME = new Date('2026-06-06T13:30:00');
@@ -638,9 +652,7 @@ async function loadWeather() {
 }
 loadWeather();
 loadWikiCards();
-document.getElementById('wiki-carousel').addEventListener('scroll', () => {
-  document.getElementById('swipe-hint').style.opacity = '0';
-}, { once: true });
+
 
 </script>
 </body>
