@@ -59,6 +59,9 @@ section h2 { font-size:0.67rem; letter-spacing:0.16em; text-transform:uppercase;
 .join-thanks { margin-top:0.9rem; font-size:0.86rem; color:#555; display:none; font-style:italic; }
 
 /* Wikipedia carousel */
+.swipe-hint { text-align:center; font-size:0.88rem; color:#888; margin-top:0.75rem; transition:opacity 0.3s; font-style:italic; }
+.swipe-hint span { display:inline-block; font-style:normal; font-size:1.1rem; animation:nudge 1s ease-in-out infinite; }
+@keyframes nudge { 0%,100%{transform:translateX(0)} 50%{transform:translateX(6px)} }
 .wiki-scroll {
   display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
   gap:0.75rem; padding:0 1.5rem 0.5rem; margin:0 -1.5rem;
@@ -115,6 +118,7 @@ footer { padding:1.2rem 1.5rem; font-size:0.75rem; color:#ccc; }
   <h2>Along the way</h2>
   <p class="wiki-loading" id="wiki-loading">Loading&hellip;</p>
   <div class="wiki-scroll" id="wiki-carousel"></div>
+  <p class="swipe-hint" id="swipe-hint">swipe to explore <span>&#8594;</span></p>
 </section>
 
 
@@ -561,42 +565,82 @@ async function loadWikiCards() {
   }
   if (loaded === 0) loading.textContent = 'Could not load articles.';
 }
-// Weather via wttr.in (no API key needed)
-const WEATHER_CODES = {
-  113:'☀️',116:'⛅',119:'☁️',122:'☁️',143:'🌫️',
-  176:'🌦️',185:'🌦️',248:'🌫️',260:'🌫️',263:'🌦️',266:'🌦️',
-  281:'🌧️',284:'🌧️',293:'🌧️',296:'🌧️',299:'🌧️',302:'🌧️',
-  305:'🌧️',308:'🌧️',311:'🌧️',314:'🌧️',317:'🌧️',320:'🌨️',
-  323:'🌨️',326:'🌨️',329:'🌨️',332:'🌨️',335:'🌨️',338:'🌨️',
-  350:'🌨️',353:'🌦️',356:'🌧️',359:'🌧️',362:'🌨️',365:'🌨️',
-  368:'🌨️',371:'🌨️',374:'🌨️',377:'🌨️',386:'⛈️',389:'⛈️',
-  392:'⛈️',395:'⛈️',200:'⛈️'
-};
+// Weather — forecast (Open-Meteo) before the walk, current (wttr.in) on the day
+const WALK_DATETIME = new Date('2026-06-06T13:30:00');
+
+// WMO weather codes → emoji + description
+const WMO_ICONS = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌦️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'🌨️',77:'🌨️',80:'🌧️',81:'🌧️',82:'🌧️',85:'🌨️',86:'🌨️',95:'⛈️',96:'⛈️',99:'⛈️'};
+const WMO_DESCS = {0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+
+// wttr.in codes → emoji (for current-conditions fallback on the day)
+const WEATHER_CODES = {113:'☀️',116:'⛅',119:'☁️',122:'☁️',143:'🌫️',176:'🌦️',263:'🌦️',266:'🌦️',293:'🌧️',296:'🌧️',302:'🌧️',305:'🌧️',308:'🌧️',386:'⛈️',389:'⛈️'};
+
+function setWeatherAsOf(prefix) {
+  const now = new Date();
+  const hh = now.getHours().toString().padStart(2,'0');
+  const dateStr = now.toLocaleDateString('en-GB',{day:'numeric',month:'long'});
+  document.getElementById('weather-asof').textContent = `${prefix} ${hh}:00, ${dateStr}`;
+}
+
 async function loadWeather() {
+  const now = new Date();
+  const FORECAST_START = new Date('2026-05-26T00:00:00');
   try {
-    const r=await fetch('https://wttr.in/Limehouse,London?format=j1');
-    const d=await r.json();
-    const cc=d.current_condition[0];
-    const code=parseInt(cc.weatherCode);
-    const icon=WEATHER_CODES[code]||'🌡️';
-    const desc=cc.weatherDesc[0].value;
-    const temp=cc.temp_C+'°C';
-    const wind=Math.round(cc.windspeedKmph)+' km/h';
-    const rain=cc.precipMM;
-    const now=new Date();
-    const hh=now.getHours().toString().padStart(2,'0');
-    const dateStr=now.toLocaleDateString('en-GB',{day:'numeric',month:'long'});
-    document.getElementById('weather-asof').textContent=`as of ${hh}:00, ${dateStr}`;
-    document.getElementById('weather-inner').innerHTML=
-      `<span class="weather-icon">${icon}</span>`+
-      `<span>${temp} &middot; ${desc}</span>`+
-      `<span class="weather-detail">&middot; Wind ${wind} &middot; Rain ${rain}mm</span>`;
-  } catch(e){
-    document.getElementById('weather-inner').textContent='Unavailable';
+    if (now < FORECAST_START) {
+      // Before May 26 — show placeholder estimate
+      const _now=new Date(), _hh=_now.getHours().toString().padStart(2,'0'), _ds=_now.toLocaleDateString('en-GB',{day:'numeric',month:'long'});
+      document.getElementById('weather-asof').textContent = `expected — as of ${_hh}:00, ${_ds}`;
+      document.getElementById('weather-inner').innerHTML =
+        '<span class="weather-icon">☀️</span>' +
+        '<span>18°C &middot; Sunny</span>' +
+        '<span class="weather-detail">&middot; 0% rain &middot; Wind 17 km/h</span>';
+    } else if (now < WALK_DATETIME) {
+      // May 26 to June 6 13:30 — Open-Meteo forecast for June 6 13:00
+      const url = 'https://api.open-meteo.com/v1/forecast?latitude=51.508&longitude=-0.036' +
+        '&hourly=temperature_2m,precipitation_probability,weathercode,windspeed_10m' +
+        '&timezone=Europe%2FLondon&forecast_days=16';
+      const r = await fetch(url);
+      const data = await r.json();
+      if (!data.hourly || !data.hourly.time) throw new Error('no data');
+      const idx = data.hourly.time.indexOf('2026-06-06T13:00');
+      if (idx === -1) throw new Error('date not in range');
+      const temp = Math.round(data.hourly.temperature_2m[idx]);
+      const code = data.hourly.weathercode[idx];
+      const precip = data.hourly.precipitation_probability[idx];
+      const wind = Math.round(data.hourly.windspeed_10m[idx]);
+      const icon = WMO_ICONS[code] || '🌡️';
+      const desc = WMO_DESCS[code] || 'Variable';
+      setWeatherAsOf('forecast as of');
+      document.getElementById('weather-inner').innerHTML =
+        `<span class="weather-icon">${icon}</span>` +
+        `<span>${temp}°C &middot; ${desc}</span>` +
+        `<span class="weather-detail">&middot; ${precip}% rain &middot; Wind ${wind} km/h</span>`;
+    } else {
+      // Walk day or after — live current conditions from wttr.in
+      const r = await fetch('https://wttr.in/Limehouse,London?format=j1');
+      const d = await r.json();
+      const cc = d.current_condition[0];
+      const code = parseInt(cc.weatherCode);
+      const icon = WEATHER_CODES[code] || '🌡️';
+      const desc = cc.weatherDesc[0].value;
+      const temp = cc.temp_C + '°C';
+      const wind = Math.round(cc.windspeedKmph) + ' km/h';
+      const rain = cc.precipMM;
+      setWeatherAsOf('as of');
+      document.getElementById('weather-inner').innerHTML =
+        `<span class="weather-icon">${icon}</span>` +
+        `<span>${temp} &middot; ${desc}</span>` +
+        `<span class="weather-detail">&middot; Wind ${wind} &middot; Rain ${rain}mm</span>`;
+    }
+  } catch(e) {
+    document.getElementById('weather-inner').textContent = 'Unavailable';
   }
 }
 loadWeather();
 loadWikiCards();
+document.getElementById('wiki-carousel').addEventListener('scroll', () => {
+  document.getElementById('swipe-hint').style.opacity = '0';
+}, { once: true });
 
 </script>
 </body>
