@@ -202,12 +202,12 @@ const data = [
   {n:"États-Unis (1re) — Sud-Est",lat:33.75,lng:-84.39,s:3,cont:"Amérique du Nord",ex:1002,win:"blue",seats:{blue:1,grey:1,purple:1},sh:{blue:26.55,grey:30.54,purple:16.97,green:15.77,red:10.18}},
   {n:"États-Unis (8e) — Nord-Ouest Pacifique",lat:47.61,lng:-122.33,s:5,cont:"Amérique du Nord",seats:null,sh:null},
   {n:"États-Unis (9e) — New York",lat:40.71,lng:-74.01,s:6,cont:"Amérique du Nord",ex:4144,win:"orange",seats:{orange:2,red:3,grey:1},sh:{orange:25.07,red:36.07,grey:28.96,blue:9.89}},
-  {n:"Argentine",lat:-34.60,lng:-58.38,s:4,cont:"Amérique latine",seats:null,sh:null},
+  {n:"Argentine",lat:-34.60,lng:-58.38,s:4,cont:"Amérique latine",ex:1678,win:"purple",seats:{purple:1,red:2,blue:1},sh:{purple:23.90,red:52.32,blue:17.46,exd:6.32}},
   {n:"Brésil (1re) — Brasília / Recife",lat:-8.05,lng:-34.88,s:3,cont:"Amérique latine",seats:null,sh:null},
   {n:"Brésil (3e) — São Paulo / Sud",lat:-23.55,lng:-46.63,s:4,cont:"Amérique latine",ex:829,win:"blue",seats:{blue:2,grey:1,red:1},sh:{blue:43.43,grey:24.61,red:31.97}},
   {n:"Chili",lat:-33.45,lng:-70.67,s:4,cont:"Amérique latine",seats:null,sh:null},
   {n:"Colombie",lat:4.71,lng:-74.07,s:3,cont:"Amérique latine",seats:null,sh:null},
-  {n:"Costa Rica, Honduras, Nicaragua",lat:9.93,lng:-84.08,s:3,cont:"Amérique latine",seats:null,sh:null},
+  {n:"Costa Rica, Honduras, Nicaragua",lat:9.93,lng:-84.08,s:3,cont:"Amérique latine",ex:341,win:"grey",seats:{grey:2,purple:1},sh:{grey:51.32,purple:25.51,orange:23.18}},
   {n:"Équateur",lat:-0.18,lng:-78.47,s:3,cont:"Amérique latine",seats:null,sh:null},
   {n:"Guatemala, Salvador",lat:14.63,lng:-90.51,s:1,cont:"Amérique latine",seats:null,sh:null},
   {n:"Haïti",lat:18.59,lng:-72.31,s:1,cont:"Amérique latine",seats:null,sh:null},
@@ -347,7 +347,7 @@ const groupings=[
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
   {key:"exd",calc:s=>s.exd||0},{key:"rightexd",calc:s=>(s.blue||0)+(s.exd||0)},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
-const turnout={"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
+const turnout={"Argentine":13.83,"Costa Rica, Honduras, Nicaragua":13.07,"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
 "Canada (1re) — Ouest":19.23,"États-Unis (2e) — Nouvelle-Angleterre":13.37,"États-Unis (3e) — Texas":12.1,
 "États-Unis (4e) — Midwest":13.95,"États-Unis (5e) — Floride":11.33,"États-Unis (6e) — Washington":14.34,
