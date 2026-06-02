@@ -18,6 +18,10 @@
   body { margin:0; font-family:"IBM Plex Sans",system-ui,sans-serif; color:#23211e; background:#fff; padding:16px 18px 44px; }
   svg text { font-family:"IBM Plex Sans",system-ui,sans-serif; }
   .langnav { display:flex; justify-content:flex-end; gap:6px; margin-bottom:2px; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; }
+  .topbar .langnav { margin-bottom:0; }
+  .homelink { font-size:12px; font-weight:600; color:#6b665d; text-decoration:none; border:1px solid #d6d1c8; background:#fff; border-radius:6px; padding:4px 11px; line-height:1.7; white-space:nowrap; }
+  .homelink:hover { color:#23211e; border-color:#b8b2a6; background:#faf9f6; }
   .lng { font-size:12px; padding:4px 11px; border:1px solid #d6d1c8; background:#fff; border-radius:6px; cursor:pointer; font-weight:600; color:#6b665d; }
   .lng.active { background:#2b2924; color:#fff; border-color:#2b2924; }
   h1 { font-family:"Fraunces","Georgia",serif; font-weight:600; font-size:24px; letter-spacing:-.01em; margin:0 0 3px; }
@@ -116,7 +120,7 @@
 </style>
 </head>
 <body>
-<div class="langnav"><button id="langFr" class="lng active">FR</button><button id="langEn" class="lng">EN</button></div>
+<div class="topbar"><a class="homelink" href="/">← <span id="homeLbl">Accueil</span></a><div class="langnav"><button id="langFr" class="lng active">FR</button><button id="langEn" class="lng">EN</button></div></div>
 <h1 id="h1"></h1>
 <p class="lede" id="lede"></p>
 <p class="asof" id="asof"></p>
@@ -161,10 +165,10 @@ const data = [
   {n:"Andorre",lat:42.51,lng:1.52,s:1,cont:"Europe",ex:424,win:"grey",seats:{grey:1},sh:{grey:58.02,purple:41.98}},
   {n:"Espagne (1re) — Barcelone",lat:41.39,lng:2.17,s:5,cont:"Europe",ex:4335,win:"green",seats:{green:2,grey:1,red:1,orange:1},sh:{green:25.65,grey:23.57,red:33.91,orange:19.17}},
   {n:"Monaco",lat:43.74,lng:7.42,s:3,cont:"Europe",ex:532,win:"blue",seats:{blue:2,exd:1},sh:{blue:55.83,exd:44.17}},
-  {n:"Portugal",lat:38.72,lng:-9.14,s:5,cont:"Europe",win:"orange",seats:{exd:1,red:1,orange:2,green:1},sh:{orange:40.77,exd:19.92,green:11.70,red:11.67,purple:9.66,grey:6.26}},
+  {n:"Portugal",lat:38.72,lng:-9.14,s:5,cont:"Europe",ex:3529,win:"orange",seats:{exd:1,red:1,orange:2,green:1},sh:{orange:40.77,exd:19.92,green:11.70,red:11.67,purple:9.66,grey:6.26}},
   {n:"Suisse (1re) — alémanique",lat:47.37,lng:8.54,s:5,cont:"Europe",ex:4951,win:"green",seats:{green:2,orange:1,purple:1,exd:1},sh:{green:27.61,orange:20.54,purple:17.51,exd:13.16,blue:11.06,red:10.09}},
   {n:"Suisse (2e) — romande",lat:46.20,lng:6.14,s:9,cont:"Europe",ex:15679,win:"orange",seats:{orange:2,green:2,red:2,exd:1,blue:1,grey:1},sh:{orange:21.57,red:19.04,green:18.52,exd:13.51,blue:11.68,grey:11.32,purple:4.31}},
-  {n:"Allemagne (1re) — Nord/Est",lat:52.52,lng:13.40,s:5,cont:"Europe",ex:6287,win:"green",seats:{green:2,orange:1,red:2},sh:{green:42.31,red:32.08,orange:14.39,blue:9.56}},
+  {n:"Allemagne (1re) — Nord/Est",lat:52.52,lng:13.40,s:5,cont:"Europe",ex:6287,win:"green",seats:{green:2,orange:1,red:2},sh:{green:43.03,red:32.62,orange:14.63,blue:9.72}},
   {n:"Croatie",lat:45.81,lng:15.98,s:1,cont:"Europe",ex:165,win:"grey",seats:{grey:1},sh:{grey:83.63,purple:16.36}},
   {n:"Tchéquie",lat:50.08,lng:14.44,s:3,cont:"Europe",ex:763,win:"purple",seats:{purple:2,green:1},sh:{purple:60.81,green:39.19}},
   {n:"Italie (1re) — Rome",lat:41.90,lng:12.50,s:4,cont:"Europe",ex:2997,win:"red",seats:{red:2,purple:1,green:1},sh:{red:30.00,purple:24.36,green:18.18,orange:14.88,blue:12.58}},
@@ -176,7 +180,7 @@ const data = [
   {n:"Chine (3e) — Hong Kong",lat:22.32,lng:114.17,s:4,cont:"Asie & Pacifique",ex:1639,win:"purple",seats:{green:1,grey:1,exd:1,purple:1},sh:{purple:27.2,grey:23.1,green:20.4,exd:17.3,blue:12.1}},
   {n:"Chine (4e) — Shanghai",lat:31.23,lng:121.47,s:3,cont:"Asie & Pacifique",ex:328,win:"grey",seats:{grey:3},sh:{grey:90.55,purple:9.45}},
   {n:"Japon",lat:35.68,lng:139.69,s:4,cont:"Asie & Pacifique",ex:2159,win:"red",seats:{red:3,grey:1},sh:{red:55.30,grey:44.69}},
-  {n:"Nouvelle-Zélande",lat:-41.29,lng:174.78,s:3,cont:"Asie & Pacifique",ex:63,win:"green",seats:{green:2,grey:1},sh:{green:61.90,grey:23.81,purple:14.29}},
+  {n:"Nouvelle-Zélande",lat:-41.29,lng:174.78,s:3,cont:"Asie & Pacifique",ex:843,win:"green",seats:{green:2,grey:1},sh:{green:51.60,grey:30.01,purple:18.39}},
   {n:"Vanuatu",lat:-17.73,lng:168.31,s:1,cont:"Asie & Pacifique",ex:162,win:"red",seats:{red:1},sh:{red:100}},
   {n:"Vietnam",lat:10.82,lng:106.63,s:3,cont:"Asie & Pacifique",ex:932,win:"grey",seats:{grey:1,purple:1,red:1},sh:{grey:48.39,purple:26.18,red:25.43}},
   {n:"Canada (2e) — Ontario / Manitoba",lat:43.65,lng:-79.38,s:4,cont:"Amérique du Nord",seats:null,sh:null},
@@ -209,8 +213,8 @@ const data = [
   {n:"Belgique",lat:50.85,lng:4.35,s:9,cont:"Europe",ex:19100,win:"green",seats:{green:2,red:4,orange:2,blue:1},sh:{green:21.32,red:34.81,orange:23.87,blue:12.16,exd:5.12,grey:2.72}},
   {n:"Luxembourg",lat:49.61,lng:6.13,s:5,cont:"Europe",ex:4231,win:"orange",seats:{orange:2,blue:1,green:1,red:1},sh:{orange:35.95,blue:29.52,green:15.98,red:11.49,purple:7.07}},
   {n:"Espagne (2e) — Madrid",lat:40.42,lng:-3.70,s:6,cont:"Europe",ex:7389,win:"orange",seats:{orange:2,green:2,red:1,blue:1},sh:{orange:27.38,green:26.08,red:19.53,blue:14.25,purple:12.76}},
-  {n:"Allemagne (2e) — Ouest",lat:50.11,lng:8.68,s:5,cont:"Europe",seats:null,sh:null},
-  {n:"Allemagne (3e) — Sud",lat:48.14,lng:11.58,s:6,cont:"Europe",seats:null,sh:null},
+  {n:"Allemagne (2e) — Ouest",lat:50.11,lng:8.68,s:5,cont:"Europe",ex:4851,win:"red",seats:{red:2,orange:2,purple:1},sh:{red:30.10,orange:49.66,purple:20.24}},
+  {n:"Allemagne (3e) — Sud",lat:48.14,lng:11.58,s:6,cont:"Europe",ex:6884,win:"green",seats:{green:2,purple:2,orange:2},sh:{green:29.30,purple:24.62,orange:28.24,red:17.84}},
   {n:"Autriche, Slovaquie, Slovénie",lat:48.21,lng:16.37,s:4,cont:"Europe",seats:null,sh:null},
   {n:"Bulgarie, Balkans occidentaux",lat:42.70,lng:23.32,s:3,cont:"Europe",seats:null,sh:null},
   {n:"Hongrie",lat:47.50,lng:19.04,s:3,cont:"Europe",seats:null,sh:null},
@@ -263,16 +267,16 @@ const data = [
   {n:"Australie, Fidji, PNG",lat:-33.87,lng:151.21,s:5,cont:"Asie & Pacifique",seats:null,sh:null},
   {n:"Cambodge",lat:11.56,lng:104.92,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
   {n:"Chine (1re) — Sud",lat:23.13,lng:113.26,s:1,cont:"Asie & Pacifique",seats:null,sh:null},
-  {n:"Corée du Sud, Taïwan",lat:37.57,lng:126.98,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
+  {n:"Corée du Sud, Taïwan",lat:37.57,lng:126.98,s:3,cont:"Asie & Pacifique",ex:651,win:"red",seats:{red:2,grey:1},sh:{red:52.38,grey:27.04,purple:20.58}},
   {n:"Inde (1re), Bangladesh, Népal, Sri Lanka",lat:28.61,lng:77.21,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
   {n:"Inde (2e)",lat:11.93,lng:79.83,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
   {n:"Indonésie",lat:-6.21,lng:106.85,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
   {n:"Iran, Asie centrale, Pakistan",lat:35.69,lng:51.39,s:1,cont:"Proche & Moyen-Orient",seats:null,sh:null},
   {n:"Laos",lat:17.97,lng:102.61,s:1,cont:"Asie & Pacifique",seats:null,sh:null},
-  {n:"Malaisie, Brunei",lat:3.14,lng:101.69,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
+  {n:"Malaisie, Brunei",lat:3.14,lng:101.69,s:3,cont:"Asie & Pacifique",ex:361,win:"purple",seats:{purple:1,red:1,grey:1},sh:{purple:37.67,grey:34.90,red:27.42}},
   {n:"Philippines",lat:14.60,lng:120.98,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
   {n:"Russie, Biélorussie",lat:55.76,lng:37.62,s:3,cont:"Europe",seats:null,sh:null},
-  {n:"Singapour",lat:1.35,lng:103.82,s:4,cont:"Asie & Pacifique",seats:null,sh:null},
+  {n:"Singapour",lat:1.35,lng:103.82,s:4,cont:"Asie & Pacifique",ex:1875,win:"orange",seats:{orange:2,grey:1,blue:1},sh:{orange:39.15,grey:40.22,blue:20.64}},
   {n:"Thaïlande, Birmanie",lat:13.76,lng:100.50,s:4,cont:"Asie & Pacifique",ex:2229,win:"exd",seats:{grey:3,exd:1},sh:{grey:49.16,exd:21.31,purple:11.75,green:11.61,red:6.14}},
   {n:"Ukraine",lat:50.45,lng:30.52,s:1,cont:"Europe",seats:null,sh:null}
 ];
@@ -330,7 +334,7 @@ const groupings=[
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
   {key:"exd",calc:s=>s.exd||0},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
-const turnout={
+const turnout={"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
 "Canada (1re) — Ouest":19.23,"États-Unis (2e) — Nouvelle-Angleterre":13.37,"États-Unis (3e) — Texas":12.1,
 "États-Unis (4e) — Midwest":13.95,"États-Unis (5e) — Floride":11.33,"États-Unis (6e) — Washington":14.34,
@@ -339,14 +343,14 @@ const turnout={
 "Monaco":10.66,"Suisse (1re) — alémanique":16.92,"Suisse (2e) — romande":11.56,"Allemagne (1re) — Nord/Est":23.28,
 "Croatie":17.33,"Tchéquie":20.66,"Israël (2e) — Tel-Aviv":4.39,"Italie (1re) — Rome":15.87,"Italie (2e) — Milan":16.56,
 "Émirats arabes unis, Oman":6.98,"Qatar, Bahreïn":14.26,"Chine (2e) — Pékin":16.73,"Chine (3e) — Hong Kong":21.6,
-"Chine (4e) — Shanghai":7.92,"Japon":23.65,"Nouvelle-Zélande":1.18,"Vanuatu":11.89,"Vietnam":18.91,"Pérou":15.62
+"Chine (4e) — Shanghai":7.92,"Japon":23.65,"Nouvelle-Zélande":16.35,"Vanuatu":11.89,"Vietnam":18.91,"Pérou":15.62
 };
 data.forEach(d=>{ if(turnout[d.n]!=null) d.t=turnout[d.n]; });
 
 const T={
 fr:{
  title:"Élections consulaires 2026", h1:"Élections consulaires 2026",
- asof:"Données arrêtées au 2 juin 2026, 14 h 31 (heure de Paris).",
+ asof:"Données arrêtées au 2 juin 2026, 16 h 55 (heure de Paris).",
  lede:'Les Français établis hors de France forment un électorat modeste mais à part : ils élisent <b>11 des 577 sièges</b> de l’Assemblée nationale (environ 1,9 %) et, au premier tour de la présidentielle de 2022, près de <b>500 000</b> d’entre eux ont voté (sur ~1,44 million d’inscrits, ≈ 1,4 % des suffrages nationaux). Les élections consulaires de mai 2026 offrent l’aperçu le plus récent des équilibres politiques de cet électorat avant les scrutins de 2027. Cela dit, la participation a été très faible : sur les circonscriptions déjà déclarées, elle s’établit en moyenne <span id="turnoutLede">…</span>.',
  sub:'<b>{N} circonscriptions déclarées sur ~130.</b> La <b>carte</b> montre par défaut la liste arrivée en tête (couleur = famille) ; passez en « Composition » pour les camemberts de sièges, et cliquez un point pour le détail. Le <b>spectre</b>, plus bas, classe chaque circonscription selon la part des voix d’une famille au choix.',
  mapH2:"Sièges remportés", mapTag:"— par liste arrivée en tête ; « Composition » affiche les sièges",
@@ -374,7 +378,7 @@ fr:{
 },
 en:{
  title:"Consular elections 2026", h1:"Consular elections 2026",
- asof:"Data as of 2 June 2026, 14:31 (Paris time).",
+ asof:"Data as of 2 June 2026, 16:55 (Paris time).",
  lede:'French citizens living abroad are a small but distinct electorate: they elect <b>11 of the 577 seats</b> in the National Assembly (about 1.9%), and in the 2022 presidential first round nearly <b>500,000</b> of them voted (out of ~1.44 million registered, ≈1.4% of the national vote). The May 2026 consular elections offer the freshest read on this electorate’s political balance ahead of forthcoming elections in 2027. That said, turnout was very low: across the constituencies reported so far it averages <span id="turnoutLede">…</span>.',
  sub:'<b>{N} of ~130 constituencies reported.</b> The <b>map</b> shows the leading list by default (colour = family); switch to “Composition” for seat pies, and click a point for the detail. The <b>spectrum</b> below ranks each constituency by a chosen family’s vote share.',
  mapH2:"Seats won", mapTag:"— by leading list; “Composition” shows seats",
@@ -712,7 +716,7 @@ function renderMsum(){
   el.innerHTML=h;
   const sh=document.getElementById("scrollhint"); if(sh) sh.textContent=(LANG==="fr"?"Faites défiler pour tout voir →":"Scroll sideways to see all →");
 }
-function setViewLabels(){document.getElementById("viewLbl").textContent=LANG==="fr"?"Vue":"View";document.getElementById("viewFlat").textContent=LANG==="fr"?"Globe entier":"Full globe";document.getElementById("viewGlobe").textContent=LANG==="fr"?"Par région":"By region";}
+function setViewLabels(){var hl=document.getElementById("homeLbl");if(hl)hl.textContent=LANG==="fr"?"Accueil":"Home";document.getElementById("viewLbl").textContent=LANG==="fr"?"Vue":"View";document.getElementById("viewFlat").textContent=LANG==="fr"?"Globe entier":"Full globe";document.getElementById("viewGlobe").textContent=LANG==="fr"?"Par région":"By region";}
 function render(){
   setViewLabels(); setStatic(); buildLegend(); buildPills(); buildInsets(); updateInsets(); renderMsum(); buildChart(); buildTrends(); fillTurnout();
   if(document.querySelector(".mapwrap")&&document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();
