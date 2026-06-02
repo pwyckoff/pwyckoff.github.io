@@ -135,7 +135,7 @@ permalink: /elections-consulaires-2026/
   <span class="mt-lbl" id="affLbl"></span>
   <button class="seg active" data-mode="winner" id="segWinner"></button>
   <button class="seg" data-mode="pie" id="segPie"></button>
-  <label class="mt-chk"><input type="checkbox" id="pendingChk"> <span id="pendLbl"></span></label>
+  <label class="mt-chk"><input type="checkbox" id="pendingChk" checked> <span id="pendLbl"></span></label>
   <span class="mt-lbl" id="viewLbl" style="margin-left:6px"></span>
   <button class="seg active" id="viewFlat"></button>
   <button class="seg" id="viewGlobe"></button>
@@ -188,10 +188,10 @@ const data = [
   {n:"Nouvelle-Zélande",lat:-41.29,lng:174.78,s:3,cont:"Asie & Pacifique",ex:843,win:"green",seats:{green:2,grey:1},sh:{green:51.60,grey:30.01,purple:18.39}},
   {n:"Vanuatu",lat:-17.73,lng:168.31,s:1,cont:"Asie & Pacifique",ex:162,win:"red",seats:{red:1},sh:{red:100}},
   {n:"Vietnam",lat:10.82,lng:106.63,s:3,cont:"Asie & Pacifique",ex:932,win:"grey",seats:{grey:1,purple:1,red:1},sh:{grey:48.39,purple:26.18,red:25.43}},
-  {n:"Canada (2e) — Ontario / Manitoba",lat:43.65,lng:-79.38,s:4,cont:"Amérique du Nord",seats:null,sh:null},
+  {n:"Canada (2e) — Ontario / Manitoba",lat:43.65,lng:-79.38,s:4,cont:"Amérique du Nord",ex:2226,win:"grey",seats:{grey:2,green:1,orange:1},sh:{grey:35.04,green:24.89,orange:13.75,purple:11.50,blue:8.67,red:6.15}},
   {n:"Canada (3e) — Québec (est)",lat:46.81,lng:-71.21,s:5,cont:"Amérique du Nord",seats:null,sh:null},
   {n:"Canada (4e) — Montréal / Maritimes",lat:45.50,lng:-73.57,s:7,cont:"Amérique du Nord",seats:null,sh:null},
-  {n:"États-Unis (1re) — Sud-Est",lat:33.75,lng:-84.39,s:3,cont:"Amérique du Nord",seats:null,sh:null},
+  {n:"États-Unis (1re) — Sud-Est",lat:33.75,lng:-84.39,s:3,cont:"Amérique du Nord",ex:1002,win:"blue",seats:{blue:1,grey:1,purple:1},sh:{blue:26.55,grey:30.54,purple:16.97,green:15.77,red:10.18}},
   {n:"États-Unis (8e) — Nord-Ouest Pacifique",lat:47.61,lng:-122.33,s:5,cont:"Amérique du Nord",seats:null,sh:null},
   {n:"États-Unis (9e) — New York",lat:40.71,lng:-74.01,s:6,cont:"Amérique du Nord",ex:4144,win:"orange",seats:{orange:2,red:3,grey:1},sh:{orange:25.07,red:36.07,grey:28.96,blue:9.89}},
   {n:"Argentine",lat:-34.60,lng:-58.38,s:4,cont:"Amérique latine",seats:null,sh:null},
@@ -238,8 +238,8 @@ const data = [
   {n:"Mali",lat:12.64,lng:-8.00,s:3,cont:"Afrique",seats:null,sh:null},
   {n:"Maroc (1re) — Tanger",lat:35.76,lng:-5.83,s:3,cont:"Afrique",ex:472,win:"purple",seats:{purple:1,red:2},sh:{purple:38.14,red:61.87}},
   {n:"Maroc (2e) — Fès, Meknès",lat:34.04,lng:-5.00,s:3,cont:"Afrique",ex:446,win:"grey",seats:{grey:2,red:1},sh:{grey:57.62,red:28.48,purple:13.90}},
-  {n:"Maroc (3e) — Agadir",lat:30.42,lng:-9.60,s:3,cont:"Afrique",seats:null,sh:null},
-  {n:"Maroc (4e) — Marrakech",lat:31.63,lng:-7.99,s:3,cont:"Afrique",seats:null,sh:null},
+  {n:"Maroc (3e) — Agadir",lat:30.42,lng:-9.60,s:3,cont:"Afrique",ex:595,win:"grey",seats:{grey:3},sh:{grey:100}},
+  {n:"Maroc (4e) — Marrakech",lat:31.63,lng:-7.99,s:3,cont:"Afrique",ex:860,win:"red",seats:{red:2,grey:1},sh:{red:44.53,grey:33.84,purple:21.63}},
   {n:"Maroc (5e) — Rabat",lat:34.02,lng:-6.83,s:4,cont:"Afrique",seats:null,sh:null},
   {n:"Maroc (6e) — Casablanca",lat:33.57,lng:-7.59,s:5,cont:"Afrique",seats:null,sh:null},
   {n:"Mauritanie",lat:18.08,lng:-15.98,s:1,cont:"Afrique",seats:null,sh:null},
@@ -339,7 +339,7 @@ const groupings=[
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
   {key:"exd",calc:s=>s.exd||0},{key:"rightexd",calc:s=>(s.blue||0)+(s.exd||0)},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
-const turnout={"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
+const turnout={"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
 "Canada (1re) — Ouest":19.23,"États-Unis (2e) — Nouvelle-Angleterre":13.37,"États-Unis (3e) — Texas":12.1,
 "États-Unis (4e) — Midwest":13.95,"États-Unis (5e) — Floride":11.33,"États-Unis (6e) — Washington":14.34,
@@ -519,7 +519,7 @@ const markers=data.map(d=>{
   m.bindPopup(()=>buildPopup(d),{maxWidth:Math.min(280,window.innerWidth-48),autoPanPadding:[12,12]}).bindTooltip(()=>name(d),{direction:"top"});
   return {d:d,m:m};
 });
-let mapMode="winner", showPending=false;
+let mapMode="winner", showPending=true;
 function scaleMarkers(){
   const k=Math.max(1, Math.min(2.4, 1+(map.getZoom()-2)*0.25));
   document.querySelectorAll("#map .pie-icon svg").forEach(el=>{el.style.transformOrigin="center"; el.style.transform="scale("+k.toFixed(3)+")";});
@@ -558,8 +558,8 @@ const insetCfg=[
   {cont:"Amérique du Nord",pos:"top:74px;left:8px",box:[13,-170,75,-50]},
   {cont:"Amérique latine",pos:"bottom:8px;left:8px",box:[-56,-93,33,-33]},
   {cont:"Asie & Pacifique",pos:"top:50%;right:8px;transform:translateY(-50%)",box:[-50,60,62,180]},
-  {cont:"Proche & Moyen-Orient",pos:"bottom:8px;right:8px",box:[10,25,43,63]},
-  {cont:"Afrique",pos:"bottom:8px;left:50%;transform:translateX(-50%)",box:[-36,-20,38,52]}
+  {cont:"Proche & Moyen-Orient",pos:"bottom:8px;left:50%;margin-left:6px",box:[10,25,43,63]},
+  {cont:"Afrique",pos:"bottom:8px;left:50%;transform:translateX(-100%);margin-left:-6px",box:[-36,-20,38,52]}
 ];
 const insetsEl=document.getElementById("insets");
 function insetHTML(cont){
