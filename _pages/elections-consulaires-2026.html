@@ -34,7 +34,7 @@ permalink: /elections-consulaires-2026/
   .lede { font-size:13.5px; color:#33302a; max-width:820px; line-height:1.55; margin:2px 0 8px; }
   .lede b { color:#23211e; }
   .asof { font-size:11px; color:#9a958c; margin:0 0 12px; }
-  .sub { font-size:12px; color:#555; margin:0 0 14px; max-width:820px; line-height:1.45; }
+  .sub { font-size:13.5px; color:#33302a; margin:0 0 14px; max-width:820px; line-height:1.55; }
   #map { width:100%; height:600px; border-radius:10px; box-shadow:0 1px 8px rgba(0,0,0,.12); background:#fff; }
   #chart { width:100%; min-width:680px; height:auto; display:block; }
   .chartscroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -78,7 +78,18 @@ permalink: /elections-consulaires-2026/
   .footer b { color:#6b665d; }
   .footer a { color:#6b665d; }
   #tip { position:fixed; pointer-events:none; background:rgba(20,20,20,.92); color:#fff; font-size:12px; padding:7px 9px; border-radius:6px; opacity:0; transition:opacity .12s; max-width:240px; line-height:1.4; z-index:9999; }
-  #msum { display:none; }
+  #msum { display:none; margin:10px 0 2px; border:1px solid #e6e2da; border-radius:9px; padding:9px 11px; background:#faf8f5; }
+  .mapwrap.globe ~ #msum { display:block; }
+  .msum-h { font-size:11px; font-weight:600; color:#6b665d; margin:0 0 8px; text-transform:uppercase; letter-spacing:.03em; }
+  .msum-block { padding:7px 0 8px; border-top:1px solid #efece6; }
+  .msum-block:first-of-type { border-top:none; padding-top:0; }
+  .msum-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:5px; }
+  .msum-cont { font-size:13px; font-weight:600; color:#23211e; }
+  .msum-total { font-size:11px; font-weight:600; color:#8a857c; }
+  .msum-chips { display:flex; flex-wrap:wrap; gap:5px 12px; }
+  .msum-chip { display:inline-flex; align-items:center; gap:4px; font-size:11.5px; color:#555; }
+  .msum-chip b { color:#23211e; }
+  .msum-chip i { width:10px; height:10px; border-radius:50%; display:inline-block; border:1px solid rgba(0,0,0,.25); }
   .scrollhint { display:none; }
   #globes { display:none; }
   .mapwrap.globe #map { display:none; }
@@ -109,25 +120,15 @@ permalink: /elections-consulaires-2026/
     /* spectrum: show a scroll affordance */
     .scrollhint { display:block; font-size:11px; color:#9a958c; margin:5px 0 0; text-align:right; }
     /* mobile replacement for the hidden ocean insets */
-    #msum { display:block; margin:8px 0 2px; border:1px solid #e6e2da; border-radius:9px; padding:9px 11px; background:#faf8f5; }
-    .msum-h { font-size:11px; font-weight:600; color:#6b665d; margin:0 0 8px; text-transform:uppercase; letter-spacing:.03em; }
-    .msum-block { padding:7px 0 8px; border-top:1px solid #efece6; }
-    .msum-block:first-of-type { border-top:none; padding-top:0; }
-    .msum-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:5px; }
-    .msum-cont { font-size:13px; font-weight:600; color:#23211e; }
-    .msum-total { font-size:11px; font-weight:600; color:#8a857c; }
-    .msum-chips { display:flex; flex-wrap:wrap; gap:5px 12px; }
-    .msum-chip { display:inline-flex; align-items:center; gap:4px; font-size:11.5px; color:#555; }
-    .msum-chip b { color:#23211e; }
-    .msum-chip i { width:10px; height:10px; border-radius:50%; display:inline-block; border:1px solid rgba(0,0,0,.25); }
+    #msum { display:block; }
   }
 </style>
 </head>
 <body>
 <div class="topbar"><a class="homelink" href="/">← <span id="homeLbl">Accueil</span></a><div class="langnav"><button id="langFr" class="lng active">FR</button><button id="langEn" class="lng">EN</button></div></div>
 <h1 id="h1"></h1>
-<p class="lede" id="lede"></p>
 <p class="asof" id="asof"></p>
+<p class="lede" id="lede"></p>
 <p class="sub" id="sub"></p>
 <h2 id="mapH2"></h2>
 <div class="maptools">
@@ -219,9 +220,9 @@ const data = [
   {n:"Espagne (2e) — Madrid",lat:40.42,lng:-3.70,s:6,cont:"Europe",ex:7389,win:"orange",seats:{orange:2,green:2,red:1,blue:1},sh:{orange:27.38,green:26.08,red:19.53,blue:14.25,purple:12.76}},
   {n:"Allemagne (2e) — Ouest",lat:50.11,lng:8.68,s:5,cont:"Europe",ex:4851,win:"red",seats:{red:2,orange:2,purple:1},sh:{red:30.10,orange:49.66,purple:20.24}},
   {n:"Allemagne (3e) — Sud",lat:48.14,lng:11.58,s:6,cont:"Europe",ex:6884,win:"green",seats:{green:2,purple:2,orange:2},sh:{green:29.30,purple:24.62,orange:28.24,red:17.84}},
-  {n:"Autriche, Slovaquie, Slovénie",lat:48.21,lng:16.37,s:4,cont:"Europe",seats:null,sh:null},
-  {n:"Bulgarie, Balkans occidentaux",lat:42.70,lng:23.32,s:3,cont:"Europe",seats:null,sh:null},
-  {n:"Hongrie",lat:47.50,lng:19.04,s:3,cont:"Europe",seats:null,sh:null},
+  {n:"Autriche, Slovaquie, Slovénie",lat:48.21,lng:16.37,s:4,cont:"Europe",ex:2230,win:"green",seats:{green:2,purple:1,red:1},sh:{green:30.85,purple:20.58,red:14.22,orange:13.05,grey:9.15,exd:7.58,blue:4.57}},
+  {n:"Bulgarie, Balkans occidentaux",lat:42.70,lng:23.32,s:3,cont:"Europe",ex:296,win:"green",seats:{green:1,purple:1,grey:1},sh:{green:42.57,purple:29.05,grey:28.38}},
+  {n:"Hongrie",lat:47.50,lng:19.04,s:3,cont:"Europe",ex:435,win:"grey",seats:{grey:2,red:1},sh:{grey:48.96,red:37.24,purple:13.79}},
   {n:"Pologne",lat:52.23,lng:21.01,s:3,cont:"Europe",seats:null,sh:null},
   {n:"Roumanie, Moldavie",lat:44.43,lng:26.10,s:3,cont:"Europe",seats:null,sh:null},
   {n:"Chypre",lat:35.17,lng:33.36,s:1,cont:"Europe",seats:null,sh:null},
@@ -336,7 +337,7 @@ const order=["green","red","orange","blue","exd","purple","grey"];
 const groupings=[
   {key:"left",calc:s=>(s.green||0)+(s.red||0)},{key:"green",calc:s=>s.green||0},
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
-  {key:"exd",calc:s=>s.exd||0},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
+  {key:"exd",calc:s=>s.exd||0},{key:"rightexd",calc:s=>(s.blue||0)+(s.exd||0)},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
 const turnout={"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
@@ -354,9 +355,9 @@ data.forEach(d=>{ if(turnout[d.n]!=null) d.t=turnout[d.n]; });
 const T={
 fr:{
  title:"Élections consulaires 2026", h1:"Élections consulaires 2026",
- asof:"Données arrêtées au 2 juin 2026, 16 h 55 (heure de Paris).",
+ asof:"Données arrêtées au 2 juin 2026, 17 h 43 (heure de Paris).",
  lede:'Les Français établis hors de France forment un électorat modeste mais à part : ils élisent <b>11 des 577 sièges</b> de l’Assemblée nationale (environ 1,9 %) et, au premier tour de la présidentielle de 2022, près de <b>500 000</b> d’entre eux ont voté (sur ~1,44 million d’inscrits, ≈ 1,4 % des suffrages nationaux). Les élections consulaires de mai 2026 offrent l’aperçu le plus récent des équilibres politiques de cet électorat avant les scrutins de 2027. Cela dit, la participation a été très faible : sur les circonscriptions déjà déclarées, elle s’établit en moyenne <span id="turnoutLede">…</span>.',
- sub:'<b>{N} circonscriptions déclarées sur ~130.</b> La <b>carte</b> montre par défaut la liste arrivée en tête (couleur = famille) ; passez en « Composition » pour les camemberts de sièges, et cliquez un point pour le détail. Le <b>spectre</b>, plus bas, classe chaque circonscription selon la part des voix d’une famille au choix.',
+ sub:'<b>{N} circonscriptions déclarées sur ~130.</b> La carte montre par défaut la liste arrivée en tête (couleur = famille) ; passez en « Composition » pour les camemberts de sièges, et cliquez un point pour le détail. L’autre graphique, plus bas, classe chaque circonscription selon la part des voix d’une famille au choix.',
  mapH2:"Sièges remportés", mapTag:"— par liste arrivée en tête ; « Composition » affiche les sièges",
  specH2:"Composition en voix", specTag:"— par circonscription, chaque ligne est une région",
  trendsH2:"Tendances", trendsTag:"— sur l’ensemble des circonscriptions déclarées",
@@ -373,7 +374,7 @@ fr:{
  blocLab:{green:"Écologistes",red:"Gauche (PS, LFI, FdM, DVG)",orange:"Centre (RE, MoDem, Horizons, UCD)",blue:"Droite (LR, DVD)",exd:"Extrême droite (RN, Reconquête)",purple:"ASFE",grey:"Sans étiquette / divers"},
  contLab:{"Europe":"Europe","Amérique du Nord":"Amérique du Nord","Asie & Pacifique":"Asie & Pacifique","Proche & Moyen-Orient":"Proche & Moyen-Orient","Amérique latine":"Amérique latine","Afrique":"Afrique"},
  contShort:{"Europe":"Europe","Amérique du Nord":"Amérique du Nord","Asie & Pacifique":"Asie-Pacifique","Proche & Moyen-Orient":"Moyen-Orient","Amérique latine":"Amérique latine","Afrique":"Afrique"},
- groupLab:{left:"Gauche + Écologistes",green:"Écologistes",red:"Gauche (PS/LFI)",orange:"Centre",blue:"Droite",exd:"Extrême droite",purple:"ASFE",grey:"Sans étiquette"},
+ groupLab:{left:"Gauche + Écologistes",green:"Écologistes",red:"Gauche (PS/LFI)",orange:"Centre",blue:"Droite",exd:"Extrême droite",rightexd:"Droite + Extrême droite",purple:"ASFE",grey:"Sans étiquette"},
  credit:'Peter Wyckoff · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a> · Données : résultats agrégés sur Wikipédia, d’après les retours officiels.',
  footer:'<p><b>Repères.</b> L’Assemblée nationale compte 11 députés des Français de l’étranger sur 577 (≈ 1,9 %). À la présidentielle de 2022, environ 500 000 expatriés ont voté au 1er tour sur 1 435 746 inscrits (abstention ≈ 64,9 %). Sources : ministère de l’Intérieur ; ElectionGuide / IFES.</p><p><b>Données.</b> Résultats par circonscription agrégés depuis Wikipédia (« Élections consulaires françaises de 2026 »), d’après les retours officiels des consulats. Résultats partiels : {N} des ~130 circonscriptions déclarées.</p><p><b>Méthode.</b> Chaque liste est rattachée à une famille politique d’après la formation qui la conduit ; certains regroupements de coalitions relèvent du choix de l’auteur. La « part des voix » par famille agrège les scores des listes au 1er tour ; dans les graphiques de tendance, il s’agit d’une moyenne pondérée par les suffrages exprimés (les circonscriptions sans total de voix publié en sont exclues). Les points sont placés sur la ville-poste (position approximative).</p><p>Fonds de carte © OpenStreetMap, © CARTO. Carte &amp; graphiques : <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
  turnoutLede:(a,mn,mv,xn,xv)=>"autour de "+a+" %, de "+mv+" % ("+mn+") à "+xv+" % ("+xn+")",
@@ -382,9 +383,9 @@ fr:{
 },
 en:{
  title:"Consular elections 2026", h1:"Consular elections 2026",
- asof:"Data as of 2 June 2026, 16:55 (Paris time).",
+ asof:"Data as of 2 June 2026, 17:43 (Paris time).",
  lede:'French citizens living abroad are a small but distinct electorate: they elect <b>11 of the 577 seats</b> in the National Assembly (about 1.9%), and in the 2022 presidential first round nearly <b>500,000</b> of them voted (out of ~1.44 million registered, ≈1.4% of the national vote). The May 2026 consular elections offer the freshest read on this electorate’s political balance ahead of forthcoming elections in 2027. That said, turnout was very low: across the constituencies reported so far it averages <span id="turnoutLede">…</span>.',
- sub:'<b>{N} of ~130 constituencies reported.</b> The <b>map</b> shows the leading list by default (colour = family); switch to “Composition” for seat pies, and click a point for the detail. The <b>spectrum</b> below ranks each constituency by a chosen family’s vote share.',
+ sub:'<b>{N} of ~130 constituencies reported.</b> The map shows the leading list by default (colour = family); switch to “Composition” for seat pies, and click a point for the detail. The other chart, below, ranks each constituency by a chosen family’s vote share.',
  mapH2:"Seats won", mapTag:"— by leading list; “Composition” shows seats",
  specH2:"Vote-share composition", specTag:"— by constituency, each row is one region",
  trendsH2:"Trends", trendsTag:"— across all reported constituencies",
@@ -401,7 +402,7 @@ en:{
  blocLab:{green:"Greens",red:"Left (PS, LFI, FdM, DVG)",orange:"Centre (RE, MoDem, Horizons, UCD)",blue:"Right (LR, DVD)",exd:"Far right (RN, Reconquête)",purple:"ASFE",grey:"Independent / other"},
  contLab:{"Europe":"Europe","Amérique du Nord":"North America","Asie & Pacifique":"Asia & Pacific","Proche & Moyen-Orient":"Middle East","Amérique latine":"Latin America","Afrique":"Africa"},
  contShort:{"Europe":"Europe","Amérique du Nord":"North America","Asie & Pacifique":"Asia-Pacific","Proche & Moyen-Orient":"Middle East","Amérique latine":"Latin America","Afrique":"Africa"},
- groupLab:{left:"Left + green",green:"Greens",red:"Left (PS/LFI)",orange:"Centre",blue:"Right",exd:"Far right",purple:"ASFE",grey:"Independent"},
+ groupLab:{left:"Left + green",green:"Greens",red:"Left (PS/LFI)",orange:"Centre",blue:"Right",exd:"Far right",rightexd:"Right + Far right",purple:"ASFE",grey:"Independent"},
  credit:'Peter Wyckoff · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a> · Data: results aggregated from Wikipedia, based on official returns.',
  footer:'<p><b>Background.</b> The National Assembly has 11 of its 577 seats elected by French residents abroad (≈1.9%). In the 2022 presidential first round about 500,000 expatriates voted out of 1,435,746 registered (abstention ≈64.9%). Sources: French Ministry of the Interior; ElectionGuide / IFES.</p><p><b>Data.</b> Results by constituency aggregated from Wikipedia (“Élections consulaires françaises de 2026”), based on consulates’ official returns. Partial results: {N} of ~130 constituencies reported.</p><p><b>Method.</b> Each list is assigned to a political family by the party leading it; some coalition groupings decided by the author. A family’s “vote share” aggregates its lists’ first-round scores; in the trend charts it is a vote-weighted average across constituencies (by valid votes cast; any constituency without published vote totals is excluded). Points sit on the consulate city (approximate).</p><p>Basemap © OpenStreetMap, © CARTO. Map &amp; charts: <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
  turnoutLede:(a,mn,mv,xn,xv)=>"about "+a+"% (from "+mv+"% in "+mn+" to "+xv+"% in "+xn+")",
@@ -473,8 +474,7 @@ function buildGlobes(){
     svg+='</svg>';
     const sObj=contSeats[cont]||{}, total=order.reduce((t,k)=>t+(sObj[k]||0),0);
     let head;
-    if(total>0){ const chips=order.filter(k=>sObj[k]>0).map(k=>'<span class="gchip"><i style="background:'+blocs[k].color+'"></i>'+sObj[k]+'</span>').join('');
-      head='<div class="gcap"><span class="gcont">'+X.contShort[cont]+'</span> <span class="gtot">'+total+' '+(LANG==="fr"?"sièges":"seats")+'</span></div>'+svg+'<div class="gtally">'+chips+'</div>'; }
+    if(total>0){ head='<div class="gcap"><span class="gcont">'+X.contShort[cont]+'</span></div>'+svg; }
     else { head='<div class="gcap"><span class="gcont">'+X.contShort[cont]+'</span> <span class="gtot">'+(LANG==="fr"?"en attente":"awaiting results")+'</span></div>'+svg; }
     cell.innerHTML=head;
     wrap.appendChild(cell);
