@@ -12,6 +12,14 @@ permalink: /elections-consulaires-2026/
 <meta property="og:title" content="Élections consulaires 2026">
 <meta property="og:description" content="Carte et graphiques des résultats par circonscription consulaire — FR / EN.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://pwyckoff.github.io/elections-consulaires-2026/">
+<meta property="og:image" content="https://pwyckoff.github.io/images/consulaires_2026_map.png">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Élections consulaires 2026">
+<meta name="twitter:description" content="Carte et graphiques des résultats par circonscription consulaire — FR / EN.">
+<meta name="twitter:image" content="https://pwyckoff.github.io/images/consulaires_2026_map.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -189,8 +197,8 @@ const data = [
   {n:"Vanuatu",lat:-17.73,lng:168.31,s:1,cont:"Asie & Pacifique",ex:162,win:"red",seats:{red:1},sh:{red:100}},
   {n:"Vietnam",lat:10.82,lng:106.63,s:3,cont:"Asie & Pacifique",ex:932,win:"grey",seats:{grey:1,purple:1,red:1},sh:{grey:48.39,purple:26.18,red:25.43}},
   {n:"Canada (2e) — Ontario / Manitoba",lat:43.65,lng:-79.38,s:4,cont:"Amérique du Nord",ex:2226,win:"grey",seats:{grey:2,green:1,orange:1},sh:{grey:35.04,green:24.89,orange:13.75,purple:11.50,blue:8.67,red:6.15}},
-  {n:"Canada (3e) — Québec (est)",lat:46.81,lng:-71.21,s:5,cont:"Amérique du Nord",seats:null,sh:null},
-  {n:"Canada (4e) — Montréal / Maritimes",lat:45.50,lng:-73.57,s:7,cont:"Amérique du Nord",seats:null,sh:null},
+  {n:"Canada (3e) — Québec (est)",lat:46.81,lng:-71.21,s:5,cont:"Amérique du Nord",ex:2419,win:"green",seats:{green:2,purple:2,exd:1},sh:{green:37.00,purple:24.68,exd:16.12,orange:9.38,red:7.81,blue:5.00}},
+  {n:"Canada (4e) — Montréal / Maritimes",lat:45.50,lng:-73.57,s:7,cont:"Amérique du Nord",ex:11486,win:"red",seats:{red:3,green:2,grey:1,orange:1},sh:{red:30.66,green:25.06,grey:17.18,orange:11.82,exd:9.39,blue:5.87}},
   {n:"États-Unis (1re) — Sud-Est",lat:33.75,lng:-84.39,s:3,cont:"Amérique du Nord",ex:1002,win:"blue",seats:{blue:1,grey:1,purple:1},sh:{blue:26.55,grey:30.54,purple:16.97,green:15.77,red:10.18}},
   {n:"États-Unis (8e) — Nord-Ouest Pacifique",lat:47.61,lng:-122.33,s:5,cont:"Amérique du Nord",seats:null,sh:null},
   {n:"États-Unis (9e) — New York",lat:40.71,lng:-74.01,s:6,cont:"Amérique du Nord",ex:4144,win:"orange",seats:{orange:2,red:3,grey:1},sh:{orange:25.07,red:36.07,grey:28.96,blue:9.89}},
@@ -339,7 +347,7 @@ const groupings=[
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
   {key:"exd",calc:s=>s.exd||0},{key:"rightexd",calc:s=>(s.blue||0)+(s.exd||0)},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
-const turnout={"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
+const turnout={"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
 "Canada (1re) — Ouest":19.23,"États-Unis (2e) — Nouvelle-Angleterre":13.37,"États-Unis (3e) — Texas":12.1,
 "États-Unis (4e) — Midwest":13.95,"États-Unis (5e) — Floride":11.33,"États-Unis (6e) — Washington":14.34,
