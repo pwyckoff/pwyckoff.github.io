@@ -19,7 +19,7 @@ permalink: /elections-consulaires-2026/
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
-  body { margin:0 auto; max-width:1200px; font-family:"IBM Plex Sans",system-ui,sans-serif; color:#23211e; background:#fff; padding:16px 18px 44px; }
+  body { margin:0 auto; max-width:1000px; font-family:"IBM Plex Sans",system-ui,sans-serif; color:#23211e; background:#fff; padding:16px 18px 44px; }
   svg text { font-family:"IBM Plex Sans",system-ui,sans-serif; }
   .langnav { display:flex; justify-content:flex-end; gap:6px; margin-bottom:2px; }
   .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:2px; }
@@ -31,10 +31,10 @@ permalink: /elections-consulaires-2026/
   h1 { font-family:"Fraunces","Georgia",serif; font-weight:600; font-size:24px; letter-spacing:-.01em; margin:0 0 3px; }
   h2 { font-family:"Fraunces","Georgia",serif; font-weight:600; font-size:17px; letter-spacing:-.005em; margin:26px 0 6px; }
   h2 .tag { font-family:"IBM Plex Sans",sans-serif; font-weight:400; color:#8a857c; font-size:12px; }
-  .lede { font-size:13.5px; color:#33302a; max-width:820px; line-height:1.55; margin:2px 0 8px; }
+  .lede { font-size:13.5px; color:#33302a; line-height:1.55; margin:2px 0 8px; }
   .lede b { color:#23211e; }
   .asof { font-size:11px; color:#9a958c; margin:0 0 12px; }
-  .sub { font-size:13.5px; color:#33302a; margin:0 0 14px; max-width:820px; line-height:1.55; }
+  .sub { font-size:13.5px; color:#33302a; margin:0 0 14px; line-height:1.55; }
   #map { width:100%; height:600px; border-radius:10px; box-shadow:0 1px 8px rgba(0,0,0,.12); background:#fff; }
   #chart { width:100%; min-width:680px; height:auto; display:block; }
   .chartscroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -225,8 +225,8 @@ const data = [
   {n:"Hongrie",lat:47.50,lng:19.04,s:3,cont:"Europe",ex:435,win:"grey",seats:{grey:2,red:1},sh:{grey:48.96,red:37.24,purple:13.79}},
   {n:"Pologne",lat:52.23,lng:21.01,s:3,cont:"Europe",seats:null,sh:null},
   {n:"Roumanie, Moldavie",lat:44.43,lng:26.10,s:3,cont:"Europe",seats:null,sh:null},
-  {n:"Chypre",lat:35.17,lng:33.36,s:1,cont:"Europe",seats:null,sh:null},
-  {n:"Grèce",lat:37.98,lng:23.73,s:3,cont:"Europe",seats:null,sh:null},
+  {n:"Chypre",lat:35.17,lng:33.36,s:1,cont:"Europe",ex:320,win:"grey",seats:{grey:1},sh:{grey:100}},
+  {n:"Grèce",lat:37.98,lng:23.73,s:3,cont:"Europe",ex:1363,win:"red",seats:{red:2,grey:1},sh:{red:37.78,grey:45.34,purple:16.87}},
   {n:"Israël (1re) — Jérusalem",lat:31.78,lng:35.22,s:5,cont:"Proche & Moyen-Orient",seats:null,sh:null},
   {n:"Turquie",lat:41.01,lng:28.98,s:4,cont:"Europe",seats:null,sh:null},
   {n:"Algérie (1re) — Oran",lat:35.70,lng:-0.63,s:3,cont:"Afrique",seats:null,sh:null},
@@ -236,8 +236,8 @@ const data = [
   {n:"Côte d'Ivoire",lat:5.36,lng:-4.01,s:5,cont:"Afrique",seats:null,sh:null},
   {n:"Guinée",lat:9.64,lng:-13.58,s:1,cont:"Afrique",seats:null,sh:null},
   {n:"Mali",lat:12.64,lng:-8.00,s:3,cont:"Afrique",seats:null,sh:null},
-  {n:"Maroc (1re) — Tanger",lat:35.76,lng:-5.83,s:3,cont:"Afrique",seats:null,sh:null},
-  {n:"Maroc (2e) — Fès, Meknès",lat:34.04,lng:-5.00,s:3,cont:"Afrique",seats:null,sh:null},
+  {n:"Maroc (1re) — Tanger",lat:35.76,lng:-5.83,s:3,cont:"Afrique",ex:472,win:"purple",seats:{purple:1,red:2},sh:{purple:38.14,red:61.87}},
+  {n:"Maroc (2e) — Fès, Meknès",lat:34.04,lng:-5.00,s:3,cont:"Afrique",ex:446,win:"grey",seats:{grey:2,red:1},sh:{grey:57.62,red:28.48,purple:13.90}},
   {n:"Maroc (3e) — Agadir",lat:30.42,lng:-9.60,s:3,cont:"Afrique",seats:null,sh:null},
   {n:"Maroc (4e) — Marrakech",lat:31.63,lng:-7.99,s:3,cont:"Afrique",seats:null,sh:null},
   {n:"Maroc (5e) — Rabat",lat:34.02,lng:-6.83,s:4,cont:"Afrique",seats:null,sh:null},
@@ -271,7 +271,7 @@ const data = [
   {n:"Arménie, Géorgie",lat:40.18,lng:44.51,s:1,cont:"Europe",seats:null,sh:null},
   {n:"Australie, Fidji, PNG",lat:-33.87,lng:151.21,s:5,cont:"Asie & Pacifique",seats:null,sh:null},
   {n:"Cambodge",lat:11.56,lng:104.92,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
-  {n:"Chine (1re) — Sud",lat:23.13,lng:113.26,s:1,cont:"Asie & Pacifique",seats:null,sh:null},
+  {n:"Chine (1re) — Sud",lat:23.13,lng:113.26,s:1,cont:"Asie & Pacifique",ex:159,win:"grey",seats:{grey:1},sh:{grey:64.78,purple:21.38,exd:13.84}},
   {n:"Corée du Sud, Taïwan",lat:37.57,lng:126.98,s:3,cont:"Asie & Pacifique",ex:651,win:"red",seats:{red:2,grey:1},sh:{red:52.38,grey:27.04,purple:20.58}},
   {n:"Inde (1re), Bangladesh, Népal, Sri Lanka",lat:28.61,lng:77.21,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
   {n:"Inde (2e)",lat:11.93,lng:79.83,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
@@ -339,7 +339,7 @@ const groupings=[
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
   {key:"exd",calc:s=>s.exd||0},{key:"rightexd",calc:s=>(s.blue||0)+(s.exd||0)},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
-const turnout={"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
+const turnout={"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
 "Canada (1re) — Ouest":19.23,"États-Unis (2e) — Nouvelle-Angleterre":13.37,"États-Unis (3e) — Texas":12.1,
 "États-Unis (4e) — Midwest":13.95,"États-Unis (5e) — Floride":11.33,"États-Unis (6e) — Washington":14.34,
@@ -365,7 +365,7 @@ fr:{
  sortBy:"Trier selon la part des voix de :",
  legendTitle:"Famille politique", legendPending:"En attente",
  specLegend:"Camembert = composition en voix · anneau = liste en tête :",
- axis:"Part des voix de la famille sélectionnée (1er tour, listes agrégées)",
+ axis:"Part des voix de la famille sélectionnée (listes agrégées)",
  decl1:"déclarée", declN:"déclarées", noPub:"aucun résultat publié à ce jour",
  seat1:"siège", seatN:"sièges", seatOf:"de conseiller", notDecl:"Résultats non encore déclarés",
  participation:"Participation", winnerLbl:"Vainqueur", insetNo:"aucun résultat déclaré", seatsWord:"sièges",
@@ -376,7 +376,7 @@ fr:{
  contShort:{"Europe":"Europe","Amérique du Nord":"Amérique du Nord","Asie & Pacifique":"Asie-Pacifique","Proche & Moyen-Orient":"Moyen-Orient","Amérique latine":"Amérique latine","Afrique":"Afrique"},
  groupLab:{left:"Gauche + Écologistes",green:"Écologistes",red:"Gauche (PS/LFI)",orange:"Centre",blue:"Droite",exd:"Extrême droite",rightexd:"Droite + Extrême droite",purple:"ASFE",grey:"Sans étiquette"},
  credit:'Peter Wyckoff · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a> · Données : résultats agrégés sur Wikipédia, d’après les retours officiels.',
- footer:'<p><b>Repères.</b> L’Assemblée nationale compte 11 députés des Français de l’étranger sur 577 (≈ 1,9 %). À la présidentielle de 2022, environ 500 000 expatriés ont voté au 1er tour sur 1 435 746 inscrits (abstention ≈ 64,9 %). Sources : ministère de l’Intérieur ; ElectionGuide / IFES.</p><p><b>Données.</b> Résultats par circonscription agrégés depuis Wikipédia (« Élections consulaires françaises de 2026 »), d’après les retours officiels des consulats. Résultats partiels : {N} des ~130 circonscriptions déclarées.</p><p><b>Méthode.</b> Chaque liste est rattachée à une famille politique d’après la formation qui la conduit ; certains regroupements de coalitions relèvent du choix de l’auteur. La « part des voix » par famille agrège les scores des listes au 1er tour ; dans les graphiques de tendance, il s’agit d’une moyenne pondérée par les suffrages exprimés (les circonscriptions sans total de voix publié en sont exclues). Les points sont placés sur la ville-poste (position approximative).</p><p>Fonds de carte © OpenStreetMap, © CARTO. Carte &amp; graphiques : <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
+ footer:'<p><b>Repères.</b> L’Assemblée nationale compte 11 députés des Français de l’étranger sur 577 (≈ 1,9 %). À la présidentielle de 2022, environ 500 000 expatriés ont voté au 1er tour sur 1 435 746 inscrits (abstention ≈ 64,9 %). Sources : ministère de l’Intérieur ; ElectionGuide / IFES.</p><p><b>Données.</b> Résultats par circonscription agrégés depuis Wikipédia (« Élections consulaires françaises de 2026 »), d’après les retours officiels des consulats. Résultats partiels : {N} des ~130 circonscriptions déclarées.</p><p><b>Méthode.</b> Chaque liste est rattachée à une famille politique d’après la formation qui la conduit ; certains regroupements de coalitions relèvent du choix de l’auteur. La « part des voix » par famille agrège les scores des listes ; dans les graphiques de tendance, il s’agit d’une moyenne pondérée par les suffrages exprimés (les circonscriptions sans total de voix publié en sont exclues). Les points sont placés sur la ville-poste (position approximative).</p><p>Fonds de carte © OpenStreetMap, © CARTO. Carte &amp; graphiques : <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
  turnoutLede:(a,mn,mv,xn,xv)=>"autour de "+a+" %, de "+mv+" % ("+mn+") à "+xv+" % ("+xn+")",
  t1desc:(tot,n,top)=>tot+" sièges sur "+n+" circonscriptions. "+top+" arrive en tête du décompte.",
  t3desc:(top,c)=>top+" est en tête dans le plus grand nombre de circonscriptions ("+c+")."
@@ -393,7 +393,7 @@ en:{
  sortBy:"Sort by vote share of:",
  legendTitle:"Political family", legendPending:"Pending",
  specLegend:"Pie = vote-share composition · ring = leading list:",
- axis:"Vote share of the selected family (first round, lists aggregated)",
+ axis:"Vote share of the selected family (lists aggregated)",
  decl1:"reported", declN:"reported", noPub:"no results published yet",
  seat1:"seat", seatN:"seats", seatOf:"(councillor)", notDecl:"Results not yet reported",
  participation:"Turnout", winnerLbl:"Winner", insetNo:"no results reported", seatsWord:"seats",
@@ -404,7 +404,7 @@ en:{
  contShort:{"Europe":"Europe","Amérique du Nord":"North America","Asie & Pacifique":"Asia-Pacific","Proche & Moyen-Orient":"Middle East","Amérique latine":"Latin America","Afrique":"Africa"},
  groupLab:{left:"Left + green",green:"Greens",red:"Left (PS/LFI)",orange:"Centre",blue:"Right",exd:"Far right",rightexd:"Right + Far right",purple:"ASFE",grey:"Independent"},
  credit:'Peter Wyckoff · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a> · Data: results aggregated from Wikipedia, based on official returns.',
- footer:'<p><b>Background.</b> The National Assembly has 11 of its 577 seats elected by French residents abroad (≈1.9%). In the 2022 presidential first round about 500,000 expatriates voted out of 1,435,746 registered (abstention ≈64.9%). Sources: French Ministry of the Interior; ElectionGuide / IFES.</p><p><b>Data.</b> Results by constituency aggregated from Wikipedia (“Élections consulaires françaises de 2026”), based on consulates’ official returns. Partial results: {N} of ~130 constituencies reported.</p><p><b>Method.</b> Each list is assigned to a political family by the party leading it; some coalition groupings decided by the author. A family’s “vote share” aggregates its lists’ first-round scores; in the trend charts it is a vote-weighted average across constituencies (by valid votes cast; any constituency without published vote totals is excluded). Points sit on the consulate city (approximate).</p><p>Basemap © OpenStreetMap, © CARTO. Map &amp; charts: <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
+ footer:'<p><b>Background.</b> The National Assembly has 11 of its 577 seats elected by French residents abroad (≈1.9%). In the 2022 presidential first round about 500,000 expatriates voted out of 1,435,746 registered (abstention ≈64.9%). Sources: French Ministry of the Interior; ElectionGuide / IFES.</p><p><b>Data.</b> Results by constituency aggregated from Wikipedia (“Élections consulaires françaises de 2026”), based on consulates’ official returns. Partial results: {N} of ~130 constituencies reported.</p><p><b>Method.</b> Each list is assigned to a political family by the party leading it; some coalition groupings decided by the author. A family’s “vote share” aggregates its lists’ scores; in the trend charts it is a vote-weighted average across constituencies (by valid votes cast; any constituency without published vote totals is excluded). Points sit on the consulate city (approximate).</p><p>Basemap © OpenStreetMap, © CARTO. Map &amp; charts: <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
  turnoutLede:(a,mn,mv,xn,xv)=>"about "+a+"% (from "+mv+"% in "+mn+" to "+xv+"% in "+xn+")",
  t1desc:(tot,n,top)=>tot+" seats across "+n+" constituencies. "+top+" leads the count.",
  t3desc:(top,c)=>top+" leads the most constituencies ("+c+")."
@@ -587,24 +587,32 @@ map.on("moveend zoomend",updateInsets);
 const continents=["Europe","Amérique du Nord","Asie & Pacifique","Proche & Moyen-Orient","Amérique latine","Afrique"];
 const declared=data.filter(d=>d.sh);
 const svg=document.getElementById("chart");
-const W=900,mL=210,mR=30,plotW=W-mL-mR,laneH=104,topPad=14;
-const scaleX=v=>mL+(Math.max(0,Math.min(100,v))/100)*plotW;
-const radC=s=>6+Math.sqrt(s)*2.4;
-const totalH=topPad+continents.length*laneH+36;
+const W=900,mL=210,mR=30,GUT=84,plotW=W-mL-mR-GUT,topPad=14;
+const scaleX=v=>mL+GUT+(Math.max(0,Math.min(100,v))/100)*plotW;
+const radC=s=>5+Math.sqrt(s)*2.0;
+// lane height scales with how many constituencies pile up in each row
+const laneCount=continents.map(c=>declared.filter(d=>d.cont===c).length);
+const laneHs=laneCount.map(n=>Math.max(70,34+n*8));
+const laneY=[]; (function(){let acc=topPad; for(let i=0;i<laneHs.length;i++){laneY[i]=acc; acc+=laneHs[i];}})();
+const plotBottom=topPad+laneHs.reduce((a,b)=>a+b,0);
+const totalH=plotBottom+36;
 svg.setAttribute("viewBox","0 0 "+W+" "+totalH);
 function E(t,a){const e=document.createElementNS(SVGNS,t); for(const k in a)e.setAttribute(k,a[k]); return e;}
 let dots=[];
 function buildChart(){
   const X=TX(); svg.innerHTML="";
-  continents.forEach((c,i)=>{const y0=topPad+i*laneH, cy=y0+laneH/2, cnt=declared.filter(d=>d.cont===c).length;
-    svg.appendChild(E("rect",{x:0,y:y0,width:W,height:laneH,fill:i%2?"#fff":"#f1f2f4"}));
+  continents.forEach((c,i)=>{const y0=laneY[i], cy=y0+laneHs[i]/2, cnt=laneCount[i];
+    svg.appendChild(E("rect",{x:0,y:y0,width:W,height:laneHs[i],fill:i%2?"#fff":"#f1f2f4"}));
     const lab=E("text",{class:"lane-label",x:14,y:cy-3}); lab.textContent=X.contLab[c]; svg.appendChild(lab);
     const sub=E("text",{class:"lane-count",x:14,y:cy+13}); sub.textContent=cnt+" "+(cnt>1?X.declN:X.decl1); svg.appendChild(sub);
     if(cnt===0){const en=E("text",{class:"empty-note",x:mL+10,y:cy+4}); en.textContent=X.noPub; svg.appendChild(en);}});
-  [0,25,50,75,100].forEach(v=>{const x=scaleX(v);
-    svg.appendChild(E("line",{class:"grid",x1:x,y1:topPad,x2:x,y2:topPad+continents.length*laneH}));
-    const t=E("text",{class:"axislab",x:x,y:topPad+continents.length*laneH+18,"text-anchor":"middle"}); t.textContent=v+"%"; svg.appendChild(t);});
-  const axt=E("text",{class:"axislab",x:mL+plotW/2,y:totalH-2,"text-anchor":"middle"}); axt.textContent=X.axis; svg.appendChild(axt);
+  svg.appendChild(E("rect",{x:mL,y:topPad,width:GUT,height:plotBottom-topPad,fill:"#000","fill-opacity":0.045}));
+  [25,50,75,100].forEach(v=>{const x=scaleX(v);
+    svg.appendChild(E("line",{class:"grid",x1:x,y1:topPad,x2:x,y2:plotBottom}));
+    const t=E("text",{class:"axislab",x:x,y:plotBottom+18,"text-anchor":"middle"}); t.textContent=v+"%"; svg.appendChild(t);});
+  svg.appendChild(E("line",{class:"grid",x1:scaleX(0),y1:topPad,x2:scaleX(0),y2:plotBottom}));
+  const gz=E("text",{class:"axislab",x:mL+GUT/2,y:plotBottom+18,"text-anchor":"middle"}); gz.textContent=(LANG==="fr"?"0 % · aucune":"0% · none"); svg.appendChild(gz);
+  const axt=E("text",{class:"axislab",x:mL+GUT+plotW/2,y:totalH-2,"text-anchor":"middle"}); axt.textContent=X.axis; svg.appendChild(axt);
   dots=declared.map(d=>{const g=E("g",{class:"dotg"}), R=radC(d.s);
     parseSVG(pieInner(d.sh,R,0,0)+'<circle r="'+R+'" fill="none" stroke="'+blocs[d.win].color+'" stroke-width="2.6"/><circle r="'+R+'" fill="none" stroke="#fff" stroke-width="0.8"/>')
       .forEach(n=>g.appendChild(document.importNode(n,true)));
@@ -619,8 +627,16 @@ function buildChart(){
 }
 let current="left";
 function layout(){const gr=groupings.find(x=>x.key===current);
-  continents.forEach((c,li)=>{const cy=topPad+li*laneH+laneH/2, minY=topPad+li*laneH+radC(9)+4, maxY=topPad+(li+1)*laneH-radC(9)-4;
-    const items=dots.filter(o=>o.laneIdx===li).map(o=>({o,x:scaleX(gr.calc(o.d.sh)),r:radC(o.d.s)})).sort((a,b)=>a.x-b.x);
+  const colStep=21,rowStep=19,gutL=mL+10,gutR=mL+GUT-8,cols=Math.max(1,Math.floor((gutR-gutL)/colStep));
+  continents.forEach((c,li)=>{const cy=laneY[li]+laneHs[li]/2, minY=laneY[li]+radC(9)+4, maxY=laneY[li]+laneHs[li]-radC(9)-4;
+    const lane=dots.filter(o=>o.laneIdx===li).map(o=>({o,v:gr.calc(o.d.sh),r:radC(o.d.s)}));
+    // exact zero (no list of this family ran) -> packed grid in the left "none" gutter
+    const zeros=lane.filter(it=>it.v<=0).sort((a,b)=>b.o.d.s-a.o.d.s);
+    zeros.forEach((it,zi)=>{const col=zi%cols,row=Math.floor(zi/cols);
+      const x=gutL+col*colStep+colStep/2; let y=minY+row*rowStep+rowStep/2; if(y>maxY)y=maxY;
+      it.o.g.setAttribute("transform","translate("+x.toFixed(1)+","+y.toFixed(1)+")");});
+    // positive values -> beeswarm on the scale
+    const items=lane.filter(it=>it.v>0).map(it=>({o:it.o,x:scaleX(it.v),r:it.r})).sort((a,b)=>a.x-b.x);
     const placed=[];
     items.forEach(it=>{let y=cy,k=0;
       while(k<600){const cand=cy+(k%2?-1:1)*Math.ceil(k/2)*3.5;
