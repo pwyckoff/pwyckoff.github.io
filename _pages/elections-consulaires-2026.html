@@ -125,6 +125,7 @@ permalink: /elections-consulaires-2026/
     .btn,.seg,.lng { min-height:38px; display:inline-flex; align-items:center; padding:8px 13px; font-size:13px; }
     .mt-chk { min-height:38px; }
     .maptools { gap:6px 10px; }
+    .maptools.floating { position:sticky; top:0; z-index:800; background:#fff; margin:0 -12px 8px; padding:7px 12px; box-shadow:0 3px 7px rgba(0,0,0,.06); border-bottom:1px solid #ece8df; }
     /* spectrum now fits the viewport and scrolls vertically */
     .scrollhint { display:none; }
     #chart { width:100%; height:auto; display:block; }
@@ -143,6 +144,7 @@ permalink: /elections-consulaires-2026/
 <p class="lede" id="lede"></p>
 <p class="sub" id="sub"></p>
 <h2 id="mapH2"></h2>
+<div class="mapsection">
 <div class="maptools">
   <span class="mt-lbl" id="metricLbl"></span>
   <button class="seg active" id="segSeats"></button>
@@ -150,12 +152,13 @@ permalink: /elections-consulaires-2026/
   <span class="mt-lbl" id="affLbl" style="margin-left:6px"></span>
   <button class="seg active" data-mode="winner" id="segWinner"></button>
   <button class="seg" data-mode="pie" id="segPie"></button>
-  <label class="mt-chk"><input type="checkbox" id="pendingChk" checked> <span id="pendLbl"></span></label>
   <span class="mt-lbl" id="viewLbl" style="margin-left:6px"></span>
   <button class="seg active" id="viewFlat"></button>
   <button class="seg" id="viewGlobe"></button>
+  <label class="mt-chk" style="margin-left:6px"><input type="checkbox" id="pendingChk" checked> <span id="pendLbl"></span></label>
 </div>
 <div class="mapwrap"><div id="map"></div><div id="globes"></div><div class="insets" id="insets"></div></div>
+</div>
 <p class="figcredit" id="cred1"></p>
 <div id="msum"></div>
 <h2 id="specH2"></h2>
@@ -397,7 +400,10 @@ fr:{
  footer:'<p><b>Repères.</b> L’Assemblée nationale compte 11 députés des Français de l’étranger sur 577 (≈ 1,9 %). À la présidentielle de 2022, environ 500 000 expatriés ont voté au 1er tour sur 1 435 746 inscrits (abstention ≈ 64,9 %). Sources : ministère de l’Intérieur ; ElectionGuide / IFES.</p><p><b>Données.</b> Résultats par circonscription compilés à partir de sources diverses, d’après les résultats officiels. Résultats partiels : {N} des ~130 circonscriptions déclarées.</p><p><b>Méthode.</b> Chaque liste est rattachée à une famille politique d’après la formation qui la conduit ; certains regroupements de coalitions relèvent du choix de l’auteur. La « part des voix » par famille agrège les scores des listes ; dans les graphiques de tendance, il s’agit d’une moyenne pondérée par les suffrages exprimés (les circonscriptions sans total de voix publié en sont exclues). Les points sont placés sur la ville-poste (position approximative).</p><p>Fonds de carte © OpenStreetMap, © CARTO. Carte &amp; graphiques : <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
  turnoutLede:(a,mn,mv,xn,xv)=>"autour de "+a+" %, de "+mv+" % ("+mn+") à "+xv+" % ("+xn+")",
  t1desc:(tot,n,top)=>tot+" sièges sur "+n+" circonscriptions. "+top+" arrive en tête du décompte.",
- t3desc:(top,c)=>top+" est en tête dans le plus grand nombre de circonscriptions ("+c+")."
+ t3desc:(top,c)=>top+" est en tête dans le plus grand nombre de circonscriptions ("+c+").",
+ t4:"Participation par région", t4desc:(hi,hv,lo,lv)=>"Participation moyenne, de "+lv+" % ("+lo+") à "+hv+" % ("+hi+").",
+ t5:"Le dernier siège, de peu ?", t5desc:(c,t)=>"Écart entre la famille la plus faible élue et la plus forte non élue. "+c+" des "+t+" circonscriptions disputées se sont jouées à moins de 5 points.",
+ tbins:["moins de 2 pts","2–5 pts","5–10 pts","10–20 pts","20 pts et +"]
 },
 en:{
  title:"Consular elections 2026", h1:"Consular elections 2026",
@@ -427,7 +433,10 @@ en:{
  footer:'<p><b>Background.</b> The National Assembly has 11 of its 577 seats elected by French residents abroad (≈1.9%). In the 2022 presidential first round about 500,000 expatriates voted out of 1,435,746 registered (abstention ≈64.9%). Sources: French Ministry of the Interior; ElectionGuide / IFES.</p><p><b>Data.</b> Results by constituency from various sources, based on official results. Partial results: {N} of ~130 constituencies reported.</p><p><b>Method.</b> Each list is assigned to a political family by the party leading it; some coalition groupings decided by the author. A family’s “vote share” aggregates its lists’ scores; in the trend charts it is a vote-weighted average across constituencies (by valid votes cast; any constituency without published vote totals is excluded). Points sit on the consulate city (approximate).</p><p>Basemap © OpenStreetMap, © CARTO. Map &amp; charts: <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
  turnoutLede:(a,mn,mv,xn,xv)=>"about "+a+"% (from "+mv+"% in "+mn+" to "+xv+"% in "+xn+")",
  t1desc:(tot,n,top)=>tot+" seats across "+n+" constituencies. "+top+" leads the count.",
- t3desc:(top,c)=>top+" leads the most constituencies ("+c+")."
+ t3desc:(top,c)=>top+" leads the most constituencies ("+c+").",
+ t4:"Turnout by region", t4desc:(hi,hv,lo,lv)=>"Average turnout, from "+lv+"% ("+lo+") to "+hv+"% ("+hi+").",
+ t5:"How close was the last seat?", t5desc:(c,t)=>"Gap between the weakest family that won a seat and the strongest that didn't. "+c+" of "+t+" contested constituencies were decided by under 5 points.",
+ tbins:["under 2 pts","2–5 pts","5–10 pts","10–20 pts","20 pts +"]
 }
 };
 
@@ -642,6 +651,8 @@ function E(t,a){const e=document.createElementNS(SVGNS,t); for(const k in a)e.se
 let dots=[];
 function buildChart(){
   const X=TX(); computeDims(); svg.innerHTML="";
+  // row backgrounds first, so the gridlines drawn next remain visible inside every row
+  order.forEach((k,i)=>{ svg.appendChild(E("rect",{x:0,y:laneY[i],width:W,height:rowH,fill:i%2?"#fff":"#f1f2f4"})); });
   [25,50,75,100].forEach(v=>{const x=scaleX(v);
     svg.appendChild(E("line",{class:"grid",x1:x,y1:topPad,x2:x,y2:plotBottom}));
     const t=E("text",{class:"axislab",x:x,y:plotBottom+18,"text-anchor":"middle"}); t.textContent=v+"%"; svg.appendChild(t);});
@@ -650,7 +661,8 @@ function buildChart(){
   dots=[];
   order.forEach((k,i)=>{
     const y0=laneY[i], cy=y0+rowHeaderH+bandHalf, col=blocs[k].color, nm=blocLab(k);
-    svg.appendChild(E("rect",{x:0,y:y0,width:W,height:rowH,fill:i%2?"#fff":"#f1f2f4"}));
+    // mobile: repeat the axis breaks inside each row so dots stay readable while scrolling
+    if(narrow) [25,50,75].forEach(v=>{const tk=E("text",{x:scaleX(v),y:y0+rowHeaderH+10,"text-anchor":"middle","font-size":9.5,"fill":"#a8a29a"}); tk.textContent=v; svg.appendChild(tk);});
     const items=declared.filter(d=>(d.sh[k]||0)>0).map(d=>({d,v:d.sh[k],won:(d.seats[k]||0)>0,x:scaleX(d.sh[k]),r:radC(d.s)}));
     const ran=items.length, won=items.filter(o=>o.won).length;
     const subTxt=(LANG==="fr"?(ran+" circ. · "+won+" avec siège"):(ran+" ran · "+won+" won"));
@@ -725,15 +737,35 @@ function buildTrends(){
       }});
     return o+'</svg>';
   }
-  const card=(t,d,svgc)=>'<div class="trend"><h3>'+t+'</h3><p class="td">'+d+'</p>'+svgc+'<div class="tcredit">'+X.credit+'</div></div>';
+  const card=(t,d,svgc,extra)=>'<div class="trend"><h3>'+t+'</h3><p class="td">'+d+'</p>'+svgc+(extra||'')+'<div class="tcredit">'+X.credit+'</div></div>';
   const c1=seatOrder.filter(k=>(seatTotals[k]||0)>0).map(k=>({label:shortLab(k),color:blocs[k].color,value:seatTotals[k]}));
   const c2=seatOrder.filter(k=>(seatTotals[k]||0)>0||voteAvg[k]>0.8).map(k=>({label:shortLab(k),color:blocs[k].color,value:voteAvg[k],value2:(seatTotals[k]||0)/totalSeats*100}));
   const c3=leadOrder.filter(k=>(leadCount[k]||0)>0).map(k=>({label:shortLab(k),color:blocs[k].color,value:leadCount[k]}));
   const fpct=v=> LANG==="fr"? v.toFixed(0)+" %" : v.toFixed(0)+"%";
+  // t4: average turnout by region
+  const tSum={}, tCnt={};
+  declared.forEach(d=>{ if(d.t!=null){ tSum[d.cont]=(tSum[d.cont]||0)+d.t; tCnt[d.cont]=(tCnt[d.cont]||0)+1; } });
+  const c4=continents.filter(c=>tCnt[c]).map(c=>({label:X.contShort[c],color:"#5b8ab8",value:tSum[c]/tCnt[c]})).sort((a,b)=>b.value-a.value);
+  // t5: margin at the seat cutoff (weakest seat-winner minus strongest also-ran)
+  const mgP=[];
+  declared.forEach(d=>{ const wins=[],loss=[];
+    order.forEach(k=>{ const v=d.sh[k]||0; if(v>0){ ((d.seats[k]||0)>0?wins:loss).push(v); } });
+    if(wins.length&&loss.length) mgP.push({m:Math.min.apply(null,wins)-Math.max.apply(null,loss), d}); });
+  const mg=mgP.map(o=>o.m);
+  const binDefs=[m=>m<2,m=>m>=2&&m<5,m=>m>=5&&m<10,m=>m>=10&&m<20,m=>m>=20];
+  const binCols=["#c44536","#e08a3c","#c9a227","#7f9f5b","#b9b1a3"];
+  const c5=binDefs.map((f,i)=>({label:X.tbins[i],color:binCols[i],value:mg.filter(f).length}));
+  const within5=mg.filter(m=>m<5).length;
+  const shName=d=>name(d).split(" — ")[0].split(" (")[0];
+  const tight=mgP.slice().sort((a,b)=>Math.abs(a.m)-Math.abs(b.m)).slice(0,4)
+    .map(o=>shName(o.d)+" ("+nf(Math.abs(o.m))+" pt)").join(" · ");
+  const tightNote='<p class="td" style="margin-top:7px;font-size:11px;color:#777">'+(LANG==="fr"?"Plus serrées : ":"Tightest: ")+tight+'</p>';
   let html="";
   html+=card(X.t1, X.t1desc(totalSeats,n,shortLab(topS)), makeBar(c1, v=>""+v, false));
   html+=card(X.t2, X.t2desc, makeBar(c2, fpct, true));
   html+=card(X.t3, X.t3desc(shortLab(topL),leadCount[topL]), makeBar(c3, v=>""+v, false));
+  if(c4.length) html+=card(X.t4, X.t4desc(c4[0].label,c4[0].value.toFixed(0),c4[c4.length-1].label,c4[c4.length-1].value.toFixed(0)), makeBar(c4, fpct, false));
+  if(mg.length) html+=card(X.t5, X.t5desc(within5, mg.length), makeBar(c5, v=>""+v, false), tightNote);
   document.getElementById("trends").innerHTML=html;
 }
 
@@ -790,7 +822,7 @@ function renderMsum(){
   el.innerHTML=h;
   const sh=document.getElementById("scrollhint"); if(sh) sh.textContent=(LANG==="fr"?"Faites défiler pour tout voir →":"Scroll sideways to see all →");
 }
-function setViewLabels(){var hl=document.getElementById("homeLbl");if(hl)hl.textContent=LANG==="fr"?"Accueil":"Home";document.getElementById("viewLbl").textContent=LANG==="fr"?"Vue":"View";document.getElementById("viewFlat").textContent=LANG==="fr"?"Globe entier":"Full globe";document.getElementById("viewGlobe").textContent=LANG==="fr"?"Par région":"By region";}
+function setViewLabels(){var hl=document.getElementById("homeLbl");if(hl)hl.textContent=LANG==="fr"?"Accueil":"Home";document.getElementById("viewLbl").textContent=LANG==="fr"?"Voir":"View";document.getElementById("viewFlat").textContent=LANG==="fr"?"Globe entier":"Full globe";document.getElementById("viewGlobe").textContent=LANG==="fr"?"Par région":"By region";}
 function render(){
   setViewLabels(); setStatic(); buildLegend(); buildPills(); buildInsets(); updateInsets(); renderMsum(); buildChart(); buildTrends(); fillTurnout();
   if(document.querySelector(".mapwrap")&&document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();
@@ -803,8 +835,8 @@ document.getElementById("segVotes").onclick=function(){mapMetric="votes"; this.c
 document.getElementById("segWinner").onclick=function(){mapMode="winner"; this.classList.add("active"); document.getElementById("segPie").classList.remove("active"); renderMarkers(); if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();};
 document.getElementById("segPie").onclick=function(){mapMode="pie"; this.classList.add("active"); document.getElementById("segWinner").classList.remove("active"); renderMarkers(); if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();};
 document.getElementById("pendingChk").onchange=function(e){showPending=e.target.checked; renderMarkers(); if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();};
-document.getElementById("viewFlat").onclick=function(){document.querySelector(".mapwrap").classList.remove("globe");this.classList.add("active");document.getElementById("viewGlobe").classList.remove("active");setTimeout(()=>map.invalidateSize(),60);};
-document.getElementById("viewGlobe").onclick=function(){document.querySelector(".mapwrap").classList.add("globe");this.classList.add("active");document.getElementById("viewFlat").classList.remove("active");buildGlobes();};
+document.getElementById("viewFlat").onclick=function(){document.querySelector(".mapwrap").classList.remove("globe");this.classList.add("active");document.getElementById("viewGlobe").classList.remove("active");document.querySelector(".maptools").classList.remove("floating");setTimeout(()=>map.invalidateSize(),60);};
+document.getElementById("viewGlobe").onclick=function(){document.querySelector(".mapwrap").classList.add("globe");this.classList.add("active");document.getElementById("viewFlat").classList.remove("active");document.querySelector(".maptools").classList.add("floating");buildGlobes();};
 document.getElementById("langFr").onclick=function(){if(LANG==="fr")return; LANG="fr"; this.classList.add("active"); document.getElementById("langEn").classList.remove("active"); render();};
 document.getElementById("langEn").onclick=function(){if(LANG==="en")return; LANG="en"; this.classList.add("active"); document.getElementById("langFr").classList.remove("active"); render();};
 
