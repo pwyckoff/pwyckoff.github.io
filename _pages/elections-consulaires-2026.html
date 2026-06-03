@@ -59,7 +59,7 @@ permalink: /elections-consulaires-2026/
   .pie-icon, .summary-icon { background:none; border:none; }
   .pie-icon svg { transition:transform .18s ease; }
   .mapwrap { position:relative; }
-  .insets { position:absolute; inset:0; pointer-events:none; z-index:600; }
+  .insets { position:absolute; top:0; left:0; pointer-events:none; z-index:450; }
   .inset { position:absolute; opacity:1; transition:opacity .25s ease; }
   .inset.hidden { opacity:0; }
   .summary { background:rgba(255,255,255,.93); border:1px solid #c4c4c4; border-radius:6px; padding:3px 5px; box-shadow:0 1px 4px rgba(0,0,0,.25); display:inline-block; pointer-events:none; }
@@ -271,7 +271,7 @@ const data = [
   {n:"Bénin",lat:6.37,lng:2.39,s:3,cont:"Afrique",ex:420,win:"red",seats:{red:2,purple:1},sh:{red:61.67,purple:32.62,exd:5.71}},
   {n:"Cameroun, Guinée équatoriale",lat:4.05,lng:9.77,s:3,cont:"Afrique",ex:585,win:"purple",seats:{purple:1,grey:2},sh:{purple:33.68,grey:66.32}},
   {n:"Comores",lat:-11.70,lng:43.26,s:1,cont:"Afrique",ex:151,win:"green",seats:{green:1},sh:{green:54.97,purple:45.03}},
-  {n:"Congo",lat:-4.27,lng:15.28,s:3,cont:"Afrique",seats:null,sh:null},
+  {n:"Congo",lat:-4.27,lng:15.28,s:3,cont:"Afrique",ex:417,win:"purple",seats:{purple:1,grey:2},sh:{purple:29.26,grey:49.40,red:21.34}},
   {n:"Djibouti",lat:11.59,lng:43.15,s:3,cont:"Afrique",ex:586,win:"purple",seats:{purple:2,grey:1},sh:{purple:61.09,grey:38.91}},
   {n:"Égypte",lat:30.04,lng:31.24,s:3,cont:"Afrique",ex:456,win:"red",seats:{red:2,purple:1},sh:{red:53.95,purple:27.19,grey:18.86}},
   {n:"Éthiopie, Soudan, Soudan du Sud",lat:9.03,lng:38.74,s:1,cont:"Afrique",ex:89,win:"purple",seats:{purple:1},sh:{purple:100}},
@@ -359,7 +359,7 @@ const groupings=[
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
   {key:"exd",calc:s=>s.exd||0},{key:"rightexd",calc:s=>(s.blue||0)+(s.exd||0)},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
-const turnout={"Éthiopie, Soudan, Soudan du Sud":16.49,"Gabon":9.62,"Australie, Fidji, PNG":17.20,"Niger":4.02,"Tchad":16.33,"Togo, Ghana":9.42,"Liban, Syrie":22.16,"Maurice, Seychelles":10.90,"République démocratique du Congo":15.68,"Comores":11.58,"Djibouti":19.95,"Égypte":10.82,"Kenya et Afrique de l'Est":16.87,"Arabie saoudite (1re), Yémen":14.58,"Arabie saoudite (2e), Koweït":13.13,"Bénin":14.15,"Cameroun, Guinée équatoriale":13.83,"Serbie":6.94,"Afrique du Sud, Mozambique, Namibie, Botswana":13.17,"Pologne":18.02,"Inde (1re), Bangladesh, Népal, Sri Lanka":19.69,"Inde (2e)":36.63,"Madagascar":14.62,"Nigeria":14.22,"Chili":16.30,"États-Unis (8e) — Nord-Ouest Pacifique":13.76,"Brésil (1re) — Brasília / Recife":12.92,"Équateur":18.96,"Guatemala, Salvador":15.03,"Haïti":5.53,"Mexique":13.39,"Panama, Cuba, Jamaïque":15.05,"Paraguay":15.48,"Uruguay":15.83,"Venezuela, Sainte-Lucie, Trinité":7.91,"Irlande":17.13,"Norvège, Islande":22.66,"Suède":19.35,"Roumanie, Moldavie":21.76,"Israël (1re) — Jérusalem":7.33,"Turquie":10.74,"Algérie (2e) — Annaba":8.56,"Algérie (3e) — Alger":6.25,"Burkina Faso":15.08,"Côte d'Ivoire":10.88,"Guinée":11.53,"Mali":2.9,"Maroc (5e) — Rabat":13.77,"Maroc (6e) — Casablanca":10.7,"Sénégal, Guinée-Bissau, Cap-Vert":10.0,"Tunisie, Libye":10.26,"Colombie":19.71,"Argentine":13.83,"Costa Rica, Honduras, Nicaragua":13.07,"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
+const turnout={"Congo":12.93,"Éthiopie, Soudan, Soudan du Sud":16.49,"Gabon":9.62,"Australie, Fidji, PNG":17.20,"Niger":4.02,"Tchad":16.33,"Togo, Ghana":9.42,"Liban, Syrie":22.16,"Maurice, Seychelles":10.90,"République démocratique du Congo":15.68,"Comores":11.58,"Djibouti":19.95,"Égypte":10.82,"Kenya et Afrique de l'Est":16.87,"Arabie saoudite (1re), Yémen":14.58,"Arabie saoudite (2e), Koweït":13.13,"Bénin":14.15,"Cameroun, Guinée équatoriale":13.83,"Serbie":6.94,"Afrique du Sud, Mozambique, Namibie, Botswana":13.17,"Pologne":18.02,"Inde (1re), Bangladesh, Népal, Sri Lanka":19.69,"Inde (2e)":36.63,"Madagascar":14.62,"Nigeria":14.22,"Chili":16.30,"États-Unis (8e) — Nord-Ouest Pacifique":13.76,"Brésil (1re) — Brasília / Recife":12.92,"Équateur":18.96,"Guatemala, Salvador":15.03,"Haïti":5.53,"Mexique":13.39,"Panama, Cuba, Jamaïque":15.05,"Paraguay":15.48,"Uruguay":15.83,"Venezuela, Sainte-Lucie, Trinité":7.91,"Irlande":17.13,"Norvège, Islande":22.66,"Suède":19.35,"Roumanie, Moldavie":21.76,"Israël (1re) — Jérusalem":7.33,"Turquie":10.74,"Algérie (2e) — Annaba":8.56,"Algérie (3e) — Alger":6.25,"Burkina Faso":15.08,"Côte d'Ivoire":10.88,"Guinée":11.53,"Mali":2.9,"Maroc (5e) — Rabat":13.77,"Maroc (6e) — Casablanca":10.7,"Sénégal, Guinée-Bissau, Cap-Vert":10.0,"Tunisie, Libye":10.26,"Colombie":19.71,"Argentine":13.83,"Costa Rica, Honduras, Nicaragua":13.07,"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
 "Canada (1re) — Ouest":19.23,"États-Unis (2e) — Nouvelle-Angleterre":13.37,"États-Unis (3e) — Texas":12.1,
 "États-Unis (4e) — Midwest":13.95,"États-Unis (5e) — Floride":11.33,"États-Unis (6e) — Washington":14.34,
@@ -375,7 +375,7 @@ data.forEach(d=>{ if(turnout[d.n]!=null) d.t=turnout[d.n]; });
 const T={
 fr:{
  title:"Élections consulaires 2026", h1:"Élections consulaires 2026",
- asof:"Données arrêtées au 3 juin 2026, 19 h 13 (heure de Paris).",
+ asof:"Données arrêtées au 3 juin 2026, 20 h 22 (heure de Paris).",
  lede:'Les Français établis hors de France forment un électorat modeste mais à part : ils élisent <b>11 des 577 sièges</b> de l’Assemblée nationale (environ 1,9 %) et, au premier tour de la présidentielle de 2022, près de <b>500 000</b> d’entre eux ont voté (sur ~1,44 million d’inscrits, ≈ 1,4 % des suffrages nationaux). Les élections consulaires de mai 2026 offrent l’aperçu le plus récent des équilibres politiques de cet électorat avant les scrutins de 2027. Cela dit, la participation a été très faible : sur les circonscriptions déjà déclarées, elle s’établit en moyenne <span id="turnoutLede">…</span>.',
  sub:'<b>{N} circonscriptions déclarées sur 130.</b> La carte colore chaque circonscription selon la famille en tête. Choisissez « Résultats par » sièges ou voix, basculez « Afficher » entre la tête et la composition (camemberts), et cliquez un point pour le détail. Le graphique plus bas compare les familles : pour chacune, sa part des voix là où elle s’est présentée, les cercles pleins indiquant qu’elle a obtenu un siège.',
  mapH2:"Résultats par circonscription", mapTag:"— en tête par sièges ou par voix ; « composition » pour le détail",
@@ -385,6 +385,7 @@ fr:{
  affichage:"Afficher", winner:"En tête", compo:"Composition", pending:"circonscriptions en attente",
  sortBy:"Trier selon la part des voix de :",
  legendTitle:"Famille politique", legendPending:"En attente",
+ legendLab:{green:"Écologistes",lfi:"LFI",red:"Gauche",orange:"Centre",blue:"Droite",exd:"Extrême droite",purple:"ASFE",grey:"SE / divers"},
  specLegend:"Taille = total des sièges de la circonscription.",
  legWon:"au moins un siège obtenu", legRan:"présentée, sans siège",
  axis:"Part des voix de la famille sélectionnée (listes agrégées)",
@@ -408,7 +409,7 @@ fr:{
 },
 en:{
  title:"Consular elections 2026", h1:"Consular elections 2026",
- asof:"Data as of 3 June 2026, 19:13 (Paris time).",
+ asof:"Data as of 3 June 2026, 20:22 (Paris time).",
  lede:'French citizens living abroad are a small but distinct electorate: they elect <b>11 of the 577 seats</b> in the National Assembly (about 1.9%), and in the 2022 presidential first round nearly <b>500,000</b> of them voted (out of ~1.44 million registered, ≈1.4% of the national vote). The May 2026 consular elections offer the freshest read on this electorate’s political balance ahead of forthcoming elections in 2027. That said, turnout was very low: across the constituencies reported so far it averages <span id="turnoutLede">…</span>.',
  sub:'<b>{N} of 130 constituencies reported.</b> The map colours each constituency by the leading family. Choose “Results by” seats or votes, toggle “Show” between the leader and the breakdown (pies), and click a point for the detail. The chart below compares the families: for each, its vote share across the constituencies where it ran, with filled circles marking where it won a seat.',
  mapH2:"Results by constituency", mapTag:"— leader by seats or by votes; “breakdown” for the detail",
@@ -418,6 +419,7 @@ en:{
  affichage:"Show", winner:"Leader", compo:"Breakdown", pending:"pending constituencies",
  sortBy:"Sort by vote share of:",
  legendTitle:"Political family", legendPending:"Pending",
+ legendLab:{green:"Greens",lfi:"LFI",red:"Left",orange:"Centre",blue:"Right",exd:"Far right",purple:"ASFE",grey:"Independent / other"},
  specLegend:"Size = total seats in the constituency.",
  legWon:"at least one seat gained", legRan:"ran, no seat",
  axis:"Vote share of the selected family (lists aggregated)",
@@ -527,9 +529,9 @@ function buildGlobes(){
 let _grz;window.addEventListener("resize",()=>{clearTimeout(_grz);_grz=setTimeout(()=>{if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();},220);});
 
 /* ---- MAP ---- */
-const map=L.map("map",{worldCopyJump:false,minZoom:2,maxBounds:[[-85,-180],[85,180]],maxBoundsViscosity:1.0}).setView([20,0],2);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",{maxZoom:18,noWrap:true,subdomains:"abcd",attribution:"© OpenStreetMap contributors, © CARTO"}).addTo(map);
-const worldBounds=L.latLngBounds([[-85,-180],[85,180]]);
+const map=L.map("map",{worldCopyJump:false,minZoom:2,maxBounds:[[-85,-180],[85,230]],maxBoundsViscosity:0.0}).setView([20,0],2);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",{maxZoom:18,noWrap:false,subdomains:"abcd",attribution:"© OpenStreetMap contributors, © CARTO"}).addTo(map);
+const worldBounds=L.latLngBounds([[-85,-180],[85,230]]);
 map.setMaxBounds(worldBounds);
 map.on("drag",function(){map.panInsideBounds(worldBounds,{animate:false});});
 
@@ -582,7 +584,7 @@ function buildLegend(){
   mapLegend=L.control({position:"topright"});
   mapLegend.onAdd=function(){const div=L.DomUtil.create("div","legend"); const X=TX();
     div.innerHTML="<b>"+X.legendTitle+"</b><br>";
-    order.forEach(k=>div.innerHTML+='<i style="background:'+blocs[k].color+'"></i>'+X.blocLab[k]+'<br>');
+    order.forEach(k=>div.innerHTML+='<i style="background:'+blocs[k].color+'"></i>'+X.legendLab[k]+'<br>');
     div.innerHTML+='<span style="display:inline-block;margin:3px 5px 0 0;width:12px;height:12px;border-radius:50%;background:rgba(140,140,140,.25);border:1px solid rgba(110,110,110,.5);vertical-align:middle"></span>'+X.legendPending;
     return div;};
   mapLegend.addTo(map);
@@ -621,6 +623,24 @@ function buildInsets(){
 function boxVisible(b){const m=map.getBounds(); return !(b[3]<m.getWest()||b[1]>m.getEast()||b[2]<m.getSouth()||b[0]>m.getNorth());}
 function updateInsets(){insetCfg.forEach(c=>{ if(c.el) c.el.classList.toggle("hidden",!boxVisible(c.box)); });}
 map.on("moveend zoomend",updateInsets);
+/* Move the inset overlay INSIDE the Leaflet map-pane so it shares the panes' stacking
+   context. With z-index 450, it sits above tiles/overlay (200/400) and below
+   marker/tooltip/popup panes (600/650/700) — so tooltips and popups naturally render
+   on top of the summary tables, no movement needed.
+   Map-pane translates as the user pans, so we counter-translate the overlay each
+   move to keep the boxes screen-fixed. */
+map.getPane("mapPane").appendChild(insetsEl);
+function syncInsets(){
+  const pos = L.DomUtil.getPosition(map.getPane("mapPane")) || L.point(0,0);
+  const c = map.getContainer();
+  insetsEl.style.transform = "translate3d(" + (-pos.x) + "px," + (-pos.y) + "px,0)";
+  insetsEl.style.width = c.clientWidth + "px";
+  insetsEl.style.height = c.clientHeight + "px";
+}
+syncInsets();
+map.on("move zoomend resize viewreset",syncInsets);
+map.on("zoomstart",()=>{ insetsEl.style.opacity = "0"; });
+map.on("zoomend",()=>{ syncInsets(); insetsEl.style.opacity = ""; });
 
 /* ---- CHART ---- */
 const continents=["Europe","Amérique du Nord","Asie & Pacifique","Proche & Moyen-Orient","Amérique latine","Afrique"];
