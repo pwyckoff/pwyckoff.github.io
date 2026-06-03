@@ -125,8 +125,12 @@ permalink: /elections-consulaires-2026/
     .btn,.seg,.lng { min-height:38px; display:inline-flex; align-items:center; padding:8px 13px; font-size:13px; }
     .mt-chk { min-height:38px; }
     .maptools { gap:6px 10px; }
-    /* spectrum: show a scroll affordance */
-    .scrollhint { display:block; font-size:11px; color:#9a958c; margin:5px 0 0; text-align:right; }
+    /* spectrum now fits the viewport and scrolls vertically */
+    .scrollhint { display:none; }
+    #chart { width:100%; height:auto; display:block; }
+    .lane-label { font-size:15px; }
+    .lane-count { font-size:12px; }
+    .axislab { font-size:12px; }
     /* mobile replacement for the hidden ocean insets */
     #msum { display:block; }
   }
@@ -140,7 +144,10 @@ permalink: /elections-consulaires-2026/
 <p class="sub" id="sub"></p>
 <h2 id="mapH2"></h2>
 <div class="maptools">
-  <span class="mt-lbl" id="affLbl"></span>
+  <span class="mt-lbl" id="metricLbl"></span>
+  <button class="seg active" id="segSeats"></button>
+  <button class="seg" id="segVotes"></button>
+  <span class="mt-lbl" id="affLbl" style="margin-left:6px"></span>
   <button class="seg active" data-mode="winner" id="segWinner"></button>
   <button class="seg" data-mode="pie" id="segPie"></button>
   <label class="mt-chk"><input type="checkbox" id="pendingChk" checked> <span id="pendLbl"></span></label>
@@ -231,7 +238,7 @@ const data = [
   {n:"Autriche, Slovaquie, Slovénie",lat:48.21,lng:16.37,s:4,cont:"Europe",ex:2230,win:"green",seats:{green:2,purple:1,red:1},sh:{green:30.85,purple:20.58,red:14.22,orange:13.05,grey:9.15,exd:7.58,blue:4.57}},
   {n:"Bulgarie, Balkans occidentaux",lat:42.70,lng:23.32,s:3,cont:"Europe",ex:296,win:"green",seats:{green:1,purple:1,grey:1},sh:{green:42.57,purple:29.05,grey:28.38}},
   {n:"Hongrie",lat:47.50,lng:19.04,s:3,cont:"Europe",ex:435,win:"grey",seats:{grey:2,red:1},sh:{grey:48.96,red:37.24,purple:13.79}},
-  {n:"Pologne",lat:52.23,lng:21.01,s:3,cont:"Europe",seats:null,sh:null},
+  {n:"Pologne",lat:52.23,lng:21.01,s:3,cont:"Europe",ex:1002,win:"green",seats:{green:1,purple:1,blue:1},sh:{green:29.94,purple:28.34,blue:20.86,grey:20.86}},
   {n:"Roumanie, Moldavie",lat:44.43,lng:26.10,s:3,cont:"Europe",ex:765,win:"blue",seats:{blue:1,grey:1,green:1},sh:{blue:25.23,grey:33.99,green:14.51,purple:11.50,exd:9.67,red:5.10}},
   {n:"Chypre",lat:35.17,lng:33.36,s:1,cont:"Europe",ex:320,win:"grey",seats:{grey:1},sh:{grey:100}},
   {n:"Grèce",lat:37.98,lng:23.73,s:3,cont:"Europe",ex:1363,win:"red",seats:{red:2,grey:1},sh:{red:37.78,grey:45.34,purple:16.87}},
@@ -348,7 +355,7 @@ const groupings=[
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
   {key:"exd",calc:s=>s.exd||0},{key:"rightexd",calc:s=>(s.blue||0)+(s.exd||0)},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
-const turnout={"Inde (1re), Bangladesh, Népal, Sri Lanka":19.69,"Inde (2e)":36.63,"Madagascar":14.62,"Nigeria":14.22,"Chili":16.30,"États-Unis (8e) — Nord-Ouest Pacifique":13.76,"Brésil (1re) — Brasília / Recife":12.92,"Équateur":18.96,"Guatemala, Salvador":15.03,"Haïti":5.53,"Mexique":13.39,"Panama, Cuba, Jamaïque":15.05,"Paraguay":15.48,"Uruguay":15.83,"Venezuela, Sainte-Lucie, Trinité":7.91,"Irlande":17.13,"Norvège, Islande":22.66,"Suède":19.35,"Roumanie, Moldavie":21.76,"Israël (1re) — Jérusalem":7.33,"Turquie":10.74,"Algérie (2e) — Alger":8.56,"Algérie (3e) — Annaba":6.25,"Burkina Faso":15.08,"Côte d'Ivoire":10.88,"Guinée":11.53,"Mali":2.9,"Maroc (5e) — Rabat":13.77,"Maroc (6e) — Casablanca":10.7,"Sénégal, Guinée-Bissau, Cap-Vert":10.0,"Tunisie, Libye":10.26,"Colombie":19.71,"Argentine":13.83,"Costa Rica, Honduras, Nicaragua":13.07,"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
+const turnout={"Pologne":18.02,"Inde (1re), Bangladesh, Népal, Sri Lanka":19.69,"Inde (2e)":36.63,"Madagascar":14.62,"Nigeria":14.22,"Chili":16.30,"États-Unis (8e) — Nord-Ouest Pacifique":13.76,"Brésil (1re) — Brasília / Recife":12.92,"Équateur":18.96,"Guatemala, Salvador":15.03,"Haïti":5.53,"Mexique":13.39,"Panama, Cuba, Jamaïque":15.05,"Paraguay":15.48,"Uruguay":15.83,"Venezuela, Sainte-Lucie, Trinité":7.91,"Irlande":17.13,"Norvège, Islande":22.66,"Suède":19.35,"Roumanie, Moldavie":21.76,"Israël (1re) — Jérusalem":7.33,"Turquie":10.74,"Algérie (2e) — Alger":8.56,"Algérie (3e) — Annaba":6.25,"Burkina Faso":15.08,"Côte d'Ivoire":10.88,"Guinée":11.53,"Mali":2.9,"Maroc (5e) — Rabat":13.77,"Maroc (6e) — Casablanca":10.7,"Sénégal, Guinée-Bissau, Cap-Vert":10.0,"Tunisie, Libye":10.26,"Colombie":19.71,"Argentine":13.83,"Costa Rica, Honduras, Nicaragua":13.07,"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
 "Canada (1re) — Ouest":19.23,"États-Unis (2e) — Nouvelle-Angleterre":13.37,"États-Unis (3e) — Texas":12.1,
 "États-Unis (4e) — Midwest":13.95,"États-Unis (5e) — Floride":11.33,"États-Unis (6e) — Washington":14.34,
@@ -364,16 +371,18 @@ data.forEach(d=>{ if(turnout[d.n]!=null) d.t=turnout[d.n]; });
 const T={
 fr:{
  title:"Élections consulaires 2026", h1:"Élections consulaires 2026",
- asof:"Données arrêtées au 3 juin 2026, 11 h 53 (heure de Paris).",
+ asof:"Données arrêtées au 3 juin 2026, 12 h 10 (heure de Paris).",
  lede:'Les Français établis hors de France forment un électorat modeste mais à part : ils élisent <b>11 des 577 sièges</b> de l’Assemblée nationale (environ 1,9 %) et, au premier tour de la présidentielle de 2022, près de <b>500 000</b> d’entre eux ont voté (sur ~1,44 million d’inscrits, ≈ 1,4 % des suffrages nationaux). Les élections consulaires de mai 2026 offrent l’aperçu le plus récent des équilibres politiques de cet électorat avant les scrutins de 2027. Cela dit, la participation a été très faible : sur les circonscriptions déjà déclarées, elle s’établit en moyenne <span id="turnoutLede">…</span>.',
- sub:'<b>{N} circonscriptions déclarées sur ~130.</b> La carte montre par défaut la liste arrivée en tête (couleur = famille) ; passez en « Composition » pour les camemberts de sièges, et cliquez un point pour le détail. L’autre graphique, plus bas, classe chaque circonscription selon la part des voix d’une famille au choix.',
- mapH2:"Sièges remportés", mapTag:"— par liste arrivée en tête ; « Composition » affiche les sièges",
- specH2:"Composition en voix", specTag:"— par circonscription, chaque ligne est une région",
+ sub:'<b>{N} circonscriptions déclarées sur ~130.</b> La carte colore chaque circonscription selon la famille en tête. Choisissez « Résultats par » sièges ou voix, basculez « Afficher » entre la tête et la composition (camemberts), et cliquez un point pour le détail. Le graphique plus bas compare les familles : pour chacune, sa part des voix là où elle s’est présentée, les cercles pleins indiquant qu’elle a obtenu un siège.',
+ mapH2:"Résultats par circonscription", mapTag:"— en tête par sièges ou par voix ; « composition » pour le détail",
+ specH2:"Comment chaque famille s’en sort", specTag:"— part des voix là où la famille s’est présentée ; plein = siège obtenu",
  trendsH2:"Tendances", trendsTag:"— sur l’ensemble des circonscriptions déclarées",
- affichage:"Affichage", winner:"Vainqueur", compo:"Composition", pending:"circonscriptions en attente",
+ resultsBy:"Résultats par", mSeats:"Sièges", mVotes:"Voix",
+ affichage:"Afficher", winner:"En tête", compo:"Composition", pending:"circonscriptions en attente",
  sortBy:"Trier selon la part des voix de :",
  legendTitle:"Famille politique", legendPending:"En attente",
- specLegend:"Camembert = composition en voix · anneau = liste en tête :",
+ specLegend:"Taille = total des sièges de la circonscription.",
+ legWon:"au moins un siège obtenu", legRan:"présentée, sans siège",
  axis:"Part des voix de la famille sélectionnée (listes agrégées)",
  decl1:"déclarée", declN:"déclarées", noPub:"aucun résultat publié à ce jour",
  seat1:"siège", seatN:"sièges", seatOf:"de conseiller", notDecl:"Résultats non encore déclarés",
@@ -384,24 +393,26 @@ fr:{
  contLab:{"Europe":"Europe","Amérique du Nord":"Amérique du Nord","Asie & Pacifique":"Asie & Pacifique","Proche & Moyen-Orient":"Proche & Moyen-Orient","Amérique latine":"Amérique latine","Afrique":"Afrique"},
  contShort:{"Europe":"Europe","Amérique du Nord":"Amérique du Nord","Asie & Pacifique":"Asie-Pacifique","Proche & Moyen-Orient":"Proche & Moyen-Orient","Amérique latine":"Amérique latine","Afrique":"Afrique"},
  groupLab:{left:"Gauche + Écologistes",green:"Écologistes",lfi:"LFI",red:"Gauche (PS, FdM…)",orange:"Centre",blue:"Droite",exd:"Extrême droite",rightexd:"Droite + Extrême droite",purple:"ASFE",grey:"Sans étiquette"},
- credit:'Peter Wyckoff · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a> · Données : résultats agrégés sur Wikipédia, d’après les retours officiels.',
- footer:'<p><b>Repères.</b> L’Assemblée nationale compte 11 députés des Français de l’étranger sur 577 (≈ 1,9 %). À la présidentielle de 2022, environ 500 000 expatriés ont voté au 1er tour sur 1 435 746 inscrits (abstention ≈ 64,9 %). Sources : ministère de l’Intérieur ; ElectionGuide / IFES.</p><p><b>Données.</b> Résultats par circonscription agrégés depuis Wikipédia (« Élections consulaires françaises de 2026 »), d’après les retours officiels des consulats. Résultats partiels : {N} des ~130 circonscriptions déclarées.</p><p><b>Méthode.</b> Chaque liste est rattachée à une famille politique d’après la formation qui la conduit ; certains regroupements de coalitions relèvent du choix de l’auteur. La « part des voix » par famille agrège les scores des listes ; dans les graphiques de tendance, il s’agit d’une moyenne pondérée par les suffrages exprimés (les circonscriptions sans total de voix publié en sont exclues). Les points sont placés sur la ville-poste (position approximative).</p><p>Fonds de carte © OpenStreetMap, © CARTO. Carte &amp; graphiques : <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
+ credit:'Peter Wyckoff · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a> · Données : sources diverses, d’après les résultats officiels.',
+ footer:'<p><b>Repères.</b> L’Assemblée nationale compte 11 députés des Français de l’étranger sur 577 (≈ 1,9 %). À la présidentielle de 2022, environ 500 000 expatriés ont voté au 1er tour sur 1 435 746 inscrits (abstention ≈ 64,9 %). Sources : ministère de l’Intérieur ; ElectionGuide / IFES.</p><p><b>Données.</b> Résultats par circonscription compilés à partir de sources diverses, d’après les résultats officiels. Résultats partiels : {N} des ~130 circonscriptions déclarées.</p><p><b>Méthode.</b> Chaque liste est rattachée à une famille politique d’après la formation qui la conduit ; certains regroupements de coalitions relèvent du choix de l’auteur. La « part des voix » par famille agrège les scores des listes ; dans les graphiques de tendance, il s’agit d’une moyenne pondérée par les suffrages exprimés (les circonscriptions sans total de voix publié en sont exclues). Les points sont placés sur la ville-poste (position approximative).</p><p>Fonds de carte © OpenStreetMap, © CARTO. Carte &amp; graphiques : <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
  turnoutLede:(a,mn,mv,xn,xv)=>"autour de "+a+" %, de "+mv+" % ("+mn+") à "+xv+" % ("+xn+")",
  t1desc:(tot,n,top)=>tot+" sièges sur "+n+" circonscriptions. "+top+" arrive en tête du décompte.",
  t3desc:(top,c)=>top+" est en tête dans le plus grand nombre de circonscriptions ("+c+")."
 },
 en:{
  title:"Consular elections 2026", h1:"Consular elections 2026",
- asof:"Data as of 3 June 2026, 11:53 (Paris time).",
+ asof:"Data as of 3 June 2026, 12:10 (Paris time).",
  lede:'French citizens living abroad are a small but distinct electorate: they elect <b>11 of the 577 seats</b> in the National Assembly (about 1.9%), and in the 2022 presidential first round nearly <b>500,000</b> of them voted (out of ~1.44 million registered, ≈1.4% of the national vote). The May 2026 consular elections offer the freshest read on this electorate’s political balance ahead of forthcoming elections in 2027. That said, turnout was very low: across the constituencies reported so far it averages <span id="turnoutLede">…</span>.',
- sub:'<b>{N} of ~130 constituencies reported.</b> The map shows the leading list by default (colour = family); switch to “Composition” for seat pies, and click a point for the detail. The other chart, below, ranks each constituency by a chosen family’s vote share.',
- mapH2:"Seats won", mapTag:"— by leading list; “Composition” shows seats",
- specH2:"Vote-share composition", specTag:"— by constituency, each row is one region",
+ sub:'<b>{N} of ~130 constituencies reported.</b> The map colours each constituency by the leading family. Choose “Results by” seats or votes, toggle “Show” between the leader and the breakdown (pies), and click a point for the detail. The chart below compares the families: for each, its vote share across the constituencies where it ran, with filled circles marking where it won a seat.',
+ mapH2:"Results by constituency", mapTag:"— leader by seats or by votes; “breakdown” for the detail",
+ specH2:"How each political family did", specTag:"— vote share where the family stood; filled = won a seat",
  trendsH2:"Trends", trendsTag:"— across all reported constituencies",
- affichage:"Display", winner:"Winner", compo:"Composition", pending:"pending constituencies",
+ resultsBy:"Results by", mSeats:"Seats", mVotes:"Vote share",
+ affichage:"Show", winner:"Leader", compo:"Breakdown", pending:"pending constituencies",
  sortBy:"Sort by vote share of:",
  legendTitle:"Political family", legendPending:"Pending",
- specLegend:"Pie = vote-share composition · ring = leading list:",
+ specLegend:"Size = total seats in the constituency.",
+ legWon:"at least one seat gained", legRan:"ran, no seat",
  axis:"Vote share of the selected family (lists aggregated)",
  decl1:"reported", declN:"reported", noPub:"no results published yet",
  seat1:"seat", seatN:"seats", seatOf:"(councillor)", notDecl:"Results not yet reported",
@@ -412,8 +423,8 @@ en:{
  contLab:{"Europe":"Europe","Amérique du Nord":"North America","Asie & Pacifique":"Asia & Pacific","Proche & Moyen-Orient":"Middle East","Amérique latine":"Latin America","Afrique":"Africa"},
  contShort:{"Europe":"Europe","Amérique du Nord":"North America","Asie & Pacifique":"Asia-Pacific","Proche & Moyen-Orient":"Middle East","Amérique latine":"Latin America","Afrique":"Africa"},
  groupLab:{left:"Left + green",green:"Greens",lfi:"LFI",red:"Left (PS, FdM…)",orange:"Centre",blue:"Right",exd:"Far right",rightexd:"Right + Far right",purple:"ASFE",grey:"Independent"},
- credit:'Peter Wyckoff · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a> · Data: results aggregated from Wikipedia, based on official returns.',
- footer:'<p><b>Background.</b> The National Assembly has 11 of its 577 seats elected by French residents abroad (≈1.9%). In the 2022 presidential first round about 500,000 expatriates voted out of 1,435,746 registered (abstention ≈64.9%). Sources: French Ministry of the Interior; ElectionGuide / IFES.</p><p><b>Data.</b> Results by constituency aggregated from Wikipedia (“Élections consulaires françaises de 2026”), based on consulates’ official returns. Partial results: {N} of ~130 constituencies reported.</p><p><b>Method.</b> Each list is assigned to a political family by the party leading it; some coalition groupings decided by the author. A family’s “vote share” aggregates its lists’ scores; in the trend charts it is a vote-weighted average across constituencies (by valid votes cast; any constituency without published vote totals is excluded). Points sit on the consulate city (approximate).</p><p>Basemap © OpenStreetMap, © CARTO. Map &amp; charts: <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
+ credit:'Peter Wyckoff · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a> · Data: various sources, based on official results.',
+ footer:'<p><b>Background.</b> The National Assembly has 11 of its 577 seats elected by French residents abroad (≈1.9%). In the 2022 presidential first round about 500,000 expatriates voted out of 1,435,746 registered (abstention ≈64.9%). Sources: French Ministry of the Interior; ElectionGuide / IFES.</p><p><b>Data.</b> Results by constituency from various sources, based on official results. Partial results: {N} of ~130 constituencies reported.</p><p><b>Method.</b> Each list is assigned to a political family by the party leading it; some coalition groupings decided by the author. A family’s “vote share” aggregates its lists’ scores; in the trend charts it is a vote-weighted average across constituencies (by valid votes cast; any constituency without published vote totals is excluded). Points sit on the consulate city (approximate).</p><p>Basemap © OpenStreetMap, © CARTO. Map &amp; charts: <b>Peter Wyckoff</b> · <a href="https://pwyckoff.github.io/elections-consulaires-2026">pwyckoff.github.io/elections-consulaires-2026</a>.</p>',
  turnoutLede:(a,mn,mv,xn,xv)=>"about "+a+"% (from "+mv+"% in "+mn+" to "+xv+"% in "+xn+")",
  t1desc:(tot,n,top)=>tot+" seats across "+n+" constituencies. "+top+" leads the count.",
  t3desc:(top,c)=>top+" leads the most constituencies ("+c+")."
@@ -443,6 +454,11 @@ function pieInner(counts,R,cx,cy){
     out+='<path d="M'+cx+','+cy+' L'+p1[0].toFixed(2)+','+p1[1].toFixed(2)+' A'+R+','+R+' 0 '+large+' 1 '+p2[0].toFixed(2)+','+p2[1].toFixed(2)+' Z" fill="'+blocs[k].color+'"/>';});
   return out;
 }
+// "Results by": seats won vs vote share — drives both the leader colour and the breakdown
+let mapMetric="seats";
+function metricCounts(d){ return d.seats ? (mapMetric==="seats"?d.seats:d.sh) : null; }
+function leaderFam(d){ if(mapMetric!=="seats") return d.win;
+  let b=d.win,bv=-1,bs=-1; order.forEach(k=>{const v=(d.seats&&d.seats[k])||0, sv=(d.sh&&d.sh[k])||0; if(v>bv||(v===bv&&sv>bs)){b=k;bv=v;bs=sv;}}); return bv>0?b:d.win; }
 const tip=document.getElementById("tip");
 function showTip(e,html){tip.innerHTML=html; tip.style.opacity=1; const w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+14,y=e.clientY+14; if(x+w>window.innerWidth-8)x=e.clientX-w-14; if(x<8)x=8; if(y+h>window.innerHeight-8)y=e.clientY-h-14; if(y<8)y=8; tip.style.left=x+"px"; tip.style.top=y+"px";}
 function hideTip(){tip.style.opacity=0;}
@@ -475,10 +491,10 @@ function buildGlobes(){
     if(showPending){ pend.forEach(d=>{ if(d3.geoDistance([d.lng,d.lat],[cLng,cLat])>=clipR) return; const p=proj([d.lng,d.lat]); if(!p) return; const idx=drawn.push(d)-1; const R=Math.max(2.5,2.5+Math.sqrt(d.s)*0.7);
       svg+='<circle class="g-pt" data-i="'+idx+'" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+R.toFixed(1)+'" fill="rgba(140,140,140,.35)" stroke="rgba(110,110,110,.55)" stroke-width="0.8"/>'; }); }
     decl.forEach(d=>{ if(d3.geoDistance([d.lng,d.lat],[cLng,cLat])>=clipR) return; const p=proj([d.lng,d.lat]); if(!p) return; const idx=drawn.push(d)-1; const R=Math.max(4,4+Math.sqrt(d.s)*1.5);
-      if(mode==="pie"){ const ks=order.filter(k=>d.seats[k]); const tot=ks.reduce((t,k)=>t+d.seats[k],0)||1;
+      if(mode==="pie"){ const C=metricCounts(d); const ks=order.filter(k=>C[k]>0); const tot=ks.reduce((t,k)=>t+C[k],0)||1;
         if(ks.length===1){ svg+='<circle class="g-pt" data-i="'+idx+'" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+R.toFixed(1)+'" fill="'+blocs[ks[0]].color+'" fill-opacity="0.95" stroke="#fff" stroke-width="0.8"/>'; }
-        else { let a=0; ks.forEach(k=>{const a1=a+2*Math.PI*d.seats[k]/tot; svg+='<path class="g-pt" data-i="'+idx+'" d="'+piePath(p[0],p[1],R,a,a1)+'" fill="'+blocs[k].color+'" fill-opacity="0.95" stroke="#fff" stroke-width="0.8"/>'; a=a1;}); }
-      } else { svg+='<circle class="g-pt" data-i="'+idx+'" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+R.toFixed(1)+'" fill="'+blocs[d.win].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="1.2"/>'; }
+        else { let a=0; ks.forEach(k=>{const a1=a+2*Math.PI*C[k]/tot; svg+='<path class="g-pt" data-i="'+idx+'" d="'+piePath(p[0],p[1],R,a,a1)+'" fill="'+blocs[k].color+'" fill-opacity="0.95" stroke="#fff" stroke-width="0.8"/>'; a=a1;}); }
+      } else { svg+='<circle class="g-pt" data-i="'+idx+'" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+R.toFixed(1)+'" fill="'+blocs[leaderFam(d)].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="1.2"/>'; }
     });
     svg+='</svg>';
     const sObj=contSeats[cont]||{}, total=order.reduce((t,k)=>t+(sObj[k]||0),0);
@@ -489,8 +505,9 @@ function buildGlobes(){
     wrap.appendChild(cell);
     cell.querySelectorAll(".g-pt").forEach(node=>{ const d=drawn[+node.getAttribute("data-i")];
       const txt=()=>{const XX=TX(); if(!d.seats) return '<b>'+name(d)+'</b><br>'+(LANG==="fr"?"résultats en attente":"results pending");
-        const lines=order.filter(k=>d.seats[k]).map(k=>'<span style="color:'+blocs[k].color+'">\u25cf</span> '+d.seats[k]+' '+blocLab(k));
-        return '<b>'+name(d)+'</b><br>'+XX.winnerLbl+' : <span style="color:'+blocs[d.win].color+'">'+blocLab(d.win)+'</span><br>'+lines.join('<br>');};
+        const lead=leaderFam(d), C=metricCounts(d);
+        const lines=order.filter(k=>C[k]>0).map(k=>'<span style="color:'+blocs[k].color+'">\u25cf</span> '+(mapMetric==="seats"?(C[k]+' '+blocLab(k)):(pct1(C[k])+' '+blocLab(k))));
+        return '<b>'+name(d)+'</b><br>'+XX.winnerLbl+' : <span style="color:'+blocs[lead].color+'">'+blocLab(lead)+'</span><br>'+lines.join('<br>');};
       node.addEventListener("mousemove",e=>showTip(e,txt()));
       node.addEventListener("mouseleave",hideTip);
       node.addEventListener("pointerdown",e=>{if(e.pointerType&&e.pointerType!=="mouse"){e.preventDefault();showTip(e,txt());}});
@@ -509,15 +526,18 @@ map.on("drag",function(){map.panInsideBounds(worldBounds,{animate:false});});
 function iconHTML(d,mode){
   const R=Math.round(4+Math.sqrt(d.s)*2.0), size=R*2+6, c=size/2; let inner;
   if(!d.seats) inner='<circle cx="'+c+'" cy="'+c+'" r="'+(R*0.7).toFixed(1)+'" fill="rgba(140,140,140,.18)" stroke="rgba(110,110,110,.5)" stroke-width="1"/>';
-  else if(mode==="winner") inner='<circle cx="'+c+'" cy="'+c+'" r="'+R+'" fill="'+blocs[d.win].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="1.4"/>';
-  else inner='<circle cx="'+c+'" cy="'+c+'" r="'+(R+0.5)+'" fill="#fff"/>'+pieInner(d.seats,R,c,c)+'<circle cx="'+c+'" cy="'+c+'" r="'+R+'" fill="none" stroke="#fff" stroke-width="1.2"/>';
+  else if(mode==="winner") inner='<circle cx="'+c+'" cy="'+c+'" r="'+R+'" fill="'+blocs[leaderFam(d)].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="1.4"/>';
+  else inner='<circle cx="'+c+'" cy="'+c+'" r="'+(R+0.5)+'" fill="#fff"/>'+pieInner(metricCounts(d),R,c,c)+'<circle cx="'+c+'" cy="'+c+'" r="'+R+'" fill="none" stroke="#fff" stroke-width="1.2"/>';
   return {html:'<svg width="'+size+'" height="'+size+'">'+inner+'</svg>',size:size,c:c};
 }
 function buildPopup(d){
   const X=TX();
   let pop='<b>'+name(d)+'</b><br>'+d.s+' '+(d.s>1?X.seatN:X.seat1)+' '+X.seatOf;
-  if(d.seats){pop+='<hr style="margin:5px 0;border:none;border-top:1px solid #ddd">';
-    order.forEach(k=>{if(d.seats[k])pop+='<div style="display:flex;align-items:center"><span style="width:11px;height:11px;border-radius:50%;background:'+blocs[k].color+';display:inline-block;margin-right:5px"></span>'+blocLab(k)+' — <b>&nbsp;'+d.seats[k]+'</b></div>';});
+  if(d.seats){const lead=leaderFam(d), C=metricCounts(d);
+    pop+='<br>'+X.winnerLbl+' : <span style="color:'+blocs[lead].color+'">'+blocLab(lead)+'</span>';
+    pop+='<hr style="margin:5px 0;border:none;border-top:1px solid #ddd">';
+    order.forEach(k=>{if(C[k]>0){const val=mapMetric==="seats"?(C[k]+' '+(C[k]>1?X.seatN:X.seat1)):pct1(C[k]);
+      pop+='<div style="display:flex;align-items:center"><span style="width:11px;height:11px;border-radius:50%;background:'+blocs[k].color+';display:inline-block;margin-right:5px"></span>'+blocLab(k)+' — <b>&nbsp;'+val+'</b></div>';}});
   } else pop+='<br><i style="color:#666">'+X.notDecl+'</i>';
   if(d.t!=null) pop+='<div style="margin-top:4px;color:#666">'+X.participation+' : '+nf(d.t)+(LANG==="fr"?" %":"%")+'</div>';
   return pop;
@@ -596,66 +616,86 @@ map.on("moveend zoomend",updateInsets);
 const continents=["Europe","Amérique du Nord","Asie & Pacifique","Proche & Moyen-Orient","Amérique latine","Afrique"];
 const declared=data.filter(d=>d.sh);
 const svg=document.getElementById("chart");
-const W=900,mL=210,mR=30,GUT=84,plotW=W-mL-mR-GUT,topPad=14;
-const scaleX=v=>mL+GUT+(Math.max(0,Math.min(100,v))/100)*plotW;
-const radC=s=>5+Math.sqrt(s)*2.0;
-// lane height scales with how many constituencies pile up in each row
-const laneCount=continents.map(c=>declared.filter(d=>d.cont===c).length);
-const laneHs=laneCount.map(n=>Math.max(70,34+n*8));
-const laneY=[]; (function(){let acc=topPad; for(let i=0;i<laneHs.length;i++){laneY[i]=acc; acc+=laneHs[i];}})();
-const plotBottom=topPad+laneHs.reduce((a,b)=>a+b,0);
-const totalH=plotBottom+36;
-svg.setAttribute("viewBox","0 0 "+W+" "+totalH);
+let W,mL,mR,plotW,topPad,narrow,rowHeaderH,bandHalf,swarmStep,rowH,laneY,plotBottom,totalH;
+const scaleX=v=>mL+(Math.max(0,Math.min(100,v))/100)*plotW;
+const radC=s=> narrow ? (4+Math.sqrt(s)*1.7) : (3.2+Math.sqrt(s)*1.4);
+// split a family label so the "(parties…)" or "/ other" part sits on a 2nd line
+const splitLab=s=>{let i=s.indexOf(" (");if(i>=0)return[s.slice(0,i),s.slice(i+1)];i=s.indexOf(" / ");if(i>=0)return[s.slice(0,i),s.slice(i+3)];return[s,""];};
+// One row per political family. x = that family's vote share in each constituency
+// where it ran; SOLID dot = it won >=1 seat there, HOLLOW = ran but won none.
+// Rows are fixed compact bands (mild overlap only in the densest families) so the
+// figure stays short on a phone instead of growing many times over.
+function computeDims(){
+  const host=document.querySelector(".chartscroll");
+  const cw=(host&&host.clientWidth)?host.clientWidth:window.innerWidth;
+  narrow=cw<640; topPad=14;
+  if(narrow){ W=Math.max(320,Math.min(cw,520)); mL=12; mR=12; rowHeaderH=30; bandHalf=38; swarmStep=5.5; }
+  else { W=900; mL=180; mR=30; rowHeaderH=0; bandHalf=30; swarmStep=5.0; }
+  rowH=rowHeaderH+2*bandHalf+(narrow?12:16);
+  plotW=W-mL-mR;
+  laneY=order.map((_,i)=>topPad+i*rowH);
+  plotBottom=topPad+order.length*rowH;
+  totalH=plotBottom+34;
+  svg.setAttribute("viewBox","0 0 "+W+" "+totalH);
+}
 function E(t,a){const e=document.createElementNS(SVGNS,t); for(const k in a)e.setAttribute(k,a[k]); return e;}
 let dots=[];
 function buildChart(){
-  const X=TX(); svg.innerHTML="";
-  continents.forEach((c,i)=>{const y0=laneY[i], cy=y0+laneHs[i]/2, cnt=laneCount[i];
-    svg.appendChild(E("rect",{x:0,y:y0,width:W,height:laneHs[i],fill:i%2?"#fff":"#f1f2f4"}));
-    const lab=E("text",{class:"lane-label",x:14,y:cy-3}); lab.textContent=X.contLab[c]; svg.appendChild(lab);
-    const sub=E("text",{class:"lane-count",x:14,y:cy+13}); sub.textContent=cnt+" "+(cnt>1?X.declN:X.decl1); svg.appendChild(sub);
-    if(cnt===0){const en=E("text",{class:"empty-note",x:mL+10,y:cy+4}); en.textContent=X.noPub; svg.appendChild(en);}});
-  svg.appendChild(E("rect",{x:mL,y:topPad,width:GUT,height:plotBottom-topPad,fill:"#000","fill-opacity":0.045}));
+  const X=TX(); computeDims(); svg.innerHTML="";
   [25,50,75,100].forEach(v=>{const x=scaleX(v);
     svg.appendChild(E("line",{class:"grid",x1:x,y1:topPad,x2:x,y2:plotBottom}));
     const t=E("text",{class:"axislab",x:x,y:plotBottom+18,"text-anchor":"middle"}); t.textContent=v+"%"; svg.appendChild(t);});
   svg.appendChild(E("line",{class:"grid",x1:scaleX(0),y1:topPad,x2:scaleX(0),y2:plotBottom}));
-  const gz=E("text",{class:"axislab",x:mL+GUT/2,y:plotBottom+18,"text-anchor":"middle"}); gz.textContent=(LANG==="fr"?"0 % · aucune":"0% · none"); svg.appendChild(gz);
-  const axt=E("text",{class:"axislab",x:mL+GUT+plotW/2,y:totalH-2,"text-anchor":"middle"}); axt.textContent=X.axis; svg.appendChild(axt);
-  dots=declared.map(d=>{const g=E("g",{class:"dotg"}), R=radC(d.s);
-    parseSVG(pieInner(d.sh,R,0,0)+'<circle r="'+R+'" fill="none" stroke="'+blocs[d.win].color+'" stroke-width="2.6"/><circle r="'+R+'" fill="none" stroke="#fff" stroke-width="0.8"/>')
-      .forEach(n=>g.appendChild(document.importNode(n,true)));
-    svg.appendChild(g);
-    const tipHtml=()=>{const gr=groupings.find(x=>x.key===current); const X2=TX();
-      return '<b>'+name(d)+'</b><br>'+X2.winnerLbl+' : <span style="color:'+blocs[d.win].color+'">'+blocLab(d.win)+'</span><br>'+d.s+' '+(d.s>1?X2.seatN:X2.seat1)+'<br>'+X2.groupLab[gr.key]+' : <b>'+pct1(gr.calc(d.sh))+'</b>';};
-    g.addEventListener("mousemove",e=>showTip(e,tipHtml()));
-    g.addEventListener("mouseleave",hideTip);
-    g.addEventListener("pointerdown",e=>{if(e.pointerType&&e.pointerType!=="mouse"){e.preventDefault();showTip(e,tipHtml());}});
-    return {d:d,g:g,laneIdx:continents.indexOf(d.cont)};});
-  layout();
+  const axt=E("text",{class:"axislab",x:mL+plotW/2,y:totalH-2,"text-anchor":"middle"}); axt.textContent=(LANG==="fr"?"Part des voix (%)":"Vote share (%)"); svg.appendChild(axt);
+  dots=[];
+  order.forEach((k,i)=>{
+    const y0=laneY[i], cy=y0+rowHeaderH+bandHalf, col=blocs[k].color, nm=blocLab(k);
+    svg.appendChild(E("rect",{x:0,y:y0,width:W,height:rowH,fill:i%2?"#fff":"#f1f2f4"}));
+    const items=declared.filter(d=>(d.sh[k]||0)>0).map(d=>({d,v:d.sh[k],won:(d.seats[k]||0)>0,x:scaleX(d.sh[k]),r:radC(d.s)}));
+    const ran=items.length, won=items.filter(o=>o.won).length;
+    const subTxt=(LANG==="fr"?(ran+" circ. · "+won+" avec siège"):(ran+" ran · "+won+" won"));
+    const lp=splitLab(nm);
+    if(rowHeaderH){
+      svg.appendChild(E("rect",{x:12,y:y0+4,width:10,height:10,rx:2,fill:col}));
+      const lab=E("text",{class:"lane-label",x:27,y:y0+13}); lab.textContent=lp[0]; svg.appendChild(lab);
+      const sub=E("text",{class:"lane-count",x:W-mR,y:y0+13,"text-anchor":"end"}); sub.textContent=subTxt; svg.appendChild(sub);
+      if(lp[1]){ const p2=E("text",{class:"lane-count",x:27,y:y0+26}); p2.textContent=lp[1]; svg.appendChild(p2); }
+    } else if(lp[1]){
+      svg.appendChild(E("rect",{x:10,y:cy-22,width:11,height:11,rx:2,fill:col}));
+      const l1=E("text",{class:"lane-label",x:27,y:cy-11}); l1.textContent=lp[0]; svg.appendChild(l1);
+      const l2=E("text",{class:"lane-count",x:27,y:cy+3}); l2.textContent=lp[1]; svg.appendChild(l2);
+      const l3=E("text",{class:"lane-count",x:27,y:cy+17}); l3.textContent=subTxt; svg.appendChild(l3);
+    } else {
+      svg.appendChild(E("rect",{x:10,y:cy-13,width:11,height:11,rx:2,fill:col}));
+      const l1=E("text",{class:"lane-label",x:27,y:cy-2}); l1.textContent=lp[0]; svg.appendChild(l1);
+      const l3=E("text",{class:"lane-count",x:27,y:cy+13}); l3.textContent=subTxt; svg.appendChild(l3);
+    }
+    // capped-band swarm: place by ascending x, clamp into the band (mild overlap)
+    const byX=items.slice().sort((a,b)=>a.x-b.x), placed=[];
+    byX.forEach(it=>{let y=cy,kk=0,found=false;
+      while(kk<400){const cand=cy+(kk%2?-1:1)*Math.ceil(kk/2)*swarmStep;
+        if(Math.abs(cand-cy)+it.r<=bandHalf && placed.every(p=>Math.hypot(p.x-it.x,p.y-cand)>=p.r+it.r+0.8)){y=cand;found=true;break;} kk++;}
+      it.y=found?y:cy; placed.push(it);});
+    // hollow (no seat) underneath, solid (won) on top
+    items.slice().sort((a,b)=>(a.won?1:0)-(b.won?1:0)).forEach(it=>{
+      const g=E("g",{class:"dotg"});
+      if(it.won) g.appendChild(E("circle",{r:it.r,fill:col,"fill-opacity":0.9,stroke:"#fff","stroke-width":1}));
+      else g.appendChild(E("circle",{r:it.r,fill:"#fff","fill-opacity":0.92,stroke:col,"stroke-width":1.7}));
+      g.setAttribute("transform","translate("+it.x.toFixed(1)+","+it.y.toFixed(1)+")");
+      svg.appendChild(g);
+      const tip=()=>{const X2=TX(); const sw=it.d.seats[k]||0;
+        const seatTxt=it.won?(sw+' '+(sw>1?X2.seatN:X2.seat1)):(LANG==="fr"?"aucun siège":"no seat");
+        return '<b>'+name(it.d)+'</b><br><span style="color:'+col+'">\u25cf</span> '+nm+' : <b>'+pct1(it.v)+'</b><br>'+seatTxt+' · '+it.d.s+' '+(it.d.s>1?X2.seatN:X2.seat1)+' '+(LANG==="fr"?"au total":"total");};
+      g.addEventListener("mousemove",e=>showTip(e,tip()));
+      g.addEventListener("mouseleave",hideTip);
+      g.addEventListener("pointerdown",e=>{if(e.pointerType&&e.pointerType!=="mouse"){e.preventDefault();showTip(e,tip());}});
+      dots.push({g});
+    });
+  });
 }
-let current="left";
-function layout(){const gr=groupings.find(x=>x.key===current);
-  const colStep=21,rowStep=19,gutL=mL+10,gutR=mL+GUT-8,cols=Math.max(1,Math.floor((gutR-gutL)/colStep));
-  continents.forEach((c,li)=>{const cy=laneY[li]+laneHs[li]/2, minY=laneY[li]+radC(9)+4, maxY=laneY[li]+laneHs[li]-radC(9)-4;
-    const lane=dots.filter(o=>o.laneIdx===li).map(o=>({o,v:gr.calc(o.d.sh),r:radC(o.d.s)}));
-    // exact zero (no list of this family ran) -> packed grid in the left "none" gutter
-    const zeros=lane.filter(it=>it.v<=0).sort((a,b)=>b.o.d.s-a.o.d.s);
-    zeros.forEach((it,zi)=>{const col=zi%cols,row=Math.floor(zi/cols);
-      const x=gutL+col*colStep+colStep/2; let y=minY+row*rowStep+rowStep/2; if(y>maxY)y=maxY;
-      it.o.g.setAttribute("transform","translate("+x.toFixed(1)+","+y.toFixed(1)+")");});
-    // positive values -> beeswarm on the scale
-    const items=lane.filter(it=>it.v>0).map(it=>({o:it.o,x:scaleX(it.v),r:it.r})).sort((a,b)=>a.x-b.x);
-    const placed=[];
-    items.forEach(it=>{let y=cy,k=0;
-      while(k<600){const cand=cy+(k%2?-1:1)*Math.ceil(k/2)*3.5;
-        if(cand>=minY&&cand<=maxY&&placed.every(p=>Math.hypot(p.x-it.x,p.y-cand)>=p.r+it.r+1.2)){y=cand;break;} k++;}
-      it.y=y; placed.push(it); it.o.g.setAttribute("transform","translate("+it.x.toFixed(1)+","+y.toFixed(1)+")");});});}
-function buildPills(){
-  const pb=document.getElementById("pillbtns"); pb.innerHTML="";
-  groupings.forEach(g=>{const b=document.createElement("button"); b.className="btn"+(g.key===current?" active":""); b.textContent=groupLab(g);
-    b.onclick=function(){current=g.key; pb.querySelectorAll(".btn").forEach(x=>x.classList.remove("active")); b.classList.add("active"); layout();}; pb.appendChild(b);});
-}
+// re-fit the spectrum when the viewport changes (phone rotation, resize)
+let _chartRsz; window.addEventListener("resize",function(){clearTimeout(_chartRsz); _chartRsz=setTimeout(function(){ if(dots.length) buildChart(); },180);});
+function buildPills(){ const p=document.getElementById("pills"); if(p) p.style.display="none"; }
 
 /* ---- TRENDS ---- */
 function buildTrends(){
@@ -720,6 +760,9 @@ function setStatic(){
   document.getElementById("specH2").innerHTML=X.specH2+' <span class="tag">'+X.specTag+'</span>';
   document.getElementById("trendsH2").innerHTML=X.trendsH2+' <span class="tag">'+X.trendsTag+'</span>';
   document.getElementById("affLbl").textContent=X.affichage;
+  document.getElementById("metricLbl").textContent=X.resultsBy;
+  document.getElementById("segSeats").textContent=X.mSeats;
+  document.getElementById("segVotes").textContent=X.mVotes;
   document.getElementById("segWinner").textContent=X.winner;
   document.getElementById("segPie").textContent=X.compo;
   document.getElementById("pendLbl").textContent=X.pending;
@@ -727,8 +770,10 @@ function setStatic(){
   document.getElementById("cred1").innerHTML=X.credit;
   document.getElementById("cred2").innerHTML=X.credit;
   document.getElementById("footer").innerHTML=X.footer.replace(/\{N\}/g,declared.length);
-  let cl=document.getElementById("chartLegend"); cl.innerHTML="<b>"+X.specLegend+"</b>";
-  for(const k in blocs) cl.innerHTML+='<i style="background:'+blocs[k].color+'"></i>'+X.blocLab[k];
+  let cl=document.getElementById("chartLegend");
+  cl.innerHTML='<b>'+X.specLegend+'</b>'
+   +'<span style="margin-left:8px;white-space:nowrap"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#7a756c;vertical-align:middle"></span> '+X.legWon+'</span>'
+   +'<span style="margin-left:12px;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid #7a756c;vertical-align:middle"></span> '+X.legRan+'</span>';
 }
 function renderMsum(){
   const el=document.getElementById("msum"); if(!el) return;
@@ -752,6 +797,9 @@ function render(){
 }
 
 /* controls */
+function applyMetric(){ renderMarkers(); buildLegend(); if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes(); }
+document.getElementById("segSeats").onclick=function(){mapMetric="seats"; this.classList.add("active"); document.getElementById("segVotes").classList.remove("active"); applyMetric();};
+document.getElementById("segVotes").onclick=function(){mapMetric="votes"; this.classList.add("active"); document.getElementById("segSeats").classList.remove("active"); applyMetric();};
 document.getElementById("segWinner").onclick=function(){mapMode="winner"; this.classList.add("active"); document.getElementById("segPie").classList.remove("active"); renderMarkers(); if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();};
 document.getElementById("segPie").onclick=function(){mapMode="pie"; this.classList.add("active"); document.getElementById("segWinner").classList.remove("active"); renderMarkers(); if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();};
 document.getElementById("pendingChk").onchange=function(e){showPending=e.target.checked; renderMarkers(); if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();};
