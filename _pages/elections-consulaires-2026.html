@@ -162,6 +162,11 @@ permalink: /elections-consulaires-2026/
 <p class="figcredit" id="cred1"></p>
 <div id="msum"></div>
 <h2 id="specH2"></h2>
+<div class="maptools" id="charttools">
+  <span class="mt-lbl" id="chartViewLbl"></span>
+  <button class="seg active" id="segDetail"></button>
+  <button class="seg" id="segGrouped"></button>
+</div>
 <div id="pills"><span class="lbl" id="sortLbl"></span><br><span id="pillbtns"></span></div>
 <div class="chartscroll"><svg id="chart" viewBox="0 0 900 674" preserveAspectRatio="xMidYMid meet"></svg></div>
 <p class="scrollhint" id="scrollhint"></p>
@@ -353,6 +358,11 @@ const blocs = {
   blue:{color:"#1971c2"}, exd:{color:"#6d4c2f"}, purple:{color:"#7048e8"}, grey:{color:"#868e96"}
 };
 const order=["green","lfi","red","orange","blue","exd","purple","grey"];
+// 5-bucket "grouped" view for the spectrum chart only (Gauche/Centre/Droite/ASFE/Autre, exd folded into droite)
+const groupMap={green:"gauche",lfi:"gauche",red:"gauche",orange:"centre",blue:"droite",exd:"droite",purple:"asfe",grey:"autre"};
+const groupOrder=["gauche","centre","droite","asfe","autre"];
+const groupBlocs={gauche:{color:"#c92a2a"},centre:{color:"#f08c00"},droite:{color:"#1971c2"},asfe:{color:"#7048e8"},autre:{color:"#868e96"}};
+let chartGrouped=false;
 const groupings=[
   {key:"left",calc:s=>(s.green||0)+(s.lfi||0)+(s.red||0)},{key:"green",calc:s=>s.green||0},
   {key:"lfi",calc:s=>s.lfi||0},
@@ -386,6 +396,7 @@ fr:{
  sortBy:"Trier selon la part des voix de :",
  legendTitle:"Famille politique", legendPending:"En attente",
  legendLab:{green:"Écologistes",lfi:"LFI",red:"Gauche",orange:"Centre",blue:"Droite",exd:"Extrême droite",purple:"ASFE",grey:"SE / divers"},
+ bucketLab:{gauche:"Gauche",centre:"Centre",droite:"Droite",asfe:"ASFE",autre:"Autre"}, chartView:"Vue", vDetail:"Détaillée", vGrouped:"Groupée",
  specLegend:"Taille = total des sièges de la circonscription.",
  legWon:"au moins un siège obtenu", legRan:"présentée, sans siège",
  axis:"Part des voix de la famille sélectionnée (listes agrégées)",
@@ -420,6 +431,7 @@ en:{
  sortBy:"Sort by vote share of:",
  legendTitle:"Political family", legendPending:"Pending",
  legendLab:{green:"Greens",lfi:"LFI",red:"Left",orange:"Centre",blue:"Right",exd:"Far right",purple:"ASFE",grey:"Independent / other"},
+ bucketLab:{gauche:"Left",centre:"Centre",droite:"Right",asfe:"ASFE",autre:"Other"}, chartView:"View", vDetail:"Detailed", vGrouped:"Grouped",
  specLegend:"Size = total seats in the constituency.",
  legWon:"at least one seat gained", legRan:"ran, no seat",
  axis:"Vote share of the selected family (lists aggregated)",
@@ -655,7 +667,8 @@ const splitLab=s=>{let i=s.indexOf(" (");if(i>=0)return[s.slice(0,i),s.slice(i+1
 // where it ran; SOLID dot = it won >=1 seat there, HOLLOW = ran but won none.
 // Rows are fixed compact bands (mild overlap only in the densest families) so the
 // figure stays short on a phone instead of growing many times over.
-function computeDims(){
+function computeDims(arr){
+  arr=arr||order;
   const host=document.querySelector(".chartscroll");
   const cw=(host&&host.clientWidth)?host.clientWidth:window.innerWidth;
   narrow=cw<640; topPad=14;
@@ -663,28 +676,36 @@ function computeDims(){
   else { W=900; mL=180; mR=30; rowHeaderH=0; bandHalf=30; swarmStep=5.0; }
   rowH=rowHeaderH+2*bandHalf+(narrow?12:16);
   plotW=W-mL-mR;
-  laneY=order.map((_,i)=>topPad+i*rowH);
-  plotBottom=topPad+order.length*rowH;
+  laneY=arr.map((_,i)=>topPad+i*rowH);
+  plotBottom=topPad+arr.length*rowH;
   totalH=plotBottom+34;
   svg.setAttribute("viewBox","0 0 "+W+" "+totalH);
 }
 function E(t,a){const e=document.createElementNS(SVGNS,t); for(const k in a)e.setAttribute(k,a[k]); return e;}
 let dots=[];
 function buildChart(){
-  const X=TX(); computeDims(); svg.innerHTML="";
+  const X=TX();
+  // active view = either the 8-family detail, or the 5-bucket grouped view
+  const vOrder = chartGrouped ? groupOrder : order;
+  const vBlocs = chartGrouped ? groupBlocs : blocs;
+  const vLab   = chartGrouped ? (k=>X.bucketLab[k]) : blocLab;
+  const childKeys = k => chartGrouped ? Object.keys(groupMap).filter(g=>groupMap[g]===k) : [k];
+  const vSh    = (d,k)=>childKeys(k).reduce((s,g)=>s+(d.sh[g]||0),0);
+  const vSeats = (d,k)=>childKeys(k).reduce((s,g)=>s+(d.seats[g]||0),0);
+  computeDims(vOrder); svg.innerHTML="";
   // row backgrounds first, so the gridlines drawn next remain visible inside every row
-  order.forEach((k,i)=>{ svg.appendChild(E("rect",{x:0,y:laneY[i],width:W,height:rowH,fill:i%2?"#fff":"#f1f2f4"})); });
+  vOrder.forEach((k,i)=>{ svg.appendChild(E("rect",{x:0,y:laneY[i],width:W,height:rowH,fill:i%2?"#fff":"#f1f2f4"})); });
   [25,50,75,100].forEach(v=>{const x=scaleX(v);
     svg.appendChild(E("line",{class:"grid",x1:x,y1:topPad,x2:x,y2:plotBottom}));
     const t=E("text",{class:"axislab",x:x,y:plotBottom+18,"text-anchor":"middle"}); t.textContent=v+"%"; svg.appendChild(t);});
   svg.appendChild(E("line",{class:"grid",x1:scaleX(0),y1:topPad,x2:scaleX(0),y2:plotBottom}));
   const axt=E("text",{class:"axislab",x:mL+plotW/2,y:totalH-2,"text-anchor":"middle"}); axt.textContent=(LANG==="fr"?"Part des voix (%)":"Vote share (%)"); svg.appendChild(axt);
   dots=[];
-  order.forEach((k,i)=>{
-    const y0=laneY[i], cy=y0+rowHeaderH+bandHalf, col=blocs[k].color, nm=blocLab(k);
+  vOrder.forEach((k,i)=>{
+    const y0=laneY[i], cy=y0+rowHeaderH+bandHalf, col=vBlocs[k].color, nm=vLab(k);
     // mobile: repeat the axis breaks inside each row so dots stay readable while scrolling
     if(narrow) [25,50,75].forEach(v=>{const tk=E("text",{x:scaleX(v),y:y0+rowHeaderH+8,"text-anchor":"middle","font-size":8.5,"fill":"#a8a29a"}); tk.textContent=v; svg.appendChild(tk);});
-    const items=declared.filter(d=>(d.sh[k]||0)>0).map(d=>({d,v:d.sh[k],won:(d.seats[k]||0)>0,x:scaleX(d.sh[k]),r:radC(d.s)}));
+    const items=declared.filter(d=>vSh(d,k)>0).map(d=>{const sh=vSh(d,k); return {d,v:sh,won:vSeats(d,k)>0,x:scaleX(sh),r:radC(d.s)};});
     const ran=items.length, won=items.filter(o=>o.won).length;
     const subTxt=(LANG==="fr"?(ran+" circ. · "+won+" avec siège"):(ran+" ran · "+won+" won"));
     const lp=splitLab(nm);
@@ -716,7 +737,7 @@ function buildChart(){
       else g.appendChild(E("circle",{r:it.r,fill:"#fff","fill-opacity":0.92,stroke:col,"stroke-width":1.7}));
       g.setAttribute("transform","translate("+it.x.toFixed(1)+","+it.y.toFixed(1)+")");
       svg.appendChild(g);
-      const tip=()=>{const X2=TX(); const sw=it.d.seats[k]||0;
+      const tip=()=>{const X2=TX(); const sw=vSeats(it.d,k);
         const seatTxt=it.won?(sw+' '+(sw>1?X2.seatN:X2.seat1)):(LANG==="fr"?"aucun siège":"no seat");
         return '<b>'+name(it.d)+'</b><br><span style="color:'+col+'">\u25cf</span> '+nm+' : <b>'+pct1(it.v)+'</b><br>'+seatTxt+' · '+it.d.s+' '+(it.d.s>1?X2.seatN:X2.seat1)+' '+(LANG==="fr"?"au total":"total");};
       g.addEventListener("mousemove",e=>showTip(e,tip()));
@@ -818,6 +839,9 @@ function setStatic(){
   document.getElementById("segVotes").textContent=X.mVotes;
   document.getElementById("segWinner").textContent=X.winner;
   document.getElementById("segPie").textContent=X.compo;
+  document.getElementById("chartViewLbl").textContent=X.chartView;
+  document.getElementById("segDetail").textContent=X.vDetail;
+  document.getElementById("segGrouped").textContent=X.vGrouped;
   document.getElementById("sortLbl").textContent=X.sortBy;
   document.getElementById("cred1").innerHTML=X.credit;
   document.getElementById("cred2").innerHTML=X.credit;
@@ -856,6 +880,8 @@ document.getElementById("segWinner").onclick=function(){mapMode="winner"; this.c
 document.getElementById("segPie").onclick=function(){mapMode="pie"; this.classList.add("active"); document.getElementById("segWinner").classList.remove("active"); renderMarkers(); if(document.querySelector(".mapwrap").classList.contains("globe"))buildGlobes();};
 document.getElementById("viewFlat").onclick=function(){document.querySelector(".mapwrap").classList.remove("globe");this.classList.add("active");document.getElementById("viewGlobe").classList.remove("active");document.querySelector(".maptools").classList.remove("floating");setTimeout(()=>map.invalidateSize(),60);};
 document.getElementById("viewGlobe").onclick=function(){document.querySelector(".mapwrap").classList.add("globe");this.classList.add("active");document.getElementById("viewFlat").classList.remove("active");document.querySelector(".maptools").classList.add("floating");buildGlobes();};
+document.getElementById("segDetail").onclick=function(){if(!chartGrouped)return; chartGrouped=false; this.classList.add("active"); document.getElementById("segGrouped").classList.remove("active"); buildChart();};
+document.getElementById("segGrouped").onclick=function(){if(chartGrouped)return; chartGrouped=true; this.classList.add("active"); document.getElementById("segDetail").classList.remove("active"); buildChart();};
 document.getElementById("langFr").onclick=function(){if(LANG==="fr")return; LANG="fr"; this.classList.add("active"); document.getElementById("langEn").classList.remove("active"); render();};
 document.getElementById("langEn").onclick=function(){if(LANG==="en")return; LANG="en"; this.classList.add("active"); document.getElementById("langFr").classList.remove("active"); render();};
 
