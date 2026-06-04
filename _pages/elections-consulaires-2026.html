@@ -77,6 +77,11 @@ permalink: /elections-consulaires-2026/
   .figcredit { font-size:10.5px; color:#9a958c; margin:6px 0 2px; }
   .figcredit a { color:#7a756c; }
   .trends { display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:16px; margin-top:6px; }
+  .trend-section { margin-top:20px; }
+  .trend-section .stext { font-size:14px; line-height:1.55; color:#3a372f; margin:0 0 10px; }
+  .trend-section .stext h3 { font-family:"Fraunces",serif; font-weight:600; font-size:18px; margin:0 0 6px; color:#1a1a1a; }
+  .trend-pair { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  @media (max-width:680px){ .trend-pair { grid-template-columns:1fr; } }
   .trend { background:#fff; border:1px solid #e6e2da; border-radius:9px; padding:13px 15px; }
   .trend h3 { font-family:"Fraunces",serif; font-weight:600; font-size:14px; margin:0 0 3px; }
   .trend .td { font-size:11.5px; color:#6b665d; margin:0 0 9px; line-height:1.45; }
@@ -173,7 +178,7 @@ permalink: /elections-consulaires-2026/
 <div class="chart-legend" id="chartLegend"></div>
 <p class="figcredit" id="cred2"></p>
 <h2 id="trendsH2"></h2>
-<div class="trends" id="trends"></div>
+<div id="trendsBody"></div>
 <div class="footer" id="footer"></div>
 <div id="tip"></div>
 <script>
@@ -414,9 +419,14 @@ fr:{
  turnoutLede:(a,mn,mv,xn,xv)=>"autour de "+a+" %, de "+mv+" % ("+mn+") à "+xv+" % ("+xn+")",
  t1desc:(tot,n,top)=>tot+" sièges sur "+n+" circonscriptions. "+top+" arrive en tête du décompte.",
  t3desc:(top,c)=>top+" est en tête dans le plus grand nombre de circonscriptions ("+c+").",
- t4:"Participation par région", t4desc:(hi,hv,lo,lv)=>"Participation moyenne, de "+lv+" % ("+lo+") à "+hv+" % ("+hi+").",
- t5:"Le dernier siège, de peu ?", t5desc:(c,t)=>"Écart entre la famille la plus faible élue et la plus forte non élue. "+c+" des "+t+" circonscriptions disputées se sont jouées à moins de 5 points.",
- tbins:["moins de 2 pts","2–5 pts","5–10 pts","10–20 pts","20 pts et +"]
+ t4:"Participation par région", t4desc:"Distribution de la participation à travers les circonscriptions de chaque région. Chaque point est une circonscription ; la barre noire indique la médiane. Les régions sont classées par médiane décroissante.",
+ t5:"Le dernier siège, de peu ?", t5desc:"Chaque point représente une circonscription disputée — un siège effectivement contesté entre plusieurs familles politiques. L'écart, en points de pourcentage, sépare la famille la plus faible à avoir obtenu un siège de la famille la plus forte à en avoir été privée. Plus le point est à gauche, plus le scrutin a été serré.",
+ tbins:["moins de 2 pts","2–5 pts","5–10 pts","10–20 pts","20 pts et +"],
+ t6:"Présence vs sièges remportés", t6desc:"Pour chaque famille : nombre de circonscriptions où elle a présenté une liste (barre pleine) et nombre où elle a remporté au moins un siège (barre claire). Mesure la portée géographique et l'efficacité électorale.",
+ t7:"Concentration géographique", t7desc:"Part des sièges d'une famille concentrée dans ses cinq meilleures circonscriptions. Une valeur élevée indique une force localisée ; une valeur basse, une présence diffuse.",
+ s1head:"Comment se répartissent les sièges", s1text:"L'électorat des Français de l'étranger penche nettement à gauche par rapport à la métropole. En agrégeant les familles « domestiques », la gauche au sens large — écologistes, LFI, autres formations — totalise <b>148 sièges contre 72</b> pour le centre, la droite et l'extrême droite réunis : un rapport de presque 2 contre 1. Mais ce clivage est en partie masqué par deux acteurs sans équivalent métropolitain. L'<b>ASFE</b> (Alliance solidaire des Français de l'étranger), véritable parti consulaire transnational, a présenté des listes dans 99 des 130 circonscriptions et remporté 69 sièges. Et les listes <b>Sans étiquette / divers</b> — souvent des notables locaux dans les petites circonscriptions à un seul siège — raflent un tiers des conseillers (144 sièges, 33 %).",
+ s2head:"Implantations et concentrations", s2text:"Les familles se déploient très inégalement. Les <b>écologistes</b> forment une ceinture nord-européenne — Allemagne, Belgique, Pays-Bas, Scandinavie, Suisse alémanique — où ils sont souvent la première force et où les Verts locaux pèsent également. Le <b>Français du monde</b> (FdM) domine au Maghreb et plus largement en Afrique francophone. La <b>droite républicaine</b> (LR / DVD) est marginale : 22 sièges en tout, dont 9 concentrés dans cinq circonscriptions (Liban, Monaco, São Paulo, États-Unis sud). L'<b>extrême droite</b>, à 12 sièges (3 %), est la famille la plus concentrée : presque la moitié de ses élus viennent de la Russie/Biélorussie (où la liste DSV de Xavier Moreau arrive en tête) et d'Israël 2e (Reconquête à Tel-Aviv). À l'opposé, la <b>France insoumise</b> illustre une stratégie étroite mais efficace : présente dans seulement 26 circonscriptions, elle en gagne 16.",
+ s3head:"Engagement et compétitivité", s3text:"La participation, à <b>14 %</b> en moyenne pondérée par les votants, reste extrêmement basse — bien en deçà des scrutins métropolitains. Elle est par ailleurs très inégale : Europe et Asie-Pacifique avoisinent 18 %, l'Amérique du Nord et l'Amérique latine 13–14 %, l'Afrique et le Proche-Orient autour de 11–12 %. Cet écart reflète sans doute la densité associative et la facilité d'accès au vote, plus que des clivages politiques. Côté compétitivité, beaucoup de scrutins à PR se sont joués à quelques points près : sur les circonscriptions à listes multiples, le dernier siège a été attribué à moins de 5 points d'écart entre la liste qualifiée la plus faible et la liste éliminée la plus forte dans une part significative des cas."
 },
 en:{
  title:"Consular elections 2026", h1:"Consular elections 2026",
@@ -449,9 +459,14 @@ en:{
  turnoutLede:(a,mn,mv,xn,xv)=>"about "+a+"% (from "+mv+"% in "+mn+" to "+xv+"% in "+xn+")",
  t1desc:(tot,n,top)=>tot+" seats across "+n+" constituencies. "+top+" leads the count.",
  t3desc:(top,c)=>top+" leads the most constituencies ("+c+").",
- t4:"Turnout by region", t4desc:(hi,hv,lo,lv)=>"Average turnout, from "+lv+"% ("+lo+") to "+hv+"% ("+hi+").",
- t5:"How close was the last seat?", t5desc:(c,t)=>"Gap between the weakest family that won a seat and the strongest that didn't. "+c+" of "+t+" contested constituencies were decided by under 5 points.",
- tbins:["under 2 pts","2–5 pts","5–10 pts","10–20 pts","20 pts +"]
+ t4:"Turnout by region", t4desc:"Distribution of turnout across each region's constituencies. Each dot is a constituency; the black bar marks the median. Regions are sorted left-to-right by descending median.",
+ t5:"How close was the last seat?", t5desc:"Each dot is a competitive constituency — one where a seat was genuinely contested between political families. The gap, in percentage points, separates the weakest family to win a seat from the strongest family that didn't. The further left a dot, the tighter the race.",
+ tbins:["under 2 pts","2–5 pts","5–10 pts","10–20 pts","20 pts +"],
+ t6:"Where they ran vs where they won", t6desc:"For each family: number of constituencies where it fielded a list (solid bar) and number where it won at least one seat (light bar). Captures reach versus electoral efficiency.",
+ t7:"Geographic concentration", t7desc:"Share of a family's seats that come from its top five constituencies. A high value means localised strength; a low value, broad distribution.",
+ s1head:"How the seats are distributed", s1text:"The expatriate French electorate leans markedly to the left compared with the metropole. Aggregating the «domestic» families — Greens, LFI and other left lists — the broad left holds <b>148 seats to 72</b> for centre, right and far right combined: roughly 2-to-1. But that cleavage is partly masked by two players with no metropolitan equivalent. <b>ASFE</b> (the Solidarity Alliance of French Citizens Abroad), effectively a transnational consular party, ran lists in 99 of 130 constituencies and won 69 seats. And <b>Independent / other</b> lists — often local notables in small single-seat constituencies — take a third of all councillors (144 seats, 33%).",
+ s2head:"Footprints and strongholds", s2text:"Family geographies are highly uneven. The <b>Greens</b> form a Northern European belt — Germany, Belgium, the Netherlands, Scandinavia, German-speaking Switzerland — where they are often the leading force and where local green parties also poll well. <b>Français du monde</b> (FdM) dominates the Maghreb and French-speaking Africa more broadly. The <b>Republican right</b> (LR / DVD) is marginal: 22 seats total, 9 of them concentrated in five constituencies (Lebanon, Monaco, São Paulo, the US South). The <b>far right</b>, at 12 seats (3%), is the most concentrated family by far: nearly half its elected officials come from Russia/Belarus (where Xavier Moreau's DSV list leads) and Israël 2e (Reconquête in Tel-Aviv). At the opposite end, <b>La France insoumise</b> shows a narrow-but-efficient strategy: ran in just 26 constituencies and won seats in 16.",
+ s3head:"Engagement and competitiveness", s3text:"Turnout, at <b>14%</b> voter-weighted, is extremely low — well below metropolitan elections. It is also unevenly distributed: Europe and Asia-Pacific around 18%, North and Latin America 13–14%, Africa and the Middle East 11–12%. This gap likely reflects associational density and ease of voting more than partisan factors. On competitiveness, many PR contests came down to a few points: the final seat was awarded by under 5 points (between the weakest qualifying list and the strongest excluded one) in a meaningful share of cases."
 }
 };
 
@@ -754,15 +769,20 @@ function buildPills(){ const p=document.getElementById("pills"); if(p) p.style.d
 /* ---- TRENDS ---- */
 function buildTrends(){
   const X=TX();
-  const seatTotals={}, leadCount={}, voteSum={}; let totalSeats=0, exTot=0;
-  declared.forEach(d=>{ for(const k in d.seats){seatTotals[k]=(seatTotals[k]||0)+d.seats[k]; totalSeats+=d.seats[k];}
-    leadCount[d.win]=(leadCount[d.win]||0)+1;
-    const w=d.ex||0; if(w){ exTot+=w; order.forEach(k=> voteSum[k]=(voteSum[k]||0)+(d.sh[k]||0)*w); } });
+  // ---- core aggregations ----
+  const seatTotals={}, voteSum={}; let totalSeats=0, exTot=0;
+  const ran={}, wonAny={}; // ran[f] = # constituencies where family fielded ; wonAny[f] = # where it won >=1 seat
+  declared.forEach(d=>{
+    for(const k in d.seats){ seatTotals[k]=(seatTotals[k]||0)+d.seats[k]; totalSeats+=d.seats[k]; }
+    const w=d.ex||0; if(w){ exTot+=w; order.forEach(k=> voteSum[k]=(voteSum[k]||0)+(d.sh[k]||0)*w); }
+    order.forEach(k=>{ if((d.sh[k]||0)>0) ran[k]=(ran[k]||0)+1; if((d.seats[k]||0)>0) wonAny[k]=(wonAny[k]||0)+1; });
+  });
   const n=declared.length, voteAvg={}; order.forEach(k=> voteAvg[k]= exTot ? (voteSum[k]||0)/exTot : 0);
   const seatOrder=order.slice().sort((a,b)=>(seatTotals[b]||0)-(seatTotals[a]||0));
-  const leadOrder=order.slice().sort((a,b)=>(leadCount[b]||0)-(leadCount[a]||0));
-  const topS=seatOrder[0], topL=leadOrder[0];
+  const topS=seatOrder[0];
   const shortLab=k=>X.blocLab[k].split(" (")[0].replace(" / divers","").replace(" / other","");
+
+  // ---- horizontal bar primitive (reused) ----
   function makeBar(rows, fmt, paired){
     const rowH=26, lw=130, bw=250, pr=58, top=6, H=top+rows.length*rowH+4, Wd=lw+bw+pr;
     const maxv=Math.max.apply(null, rows.map(r=>Math.max(r.value,r.value2||0)).concat([1]));
@@ -779,36 +799,166 @@ function buildTrends(){
       }});
     return o+'</svg>';
   }
-  const card=(t,d,svgc,extra)=>'<div class="trend"><h3>'+t+'</h3><p class="td">'+d+'</p>'+svgc+(extra||'')+'<div class="tcredit">'+X.credit+'</div></div>';
+
+  // ---- dot strip for closeness ----
+  function makeDotStrip(items, xMax){
+    // taller and roomier than the original: 100+ dots need vertical space to breathe
+    const Wd=440, H=210, mL=18, mR=18, mT=34, mB=30, plotW=Wd-mL-mR;
+    const xs=v=>mL+Math.min(v,xMax)/xMax*plotW;
+    let o='<svg viewBox="0 0 '+Wd+' '+H+'" width="100%" style="max-width:'+Wd+'px">';
+    // x-axis with ticks at 0/5/10/.../xMax
+    o+='<line x1="'+mL+'" x2="'+(Wd-mR)+'" y1="'+(H-mB)+'" y2="'+(H-mB)+'" stroke="#cfc8b9"/>';
+    for(let v=0; v<=xMax; v+=5){ const x=xs(v);
+      o+='<line x1="'+x+'" x2="'+x+'" y1="'+(H-mB)+'" y2="'+(H-mB+3)+'" stroke="#a8a29a"/>';
+      o+='<text x="'+x+'" y="'+(H-mB+13)+'" text-anchor="middle" font-size="9.5" fill="#888">'+v+'</text>';
+    }
+    o+='<text x="'+(Wd/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="10" fill="#777">'+(LANG==="fr"?"Écart (points)":"Margin (points)")+'</text>';
+    // 5pt threshold band (tight races)
+    const x5=xs(5);
+    o+='<rect x="'+mL+'" y="'+mT+'" width="'+(x5-mL)+'" height="'+(H-mB-mT)+'" fill="#fff2e6" opacity="0.55"/>';
+    o+='<line x1="'+x5+'" x2="'+x5+'" y1="'+mT+'" y2="'+(H-mB)+'" stroke="#e08a3c" stroke-dasharray="3,3" stroke-opacity="0.7"/>';
+    o+='<text x="'+(x5+4)+'" y="'+(mT+10)+'" font-size="9" fill="#c47a2c">'+(LANG==="fr"?"< 5 pts (serré)":"< 5 pts (tight)")+'</text>';
+    // Beeswarm placement, deterministic, in band [mT+14, H-mB-8]
+    const bandTop=mT+14, bandBot=H-mB-8, bandMid=(bandTop+bandBot)/2;
+    const sorted=items.slice().sort((a,b)=>a.m-b.m);
+    const placed=[], r=3, step=2.8;
+    sorted.forEach(it=>{
+      const cx=xs(it.m); let cy=bandMid, k=0;
+      while(k<500){ const cand=bandMid + (k%2?-1:1)*Math.ceil(k/2)*step;
+        if(cand>=bandTop&&cand<=bandBot && placed.every(p=>Math.hypot(p.cx-cx,p.cy-cand)>=p.r+r+0.4)){cy=cand;break;} k++; }
+      placed.push({cx,cy,r,it});
+    });
+    // Neutral dark-grey fill; one constituency per dot
+    placed.forEach(p=>{
+      const tip=name(p.it.d).split(" — ")[0].split(" (")[0]+" — "+nf(p.it.m)+" pt";
+      o+='<circle cx="'+p.cx.toFixed(1)+'" cy="'+p.cy.toFixed(1)+'" r="'+p.r+'" fill="#5a5751" fill-opacity="0.78" stroke="#fff" stroke-width="0.7"><title>'+tip+'</title></circle>';
+    });
+    return o+'</svg>';
+  }
+
+  // ---- vertical violin plot for distributions by category ----
+  function makeViolins(byCat, cats, labels){
+    const Wd=440, H=240, mL=34, mR=10, mT=14, mB=48;
+    const plotW=Wd-mL-mR, plotH=H-mT-mB;
+    const all=[]; cats.forEach(c=>(byCat[c]||[]).forEach(v=>all.push(v)));
+    if(!all.length) return '<svg viewBox="0 0 '+Wd+' '+H+'"></svg>';
+    const yMax=Math.ceil((Math.max.apply(null,all)+2)/5)*5;
+    const ys=v=>H-mB-v/yMax*plotH;
+    const colW=plotW/cats.length;
+    const halfW=Math.min(26, colW*0.42);
+    const bw=2.5; // KDE bandwidth in percentage points
+    const kde=(vals,y)=>{let s=0; vals.forEach(v=>{const z=(y-v)/bw; s+=Math.exp(-0.5*z*z);}); return s/(vals.length*bw*Math.sqrt(2*Math.PI));};
+    // 2-line label wrapper for narrow columns
+    const wrap=lab=>{
+      if(lab.length<=10) return [lab];
+      const mid=lab.length/2; let bI=-1, bD=99;
+      for(let i=0;i<lab.length;i++){ if(lab[i]===' '){ const d=Math.abs(i-mid); if(d<bD){ bD=d; bI=i; } } }
+      return bI<0?[lab]:[lab.slice(0,bI), lab.slice(bI+1)];
+    };
+    let o='<svg viewBox="0 0 '+Wd+' '+H+'" width="100%" style="max-width:'+Wd+'px">';
+    // y-axis title and gridlines
+    o+='<text x="'+mL+'" y="10" font-size="10" fill="#666">'+(LANG==="fr"?"Participation (%)":"Turnout (%)")+'</text>';
+    for(let v=0;v<=yMax;v+=5){ const y=ys(v);
+      o+='<line x1="'+mL+'" x2="'+(Wd-mR)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#ece8de"/>';
+      o+='<text x="'+(mL-5)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end" font-size="9.5" fill="#888">'+v+'</text>';
+    }
+    cats.forEach((c,i)=>{
+      const vals=byCat[c]||[];
+      if(!vals.length) return;
+      const cx=mL+(i+0.5)*colW;
+      // KDE samples + densities, normalised within this violin
+      const N=60, pts=[];
+      for(let j=0;j<=N;j++){ const y=(j/N)*yMax; pts.push({y, d:kde(vals,y)}); }
+      const maxD=Math.max.apply(null, pts.map(p=>p.d));
+      // Symmetric closed path: right side bottom→top, left side top→bottom
+      let path='M '+cx.toFixed(1)+' '+ys(0).toFixed(1);
+      pts.forEach(p=>{ const w=p.d/maxD*halfW; path+=' L '+(cx+w).toFixed(1)+' '+ys(p.y).toFixed(1); });
+      pts.slice().reverse().forEach(p=>{ const w=p.d/maxD*halfW; path+=' L '+(cx-w).toFixed(1)+' '+ys(p.y).toFixed(1); });
+      path+=' Z';
+      o+='<path d="'+path+'" fill="#5b8ab8" fill-opacity="0.35" stroke="#5b8ab8" stroke-width="1"/>';
+      // Median bar
+      const sv=vals.slice().sort((a,b)=>a-b);
+      const med=sv.length%2 ? sv[(sv.length-1)/2] : (sv[sv.length/2-1]+sv[sv.length/2])/2;
+      const my=ys(med);
+      o+='<line x1="'+(cx-halfW*0.55).toFixed(1)+'" x2="'+(cx+halfW*0.55).toFixed(1)+'" y1="'+my.toFixed(1)+'" y2="'+my.toFixed(1)+'" stroke="#2c4a64" stroke-width="1.8"/>';
+      // Individual dots with deterministic jitter
+      vals.forEach((v,k)=>{
+        const jit=((k*61 % 31)/31 - 0.5) * halfW * 0.7;
+        o+='<circle cx="'+(cx+jit).toFixed(1)+'" cy="'+ys(v).toFixed(1)+'" r="1.5" fill="#2c4a64" fill-opacity="0.55"/>';
+      });
+      // Category label (1 or 2 lines) + sample size
+      const parts=wrap(labels[c]||c);
+      parts.forEach((p,j)=>{
+        o+='<text x="'+cx.toFixed(1)+'" y="'+(H-mB+13+j*10)+'" text-anchor="middle" font-size="9.5" fill="#3a372f">'+p+'</text>';
+      });
+      o+='<text x="'+cx.toFixed(1)+'" y="'+(H-mB+13+parts.length*10+2)+'" text-anchor="middle" font-size="8.5" fill="#888">n='+vals.length+'</text>';
+    });
+    return o+'</svg>';
+  }
+
+  // ---- chart data ----
+  // c1: seats by family
   const c1=seatOrder.filter(k=>(seatTotals[k]||0)>0).map(k=>({label:shortLab(k),color:blocs[k].color,value:seatTotals[k]}));
+  // c2: vote vs seat share
   const c2=seatOrder.filter(k=>(seatTotals[k]||0)>0||voteAvg[k]>0.8).map(k=>({label:shortLab(k),color:blocs[k].color,value:voteAvg[k],value2:(seatTotals[k]||0)/totalSeats*100}));
-  const c3=leadOrder.filter(k=>(leadCount[k]||0)>0).map(k=>({label:shortLab(k),color:blocs[k].color,value:leadCount[k]}));
   const fpct=v=> LANG==="fr"? v.toFixed(0)+" %" : v.toFixed(0)+"%";
-  // t4: average turnout by region
-  const tSum={}, tCnt={};
-  declared.forEach(d=>{ if(d.t!=null){ tSum[d.cont]=(tSum[d.cont]||0)+d.t; tCnt[d.cont]=(tCnt[d.cont]||0)+1; } });
-  const c4=continents.filter(c=>tCnt[c]).map(c=>({label:X.contShort[c],color:"#5b8ab8",value:tSum[c]/tCnt[c]})).sort((a,b)=>b.value-a.value);
-  // t5: margin at the seat cutoff (weakest seat-winner minus strongest also-ran)
-  const mgP=[];
-  declared.forEach(d=>{ const wins=[],loss=[];
-    order.forEach(k=>{ const v=d.sh[k]||0; if(v>0){ ((d.seats[k]||0)>0?wins:loss).push(v); } });
-    if(wins.length&&loss.length) mgP.push({m:Math.min.apply(null,wins)-Math.max.apply(null,loss), d}); });
-  const mg=mgP.map(o=>o.m);
-  const binDefs=[m=>m<2,m=>m>=2&&m<5,m=>m>=5&&m<10,m=>m>=10&&m<20,m=>m>=20];
-  const binCols=["#c44536","#e08a3c","#c9a227","#7f9f5b","#b9b1a3"];
-  const c5=binDefs.map((f,i)=>({label:X.tbins[i],color:binCols[i],value:mg.filter(f).length}));
-  const within5=mg.filter(m=>m<5).length;
+  // c6: reach (ran) vs win (wonAny). Sort by ran descending.
+  const reachOrder=order.slice().sort((a,b)=>(ran[b]||0)-(ran[a]||0));
+  const c6=reachOrder.filter(k=>(ran[k]||0)>0).map(k=>({label:shortLab(k),color:blocs[k].color,value:ran[k]||0,value2:wonAny[k]||0}));
+  // c7: concentration = top5 share of family's seats
+  const c7arr=[];
+  order.forEach(k=>{
+    const counts=declared.map(d=>d.seats[k]||0).filter(x=>x>0).sort((a,b)=>b-a);
+    const top5=counts.slice(0,5).reduce((s,x)=>s+x,0);
+    const total=counts.reduce((s,x)=>s+x,0);
+    if(total>0) c7arr.push({k, label:shortLab(k), color:blocs[k].color, value: top5/total*100, total, top5});
+  });
+  c7arr.sort((a,b)=>b.value-a.value);
+  // c4: turnout by region (sort desc)
+  // c4: turnout by region as raw distributions (one array of values per continent)
+  const c4byCat={};
+  declared.forEach(d=>{ if(d.t!=null){ (c4byCat[d.cont]=c4byCat[d.cont]||[]).push(d.t); } });
+  // category order: sort continents by their median (highest at left)
+  const med=arr=>{ const s=arr.slice().sort((a,b)=>a-b); return s.length%2?s[(s.length-1)/2]:(s[s.length/2-1]+s[s.length/2])/2; };
+  const c4cats=continents.filter(c=>c4byCat[c]&&c4byCat[c].length).sort((a,b)=>med(c4byCat[b])-med(c4byCat[a]));
+  // c5: per-constituency closeness — for each PR-disputed constituency, margin and the family that took the contested seat
+  const c5items=[];
+  declared.forEach(d=>{
+    if(!d.seats) return;
+    let weakestWinFam=null, weakestWinShare=Infinity, strongestLossShare=-Infinity;
+    order.forEach(k=>{ const v=d.sh[k]||0; if(v<=0) return;
+      if((d.seats[k]||0)>0){ if(v<weakestWinShare){ weakestWinShare=v; weakestWinFam=k; } }
+      else { if(v>strongestLossShare){ strongestLossShare=v; } }
+    });
+    if(weakestWinFam && strongestLossShare>-Infinity){
+      const m=weakestWinShare-strongestLossShare;
+      if(m>=0) c5items.push({d, m});
+    }
+  });
+  const within5=c5items.filter(o=>o.m<5).length;
+  const totalDisputed=c5items.length;
   const shName=d=>name(d).split(" — ")[0].split(" (")[0];
-  const tight=mgP.slice().sort((a,b)=>Math.abs(a.m)-Math.abs(b.m)).slice(0,4)
-    .map(o=>shName(o.d)+" ("+nf(Math.abs(o.m))+" pt)").join(" · ");
+  const tight=c5items.slice().sort((a,b)=>a.m-b.m).slice(0,4).map(o=>shName(o.d)+" ("+nf(o.m)+" pt)").join(" · ");
   const tightNote='<p class="td" style="margin-top:7px;font-size:11px;color:#777">'+(LANG==="fr"?"Plus serrées : ":"Tightest: ")+tight+'</p>';
+  const xMax=Math.max(15, Math.ceil(Math.max.apply(null,c5items.map(o=>o.m))/5)*5);
+
+  // ---- card primitive ----
+  const card=(t,d,svgc,extra)=>'<div class="trend"><h3>'+t+'</h3><p class="td">'+d+'</p>'+svgc+(extra||'')+'<div class="tcredit">'+X.credit+'</div></div>';
+
+  // ---- assemble: 3 sections of text + chart-pair ----
+  const sec=(head,text,pair)=>'<section class="trend-section"><div class="stext"><h3>'+head+'</h3><p>'+text+'</p></div><div class="trend-pair">'+pair+'</div></section>';
+
   let html="";
-  html+=card(X.t1, X.t1desc(totalSeats,n,shortLab(topS)), makeBar(c1, v=>""+v, false));
-  html+=card(X.t2, X.t2desc, makeBar(c2, fpct, true));
-  html+=card(X.t3, X.t3desc(shortLab(topL),leadCount[topL]), makeBar(c3, v=>""+v, false));
-  if(c4.length) html+=card(X.t4, X.t4desc(c4[0].label,c4[0].value.toFixed(0),c4[c4.length-1].label,c4[c4.length-1].value.toFixed(0)), makeBar(c4, fpct, false));
-  if(mg.length) html+=card(X.t5, X.t5desc(within5, mg.length), makeBar(c5, v=>""+v, false), tightNote);
-  document.getElementById("trends").innerHTML=html;
+  html+=sec(X.s1head, X.s1text,
+            card(X.t1, X.t1desc(totalSeats,n,shortLab(topS)), makeBar(c1, v=>""+v, false))
+          + card(X.t2, X.t2desc, makeBar(c2, fpct, true)));
+  html+=sec(X.s2head, X.s2text,
+            card(X.t6, X.t6desc, makeBar(c6, v=>""+v, true))
+          + card(X.t7, X.t7desc, makeBar(c7arr, v=>v.toFixed(0)+"%", false)));
+  html+=sec(X.s3head, X.s3text,
+            (c4cats.length?card(X.t4, X.t4desc, makeViolins(c4byCat, c4cats, X.contShort)):"")
+          + (c5items.length?card(X.t5, X.t5desc, makeDotStrip(c5items, xMax), tightNote + '<p class="td" style="margin-top:4px;font-size:11px;color:#888">'+(LANG==="fr"?within5+" sur "+totalDisputed+" circonscriptions disputées à moins de 5 points.":within5+" of "+totalDisputed+" contested constituencies decided by under 5 pts.")+'</p>'):""));
+  document.getElementById("trendsBody").innerHTML=html;
 }
 
 /* turnout lede */
