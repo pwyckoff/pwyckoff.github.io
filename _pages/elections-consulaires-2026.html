@@ -128,10 +128,11 @@ permalink: /elections-consulaires-2026/
     .maptools.floating { position:sticky; top:0; z-index:800; background:#fff; margin:0 -12px 8px; padding:7px 12px; box-shadow:0 3px 7px rgba(0,0,0,.06); border-bottom:1px solid #ece8df; }
     /* spectrum now fits the viewport and scrolls vertically */
     .scrollhint { display:none; }
-    #chart { width:100%; height:auto; display:block; }
-    .lane-label { font-size:15px; }
-    .lane-count { font-size:12px; }
-    .axislab { font-size:12px; }
+    #chart { width:100%; min-width:0; height:auto; display:block; }
+    .chartscroll { overflow-x:visible; }
+    .lane-label { font-size:12px; }
+    .lane-count { font-size:10px; }
+    .axislab { font-size:10px; }
     /* mobile replacement for the hidden ocean insets */
     #msum { display:block; }
   }
@@ -225,7 +226,7 @@ const data = [
   {n:"Panama, Cuba, Jamaïque",lat:8.98,lng:-79.52,s:1,cont:"Amérique latine",ex:299,win:"red",seats:{red:1},sh:{red:42.47,purple:41.47,exd:16.05}},
   {n:"Paraguay",lat:-25.28,lng:-57.63,s:1,cont:"Amérique latine",ex:171,win:"purple",seats:{purple:1},sh:{purple:61.99,grey:30.99,exd:7.02}},
   {n:"Pérou",lat:-12.05,lng:-77.04,s:3,cont:"Amérique latine",ex:478,win:"grey",seats:{grey:1,purple:1,green:1},sh:{grey:51.88,purple:28.87,green:19.25}},
-  {n:"République dominicaine",lat:18.49,lng:-69.93,s:3,cont:"Amérique latine",seats:null,sh:null},
+  {n:"République dominicaine",lat:18.49,lng:-69.93,s:3,cont:"Amérique latine",ex:417,win:"grey",seats:{grey:2,purple:1},sh:{grey:52.04,purple:25.42,green:22.54}},
   {n:"Uruguay",lat:-34.90,lng:-56.16,s:1,cont:"Amérique latine",ex:387,win:"grey",seats:{grey:1},sh:{lfi:20.16,grey:79.85}},
   {n:"Venezuela, Sainte-Lucie, Trinité",lat:10.49,lng:-66.88,s:3,cont:"Amérique latine",ex:280,win:"purple",seats:{purple:2,grey:1},sh:{purple:47.14,grey:52.86}},
   {n:"Danemark",lat:55.68,lng:12.57,s:3,cont:"Europe",ex:1278,win:"red",seats:{red:2,grey:1},sh:{red:48.67,grey:34.74,orange:16.59}},
@@ -247,7 +248,7 @@ const data = [
   {n:"Grèce",lat:37.98,lng:23.73,s:3,cont:"Europe",ex:1363,win:"red",seats:{red:2,grey:1},sh:{red:37.78,grey:45.34,purple:16.87}},
   {n:"Israël (1re) — Jérusalem",lat:31.78,lng:35.22,s:5,cont:"Proche & Moyen-Orient",ex:1629,win:"grey",seats:{grey:4,purple:1},sh:{grey:58.87,purple:21.79,exd:19.34}},
   {n:"Turquie",lat:41.01,lng:28.98,s:4,cont:"Europe",ex:975,win:"purple",seats:{purple:2,grey:1,green:1},sh:{purple:31.59,grey:29.54,green:24.41,red:14.46}},
-  {n:"Algérie (1re) — Oran",lat:35.70,lng:-0.63,s:3,cont:"Afrique",seats:null,sh:null},
+  {n:"Algérie (1re) — Oran",lat:35.70,lng:-0.63,s:3,cont:"Afrique",ex:557,win:"grey",seats:{grey:2,red:1},sh:{grey:59.78,red:20.64,purple:20.47}},
   {n:"Algérie (2e) — Annaba",lat:36.90,lng:7.77,s:3,cont:"Afrique",ex:574,win:"red",seats:{red:1,purple:1,grey:1},sh:{lfi:4.70,red:32.06,purple:24.04,grey:39.20}},
   {n:"Algérie (3e) — Alger",lat:36.75,lng:3.06,s:5,cont:"Afrique",ex:1060,win:"grey",seats:{grey:2,purple:2,red:1},sh:{grey:41.60,purple:33.77,red:24.62}},
   {n:"Burkina Faso",lat:12.37,lng:-1.52,s:1,cont:"Afrique",ex:274,win:"orange",seats:{orange:1},sh:{orange:59.12,grey:32.12,purple:8.76}},
@@ -260,7 +261,7 @@ const data = [
   {n:"Maroc (4e) — Marrakech",lat:31.63,lng:-7.99,s:3,cont:"Afrique",ex:860,win:"red",seats:{red:2,grey:1},sh:{red:44.53,grey:33.84,purple:21.63}},
   {n:"Maroc (5e) — Rabat",lat:34.02,lng:-6.83,s:4,cont:"Afrique",ex:1119,win:"red",seats:{red:3,grey:1},sh:{red:60.95,grey:29.50,purple:9.56}},
   {n:"Maroc (6e) — Casablanca",lat:33.57,lng:-7.59,s:5,cont:"Afrique",ex:2042,win:"grey",seats:{grey:3,red:1,green:1},sh:{grey:46.37,red:24.14,green:16.45,purple:13.03}},
-  {n:"Mauritanie",lat:18.08,lng:-15.98,s:1,cont:"Afrique",seats:null,sh:null},
+  {n:"Mauritanie",lat:18.08,lng:-15.98,s:1,cont:"Afrique",ex:129,win:"grey",seats:{grey:1},sh:{grey:100}},
   {n:"Niger",lat:13.51,lng:2.11,s:1,cont:"Afrique",ex:19,win:"grey",seats:{grey:1},sh:{grey:100}},
   {n:"Sénégal, Guinée-Bissau, Cap-Vert",lat:14.72,lng:-17.47,s:5,cont:"Afrique",ex:1711,win:"red",seats:{red:2,purple:1,green:1,grey:1},sh:{red:40.04,purple:20.05,green:16.48,grey:23.44}},
   {n:"Tunisie, Libye",lat:36.81,lng:10.18,s:5,cont:"Afrique",ex:1893,win:"grey",seats:{lfi:1,grey:4},sh:{lfi:23.67,orange:4.86,grey:71.47}},
@@ -276,7 +277,7 @@ const data = [
   {n:"Égypte",lat:30.04,lng:31.24,s:3,cont:"Afrique",ex:456,win:"red",seats:{red:2,purple:1},sh:{red:53.95,purple:27.19,grey:18.86}},
   {n:"Éthiopie, Soudan, Soudan du Sud",lat:9.03,lng:38.74,s:1,cont:"Afrique",ex:89,win:"purple",seats:{purple:1},sh:{purple:100}},
   {n:"Gabon",lat:0.42,lng:9.47,s:3,cont:"Afrique",ex:511,win:"purple",seats:{purple:2,blue:1},sh:{purple:54.21,blue:45.79}},
-  {n:"Jordanie, Irak",lat:31.95,lng:35.93,s:1,cont:"Proche & Moyen-Orient",seats:null,sh:null},
+  {n:"Jordanie, Irak",lat:31.95,lng:35.93,s:1,cont:"Proche & Moyen-Orient",ex:105,win:"purple",seats:{purple:1},sh:{purple:100}},
   {n:"Kenya et Afrique de l'Est",lat:-1.29,lng:36.82,s:3,cont:"Afrique",ex:474,win:"green",seats:{green:2,purple:1},sh:{green:51.48,purple:29.32,grey:19.20}},
   {n:"Liban, Syrie",lat:33.89,lng:35.50,s:5,cont:"Proche & Moyen-Orient",ex:4246,win:"blue",seats:{blue:3,grey:1,purple:1},sh:{blue:41.69,grey:33.94,purple:15.33,red:9.09}},
   {n:"Madagascar",lat:-18.88,lng:47.51,s:4,cont:"Afrique",ex:2150,win:"grey",seats:{grey:3,green:1},sh:{green:17.07,lfi:5.30,purple:6.00,grey:71.63}},
@@ -286,18 +287,18 @@ const data = [
   {n:"République démocratique du Congo",lat:-4.32,lng:15.31,s:3,cont:"Afrique",ex:241,win:"purple",seats:{purple:2,grey:1},sh:{purple:38.17,grey:32.78,red:17.43,lfi:11.62}},
   {n:"Tchad",lat:12.13,lng:15.06,s:1,cont:"Afrique",ex:123,win:"grey",seats:{grey:1},sh:{grey:58.54,lfi:41.46}},
   {n:"Togo, Ghana",lat:6.13,lng:1.22,s:3,cont:"Afrique",ex:271,win:"red",seats:{red:1,purple:1,grey:1},sh:{red:42.80,purple:30.26,grey:26.94}},
-  {n:"Arménie, Géorgie",lat:40.18,lng:44.51,s:1,cont:"Europe",seats:null,sh:null},
+  {n:"Arménie, Géorgie",lat:40.18,lng:44.51,s:1,cont:"Europe",ex:338,win:"grey",seats:{grey:1},sh:{grey:63.61,purple:36.39}},
   {n:"Australie, Fidji, PNG",lat:-33.87,lng:151.21,s:5,cont:"Asie & Pacifique",ex:4027,win:"grey",seats:{grey:3,red:2},sh:{grey:51.43,red:25.93,purple:11.62,orange:11.03}},
-  {n:"Cambodge",lat:11.56,lng:104.92,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
+  {n:"Cambodge",lat:11.56,lng:104.92,s:3,cont:"Asie & Pacifique",ex:689,win:"grey",seats:{grey:3},sh:{grey:94.63,purple:5.37}},
   {n:"Chine (1re) — Sud",lat:23.13,lng:113.26,s:1,cont:"Asie & Pacifique",ex:159,win:"grey",seats:{grey:1},sh:{grey:64.78,purple:21.38,exd:13.84}},
   {n:"Corée du Sud, Taïwan",lat:37.57,lng:126.98,s:3,cont:"Asie & Pacifique",ex:651,win:"red",seats:{red:2,grey:1},sh:{red:52.38,grey:27.04,purple:20.58}},
   {n:"Inde (1re), Bangladesh, Népal, Sri Lanka",lat:28.61,lng:77.21,s:3,cont:"Asie & Pacifique",ex:432,win:"grey",seats:{grey:2,green:1},sh:{green:30.56,orange:12.73,purple:17.82,grey:38.89}},
   {n:"Inde (2e)",lat:11.93,lng:79.83,s:3,cont:"Asie & Pacifique",ex:1606,win:"grey",seats:{grey:2,green:1},sh:{green:30.39,purple:14.26,grey:55.35}},
-  {n:"Indonésie",lat:-6.21,lng:106.85,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
-  {n:"Iran, Asie centrale, Pakistan",lat:35.69,lng:51.39,s:1,cont:"Proche & Moyen-Orient",seats:null,sh:null},
-  {n:"Laos",lat:17.97,lng:102.61,s:1,cont:"Asie & Pacifique",seats:null,sh:null},
+  {n:"Indonésie",lat:-6.21,lng:106.85,s:3,cont:"Asie & Pacifique",ex:302,win:"grey",seats:{grey:3},sh:{grey:100}},
+  {n:"Iran, Asie centrale, Pakistan",lat:35.69,lng:51.39,s:1,cont:"Proche & Moyen-Orient",ex:171,win:"grey",seats:{grey:1},sh:{grey:74.27,purple:25.73}},
+  {n:"Laos",lat:17.97,lng:102.61,s:1,cont:"Asie & Pacifique",ex:201,win:"purple",seats:{purple:1},sh:{purple:60.20,grey:39.80}},
   {n:"Malaisie, Brunei",lat:3.14,lng:101.69,s:3,cont:"Asie & Pacifique",ex:361,win:"purple",seats:{purple:1,red:1,grey:1},sh:{purple:37.67,grey:34.90,red:27.42}},
-  {n:"Philippines",lat:14.60,lng:120.98,s:3,cont:"Asie & Pacifique",seats:null,sh:null},
+  {n:"Philippines",lat:14.60,lng:120.98,s:3,cont:"Asie & Pacifique",ex:434,win:"grey",seats:{grey:2,red:1},sh:{grey:65.90,red:18.66,purple:15.44}},
   {n:"Russie, Biélorussie",lat:55.76,lng:37.62,s:3,cont:"Europe",seats:null,sh:null},
   {n:"Serbie",lat:44.79,lng:20.46,s:1,cont:"Europe",ex:95,win:"grey",seats:{grey:1},sh:{grey:100}},
   {n:"Singapour",lat:1.35,lng:103.82,s:4,cont:"Asie & Pacifique",ex:1875,win:"orange",seats:{orange:2,grey:1,blue:1},sh:{orange:39.15,grey:40.22,blue:20.64}},
@@ -359,7 +360,7 @@ const groupings=[
   {key:"red",calc:s=>s.red||0},{key:"orange",calc:s=>s.orange||0},{key:"blue",calc:s=>s.blue||0},
   {key:"exd",calc:s=>s.exd||0},{key:"rightexd",calc:s=>(s.blue||0)+(s.exd||0)},{key:"purple",calc:s=>s.purple||0},{key:"grey",calc:s=>s.grey||0}
 ];
-const turnout={"Congo":12.93,"Éthiopie, Soudan, Soudan du Sud":16.49,"Gabon":9.62,"Australie, Fidji, PNG":17.20,"Niger":4.02,"Tchad":16.33,"Togo, Ghana":9.42,"Liban, Syrie":22.16,"Maurice, Seychelles":10.90,"République démocratique du Congo":15.68,"Comores":11.58,"Djibouti":19.95,"Égypte":10.82,"Kenya et Afrique de l'Est":16.87,"Arabie saoudite (1re), Yémen":14.58,"Arabie saoudite (2e), Koweït":13.13,"Bénin":14.15,"Cameroun, Guinée équatoriale":13.83,"Serbie":6.94,"Afrique du Sud, Mozambique, Namibie, Botswana":13.17,"Pologne":18.02,"Inde (1re), Bangladesh, Népal, Sri Lanka":19.69,"Inde (2e)":36.63,"Madagascar":14.62,"Nigeria":14.22,"Chili":16.30,"États-Unis (8e) — Nord-Ouest Pacifique":13.76,"Brésil (1re) — Brasília / Recife":12.92,"Équateur":18.96,"Guatemala, Salvador":15.03,"Haïti":5.53,"Mexique":13.39,"Panama, Cuba, Jamaïque":15.05,"Paraguay":15.48,"Uruguay":15.83,"Venezuela, Sainte-Lucie, Trinité":7.91,"Irlande":17.13,"Norvège, Islande":22.66,"Suède":19.35,"Roumanie, Moldavie":21.76,"Israël (1re) — Jérusalem":7.33,"Turquie":10.74,"Algérie (2e) — Annaba":8.56,"Algérie (3e) — Alger":6.25,"Burkina Faso":15.08,"Côte d'Ivoire":10.88,"Guinée":11.53,"Mali":2.9,"Maroc (5e) — Rabat":13.77,"Maroc (6e) — Casablanca":10.7,"Sénégal, Guinée-Bissau, Cap-Vert":10.0,"Tunisie, Libye":10.26,"Colombie":19.71,"Argentine":13.83,"Costa Rica, Honduras, Nicaragua":13.07,"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
+const turnout={"République dominicaine":13.82,"Algérie (1re) — Oran":8.35,"Mauritanie":10.45,"Jordanie, Irak":10.61,"Arménie, Géorgie":39.06,"Cambodge":19.43,"Indonésie":11.96,"Iran, Asie centrale, Pakistan":10.80,"Laos":13.44,"Philippines":19.27,"Congo":12.93,"Éthiopie, Soudan, Soudan du Sud":16.49,"Gabon":9.62,"Australie, Fidji, PNG":17.20,"Niger":4.02,"Tchad":16.33,"Togo, Ghana":9.42,"Liban, Syrie":22.16,"Maurice, Seychelles":10.90,"République démocratique du Congo":15.68,"Comores":11.58,"Djibouti":19.95,"Égypte":10.82,"Kenya et Afrique de l'Est":16.87,"Arabie saoudite (1re), Yémen":14.58,"Arabie saoudite (2e), Koweït":13.13,"Bénin":14.15,"Cameroun, Guinée équatoriale":13.83,"Serbie":6.94,"Afrique du Sud, Mozambique, Namibie, Botswana":13.17,"Pologne":18.02,"Inde (1re), Bangladesh, Népal, Sri Lanka":19.69,"Inde (2e)":36.63,"Madagascar":14.62,"Nigeria":14.22,"Chili":16.30,"États-Unis (8e) — Nord-Ouest Pacifique":13.76,"Brésil (1re) — Brasília / Recife":12.92,"Équateur":18.96,"Guatemala, Salvador":15.03,"Haïti":5.53,"Mexique":13.39,"Panama, Cuba, Jamaïque":15.05,"Paraguay":15.48,"Uruguay":15.83,"Venezuela, Sainte-Lucie, Trinité":7.91,"Irlande":17.13,"Norvège, Islande":22.66,"Suède":19.35,"Roumanie, Moldavie":21.76,"Israël (1re) — Jérusalem":7.33,"Turquie":10.74,"Algérie (2e) — Annaba":8.56,"Algérie (3e) — Alger":6.25,"Burkina Faso":15.08,"Côte d'Ivoire":10.88,"Guinée":11.53,"Mali":2.9,"Maroc (5e) — Rabat":13.77,"Maroc (6e) — Casablanca":10.7,"Sénégal, Guinée-Bissau, Cap-Vert":10.0,"Tunisie, Libye":10.26,"Colombie":19.71,"Argentine":13.83,"Costa Rica, Honduras, Nicaragua":13.07,"Canada (3e) — Québec (est)":13.12,"Canada (4e) — Montréal / Maritimes":14.39,"Canada (2e) — Ontario / Manitoba":16.68,"États-Unis (1re) — Sud-Est":12.25,"Maroc (3e) — Agadir":16.56,"Maroc (4e) — Marrakech":12.82,"Chine (1re) — Sud":11.10,"Chypre":23.70,"Grèce":15.66,"Maroc (1re) — Tanger":18.77,"Maroc (2e) — Fès, Meknès":18.07,"Portugal":17.28,"Allemagne (2e) — Ouest":12.71,"Allemagne (3e) — Sud":18.05,"Corée du Sud, Taïwan":15.00,"Malaisie, Brunei":17.58,"Singapour":22.78,
 "États-Unis (9e) — New York":12.0,"Luxembourg":14.38,"Espagne (2e) — Madrid":14.0,"Danemark":20.29,"Royaume-Uni (1re) — Écosse":23.69,"Belgique":17.77,"Thaïlande, Birmanie":19.16,
 "Canada (1re) — Ouest":19.23,"États-Unis (2e) — Nouvelle-Angleterre":13.37,"États-Unis (3e) — Texas":12.1,
 "États-Unis (4e) — Midwest":13.95,"États-Unis (5e) — Floride":11.33,"États-Unis (6e) — Washington":14.34,
@@ -375,7 +376,7 @@ data.forEach(d=>{ if(turnout[d.n]!=null) d.t=turnout[d.n]; });
 const T={
 fr:{
  title:"Élections consulaires 2026", h1:"Élections consulaires 2026",
- asof:"Données arrêtées au 3 juin 2026, 20 h 22 (heure de Paris).",
+ asof:"Données arrêtées au 4 juin 2026, 04 h 12 (heure de Paris).",
  lede:'Les Français établis hors de France forment un électorat modeste mais à part : ils élisent <b>11 des 577 sièges</b> de l’Assemblée nationale (environ 1,9 %) et, au premier tour de la présidentielle de 2022, près de <b>500 000</b> d’entre eux ont voté (sur ~1,44 million d’inscrits, ≈ 1,4 % des suffrages nationaux). Les élections consulaires de mai 2026 offrent l’aperçu le plus récent des équilibres politiques de cet électorat avant les scrutins de 2027. Cela dit, la participation a été très faible : sur les circonscriptions déjà déclarées, elle s’établit en moyenne <span id="turnoutLede">…</span>.',
  sub:'<b>{N} circonscriptions déclarées sur 130.</b> La carte colore chaque circonscription selon la famille en tête. Choisissez « Résultats par » sièges ou voix, basculez « Afficher » entre la tête et la composition (camemberts), et cliquez un point pour le détail. Le graphique plus bas compare les familles : pour chacune, sa part des voix là où elle s’est présentée, les cercles pleins indiquant qu’elle a obtenu un siège.',
  mapH2:"Résultats par circonscription", mapTag:"— en tête par sièges ou par voix ; « composition » pour le détail",
@@ -409,9 +410,9 @@ fr:{
 },
 en:{
  title:"Consular elections 2026", h1:"Consular elections 2026",
- asof:"Data as of 3 June 2026, 20:22 (Paris time).",
+ asof:"Data as of 4 June 2026, 04:12 (Paris time).",
  lede:'French citizens living abroad are a small but distinct electorate: they elect <b>11 of the 577 seats</b> in the National Assembly (about 1.9%), and in the 2022 presidential first round nearly <b>500,000</b> of them voted (out of ~1.44 million registered, ≈1.4% of the national vote). The May 2026 consular elections offer the freshest read on this electorate’s political balance ahead of forthcoming elections in 2027. That said, turnout was very low: across the constituencies reported so far it averages <span id="turnoutLede">…</span>.',
- sub:'<b>{N} of 130 constituencies reported.</b> The map colours each constituency by the leading family. Choose “Results by” seats or votes, toggle “Show” between the leader and the breakdown (pies), and click a point for the detail. The chart below compares the families: for each, its vote share across the constituencies where it ran, with filled circles marking where it won a seat.',
+ sub:'<b>{N} constituencies have published full results out of 130.</b> The map colours each constituency by the leading family. Choose “Results by” seats or votes, toggle “Show” between the leader and the breakdown (pies), and click a point for the detail. The chart below compares the families: for each, its vote share across the constituencies where it ran, with filled circles marking where it won a seat.',
  mapH2:"Results by constituency", mapTag:"— leader by seats or by votes; “breakdown” for the detail",
  specH2:"How each political family did", specTag:"— vote share where the family stood; filled = won a seat",
  trendsH2:"Trends", trendsTag:"— across all reported constituencies",
@@ -643,12 +644,12 @@ map.on("zoomstart",()=>{ insetsEl.style.opacity = "0"; });
 map.on("zoomend",()=>{ syncInsets(); insetsEl.style.opacity = ""; });
 
 /* ---- CHART ---- */
-const continents=["Europe","Amérique du Nord","Asie & Pacifique","Proche & Moyen-Orient","Amérique latine","Afrique"];
+const continents=["Europe","Afrique","Amérique latine","Amérique du Nord","Asie & Pacifique","Proche & Moyen-Orient"];
 const declared=data.filter(d=>d.sh);
 const svg=document.getElementById("chart");
 let W,mL,mR,plotW,topPad,narrow,rowHeaderH,bandHalf,swarmStep,rowH,laneY,plotBottom,totalH;
 const scaleX=v=>mL+(Math.max(0,Math.min(100,v))/100)*plotW;
-const radC=s=> narrow ? (4+Math.sqrt(s)*1.7) : (3.2+Math.sqrt(s)*1.4);
+const radC=s=> narrow ? (2.6+Math.sqrt(s)*1.1) : (3.2+Math.sqrt(s)*1.4);
 // split a family label so the "(parties…)" or "/ other" part sits on a 2nd line
 const splitLab=s=>{let i=s.indexOf(" (");if(i>=0)return[s.slice(0,i),s.slice(i+1)];i=s.indexOf(" / ");if(i>=0)return[s.slice(0,i),s.slice(i+3)];return[s,""];};
 // One row per political family. x = that family's vote share in each constituency
@@ -659,7 +660,7 @@ function computeDims(){
   const host=document.querySelector(".chartscroll");
   const cw=(host&&host.clientWidth)?host.clientWidth:window.innerWidth;
   narrow=cw<640; topPad=14;
-  if(narrow){ W=Math.max(320,Math.min(cw,520)); mL=12; mR=12; rowHeaderH=30; bandHalf=38; swarmStep=5.5; }
+  if(narrow){ W=Math.max(300,Math.min(cw,520)); mL=10; mR=10; rowHeaderH=24; bandHalf=26; swarmStep=4.2; }
   else { W=900; mL=180; mR=30; rowHeaderH=0; bandHalf=30; swarmStep=5.0; }
   rowH=rowHeaderH+2*bandHalf+(narrow?12:16);
   plotW=W-mL-mR;
@@ -683,7 +684,7 @@ function buildChart(){
   order.forEach((k,i)=>{
     const y0=laneY[i], cy=y0+rowHeaderH+bandHalf, col=blocs[k].color, nm=blocLab(k);
     // mobile: repeat the axis breaks inside each row so dots stay readable while scrolling
-    if(narrow) [25,50,75].forEach(v=>{const tk=E("text",{x:scaleX(v),y:y0+rowHeaderH+10,"text-anchor":"middle","font-size":9.5,"fill":"#a8a29a"}); tk.textContent=v; svg.appendChild(tk);});
+    if(narrow) [25,50,75].forEach(v=>{const tk=E("text",{x:scaleX(v),y:y0+rowHeaderH+8,"text-anchor":"middle","font-size":8.5,"fill":"#a8a29a"}); tk.textContent=v; svg.appendChild(tk);});
     const items=declared.filter(d=>(d.sh[k]||0)>0).map(d=>({d,v:d.sh[k],won:(d.seats[k]||0)>0,x:scaleX(d.sh[k]),r:radC(d.s)}));
     const ran=items.length, won=items.filter(o=>o.won).length;
     const subTxt=(LANG==="fr"?(ran+" circ. · "+won+" avec siège"):(ran+" ran · "+won+" won"));
