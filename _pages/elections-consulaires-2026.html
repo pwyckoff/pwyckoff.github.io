@@ -243,7 +243,7 @@ const data = [
   {n:"Norvège, Islande",lat:59.91,lng:10.75,s:3,cont:"Europe",ex:1413,win:"green",seats:{green:2,orange:1},sh:{green:68.01,orange:19.25,purple:12.74}},
   {n:"Royaume-Uni (1re) — Écosse",lat:55.95,lng:-3.19,s:3,cont:"Europe",ex:1398,win:"grey",seats:{grey:1,green:1,red:1},sh:{grey:36.84,green:26.39,red:25.39,purple:11.37}},
   {n:"Suède",lat:59.33,lng:18.07,s:4,cont:"Europe",ex:1677,win:"green",seats:{green:2,orange:1,red:1},sh:{green:36.91,orange:21.65,red:18.84,purple:18.25,grey:4.35}},
-  {n:"Belgique",lat:50.85,lng:4.35,s:9,cont:"Europe",ex:19100,win:"green",seats:{green:2,lfi:2,red:2,orange:2,blue:1},sh:{green:21.32,lfi:18.40,red:16.41,orange:23.87,blue:12.16,exd:5.12,grey:2.72}},
+  {n:"Belgique",lat:50.85,lng:4.35,s:9,cont:"Europe",ex:19100,win:"green",seats:{green:2,lfi:2,red:2,orange:2,blue:1},sh:{green:21.32,lfi:18.40,red:16.41,orange:23.87,blue:12.16,exd:7.84}},
   {n:"Luxembourg",lat:49.61,lng:6.13,s:5,cont:"Europe",ex:4231,win:"orange",seats:{orange:2,blue:1,green:1,red:1},sh:{orange:35.95,blue:29.52,green:15.98,red:11.49,purple:7.07}},
   {n:"Espagne (2e) — Madrid",lat:40.42,lng:-3.70,s:6,cont:"Europe",ex:7389,win:"orange",seats:{green:2,lfi:1,orange:2,blue:1},sh:{green:26.08,lfi:19.53,orange:27.38,blue:14.25,purple:12.76}},
   {n:"Allemagne (2e) — Ouest",lat:50.11,lng:8.68,s:5,cont:"Europe",ex:4851,win:"red",seats:{red:2,orange:2,purple:1},sh:{red:30.10,orange:49.66,purple:20.24}},
@@ -390,7 +390,7 @@ data.forEach(d=>{ if(turnout[d.n]!=null) d.t=turnout[d.n]; });
 const T={
 fr:{
  title:"Élections consulaires 2026", h1:"Élections consulaires 2026",
- asof:"Données arrêtées au 4 juin 2026, 13 h 21 (heure de Paris).",
+ asof:"Données arrêtées au 8 juin 2026, 09 h 11 (heure de Paris).",
  lede:'Les Français établis hors de France forment un électorat modeste mais à part : ils élisent <b>11 des 577 sièges</b> de l’Assemblée nationale (environ 1,9 %) et, au premier tour de la présidentielle de 2022, près de <b>500 000</b> d’entre eux ont voté (sur ~1,44 million d’inscrits, ≈ 1,4 % des suffrages nationaux). Les élections consulaires de mai 2026 offrent l’aperçu le plus récent des équilibres politiques de cet électorat avant les scrutins de 2027. Cela dit, la participation a été très faible : sur l’ensemble des 130 circonscriptions, elle s’établit en moyenne <span id="turnoutLede">…</span>.',
  sub:'<b>Résultats définitifs — 130 circonscriptions sur 130.</b> La carte colore chaque circonscription selon la famille en tête. Choisissez « Résultats par » sièges ou voix, basculez « Afficher » entre la tête et la composition (camemberts), et cliquez un point pour le détail. Le graphique plus bas compare les familles : pour chacune, sa part des voix là où elle s’est présentée, les cercles pleins indiquant qu’elle a obtenu un siège.',
  mapH2:"Résultats par circonscription", mapTag:"— en tête par sièges ou par voix ; « composition » pour le détail",
@@ -430,7 +430,7 @@ fr:{
 },
 en:{
  title:"Consular elections 2026", h1:"Consular elections 2026",
- asof:"Data as of 4 June 2026, 13:21 (Paris time).",
+ asof:"Data as of 8 June 2026, 09:11 (Paris time).",
  lede:'French citizens living abroad are a small but distinct electorate: they elect <b>11 of the 577 seats</b> in the National Assembly (about 1.9%), and in the 2022 presidential first round nearly <b>500,000</b> of them voted (out of ~1.44 million registered, ≈1.4% of the national vote). The May 2026 consular elections offer the freshest read on this electorate’s political balance ahead of forthcoming elections in 2027. That said, turnout was very low: across all 130 constituencies it averages <span id="turnoutLede">…</span>.',
  sub:'<b>Final results — all 130 constituencies declared.</b> The map colours each constituency by the leading family. Choose “Results by” seats or votes, toggle “Show” between the leader and the breakdown (pies), and click a point for the detail. The chart below compares the families: for each, its vote share across the constituencies where it ran, with filled circles marking where it won a seat.',
  mapH2:"Results by constituency", mapTag:"— leader by seats or by votes; “breakdown” for the detail",
