@@ -407,7 +407,7 @@ fr:{
  axis:"Part des voix de la famille sélectionnée (listes agrégées)",
  decl1:"déclarée", declN:"déclarées", noPub:"aucun résultat publié à ce jour",
  seat1:"siège", seatN:"sièges", seatOf:"de conseiller", notDecl:"Résultats non encore déclarés",
- participation:"Participation", winnerLbl:"Vainqueur", insetNo:"aucun résultat déclaré", seatsWord:"sièges",
+ participation:"Participation", winnerLbl:"Vainqueur", tiedLbl:"Ex æquo", insetNo:"aucun résultat déclaré", seatsWord:"sièges",
  t1:"Sièges remportés par famille", t2:"Part des voix vs part des sièges", t3:"Circonscriptions arrivées en tête",
  t2desc:"Barre pleine = part des voix (moyenne par circonscription) ; barre claire = part des sièges. Les écarts traduisent la sur- ou sous-représentation liée au scrutin et aux petites circonscriptions.",
  blocLab:{green:"Écologistes",lfi:"La France insoumise",red:"Gauche (PS, FdM, DVG…)",orange:"Centre (RE, MoDem, Horizons, UCD)",blue:"Droite (LR, DVD)",exd:"Extrême droite (RN, Reconquête)",purple:"ASFE",grey:"Sans étiquette / divers"},
@@ -447,7 +447,7 @@ en:{
  axis:"Vote share of the selected family (lists aggregated)",
  decl1:"reported", declN:"reported", noPub:"no results published yet",
  seat1:"seat", seatN:"seats", seatOf:"(councillor)", notDecl:"Results not yet reported",
- participation:"Turnout", winnerLbl:"Winner", insetNo:"no results reported", seatsWord:"seats",
+ participation:"Turnout", winnerLbl:"Winner", tiedLbl:"Tied", insetNo:"no results reported", seatsWord:"seats",
  t1:"Seats won by family", t2:"Vote share vs seat share", t3:"Constituencies led",
  t2desc:"Solid bar = vote share (average per constituency); light bar = share of seats. The gaps show over- or under-representation from the voting system and small constituencies.",
  blocLab:{green:"Greens",lfi:"La France insoumise (LFI)",red:"Left (PS, FdM, DVG…)",orange:"Centre (RE, MoDem, Horizons, UCD)",blue:"Right (LR, DVD)",exd:"Far right (RN, Reconquête)",purple:"ASFE",grey:"Independent / other"},
@@ -498,6 +498,12 @@ let mapMetric="seats";
 function metricCounts(d){ return d.seats ? (mapMetric==="seats"?d.seats:d.sh) : null; }
 function leaderFam(d){ if(mapMetric!=="seats") return d.win;
   let b=d.win,bv=-1,bs=-1; order.forEach(k=>{const v=(d.seats&&d.seats[k])||0, sv=(d.sh&&d.sh[k])||0; if(v>bv||(v===bv&&sv>bs)){b=k;bv=v;bs=sv;}}); return bv>0?b:d.win; }
+// Returns array of families tied at the top in seats mode (length >= 2) or null if no tie.
+function tiedLeaders(d){ if(mapMetric!=="seats" || !d.seats) return null;
+  let mx=0; for(const k in d.seats) if(d.seats[k]>mx) mx=d.seats[k];
+  if(mx<=0) return null;
+  const tied=order.filter(k=>(d.seats[k]||0)===mx);
+  return tied.length>1?tied:null; }
 const tip=document.getElementById("tip");
 function showTip(e,html){tip.innerHTML=html; tip.style.opacity=1; const w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+14,y=e.clientY+14; if(x+w>window.innerWidth-8)x=e.clientX-w-14; if(x<8)x=8; if(y+h>window.innerHeight-8)y=e.clientY-h-14; if(y<8)y=8; tip.style.left=x+"px"; tip.style.top=y+"px";}
 function hideTip(){tip.style.opacity=0;}
@@ -533,7 +539,10 @@ function buildGlobes(){
       if(mode==="pie"){ const C=metricCounts(d); const ks=order.filter(k=>C[k]>0); const tot=ks.reduce((t,k)=>t+C[k],0)||1;
         if(ks.length===1){ svg+='<circle class="g-pt" data-i="'+idx+'" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+R.toFixed(1)+'" fill="'+blocs[ks[0]].color+'" fill-opacity="0.95" stroke="#fff" stroke-width="0.8"/>'; }
         else { let a=0; ks.forEach(k=>{const a1=a+2*Math.PI*C[k]/tot; svg+='<path class="g-pt" data-i="'+idx+'" d="'+piePath(p[0],p[1],R,a,a1)+'" fill="'+blocs[k].color+'" fill-opacity="0.95" stroke="#fff" stroke-width="0.8"/>'; a=a1;}); }
-      } else { svg+='<circle class="g-pt" data-i="'+idx+'" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+R.toFixed(1)+'" fill="'+blocs[leaderFam(d)].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="1.2"/>'; }
+      } else { const tied=tiedLeaders(d);
+        if(tied){ let a=0, n=tied.length; tied.forEach(k=>{const a1=a+2*Math.PI/n; svg+='<path class="g-pt" data-i="'+idx+'" d="'+piePath(p[0],p[1],R,a,a1)+'" fill="'+blocs[k].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="0.6"/>'; a=a1;}); }
+        else { svg+='<circle class="g-pt" data-i="'+idx+'" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+R.toFixed(1)+'" fill="'+blocs[leaderFam(d)].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="1.2"/>'; }
+      }
     });
     svg+='</svg>';
     const sObj=contSeats[cont]||{}, total=order.reduce((t,k)=>t+(sObj[k]||0),0);
@@ -546,7 +555,11 @@ function buildGlobes(){
       const txt=()=>{const XX=TX(); if(!d.seats) return '<b>'+name(d)+'</b><br>'+(LANG==="fr"?"résultats en attente":"results pending");
         const lead=leaderFam(d), C=metricCounts(d);
         const lines=order.filter(k=>C[k]>0).map(k=>'<span style="color:'+blocs[k].color+'">\u25cf</span> '+(mapMetric==="seats"?(C[k]+' '+blocLab(k)):(pct1(C[k])+' '+blocLab(k))));
-        return '<b>'+name(d)+'</b><br>'+XX.winnerLbl+' : <span style="color:'+blocs[lead].color+'">'+blocLab(lead)+'</span><br>'+lines.join('<br>');};
+        const tied=tiedLeaders(d);
+        const head = tied
+          ? XX.tiedLbl+' : '+tied.map(k=>'<span style="color:'+blocs[k].color+'">'+blocLab(k)+'</span>').join(' · ')
+          : XX.winnerLbl+' : <span style="color:'+blocs[lead].color+'">'+blocLab(lead)+'</span>';
+        return '<b>'+name(d)+'</b><br>'+head+'<br>'+lines.join('<br>');};
       node.addEventListener("mousemove",e=>showTip(e,txt()));
       node.addEventListener("mouseleave",hideTip);
       node.addEventListener("pointerdown",e=>{if(e.pointerType&&e.pointerType!=="mouse"){e.preventDefault();showTip(e,txt());}});
@@ -565,15 +578,21 @@ map.on("drag",function(){map.panInsideBounds(worldBounds,{animate:false});});
 function iconHTML(d,mode){
   const R=Math.round(4+Math.sqrt(d.s)*2.0), size=R*2+6, c=size/2; let inner;
   if(!d.seats) inner='<circle cx="'+c+'" cy="'+c+'" r="'+(R*0.7).toFixed(1)+'" fill="rgba(140,140,140,.18)" stroke="rgba(110,110,110,.5)" stroke-width="1"/>';
-  else if(mode==="winner") inner='<circle cx="'+c+'" cy="'+c+'" r="'+R+'" fill="'+blocs[leaderFam(d)].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="1.4"/>';
+  else if(mode==="winner") {
+    const tied=tiedLeaders(d);
+    if(tied){ const eq={}; tied.forEach(k=>eq[k]=1);
+      inner='<circle cx="'+c+'" cy="'+c+'" r="'+(R+0.5)+'" fill="#fff"/>'+pieInner(eq,R,c,c)+'<circle cx="'+c+'" cy="'+c+'" r="'+R+'" fill="none" stroke="#fff" stroke-width="1.4"/>';
+    } else inner='<circle cx="'+c+'" cy="'+c+'" r="'+R+'" fill="'+blocs[leaderFam(d)].color+'" fill-opacity="0.92" stroke="#fff" stroke-width="1.4"/>';
+  }
   else inner='<circle cx="'+c+'" cy="'+c+'" r="'+(R+0.5)+'" fill="#fff"/>'+pieInner(metricCounts(d),R,c,c)+'<circle cx="'+c+'" cy="'+c+'" r="'+R+'" fill="none" stroke="#fff" stroke-width="1.2"/>';
   return {html:'<svg width="'+size+'" height="'+size+'">'+inner+'</svg>',size:size,c:c};
 }
 function buildPopup(d){
   const X=TX();
   let pop='<b>'+name(d)+'</b><br>'+d.s+' '+(d.s>1?X.seatN:X.seat1)+' '+X.seatOf;
-  if(d.seats){const lead=leaderFam(d), C=metricCounts(d);
-    pop+='<br>'+X.winnerLbl+' : <span style="color:'+blocs[lead].color+'">'+blocLab(lead)+'</span>';
+  if(d.seats){const lead=leaderFam(d), C=metricCounts(d), tied=tiedLeaders(d);
+    if(tied){ pop+='<br>'+X.tiedLbl+' : '+tied.map(k=>'<span style="color:'+blocs[k].color+'">'+blocLab(k)+'</span>').join(' · '); }
+    else { pop+='<br>'+X.winnerLbl+' : <span style="color:'+blocs[lead].color+'">'+blocLab(lead)+'</span>'; }
     pop+='<hr style="margin:5px 0;border:none;border-top:1px solid #ddd">';
     order.forEach(k=>{if(C[k]>0){const val=mapMetric==="seats"?(C[k]+' '+(C[k]>1?X.seatN:X.seat1)):pct1(C[k]);
       pop+='<div style="display:flex;align-items:center"><span style="width:11px;height:11px;border-radius:50%;background:'+blocs[k].color+';display:inline-block;margin-right:5px"></span>'+blocLab(k)+' — <b>&nbsp;'+val+'</b></div>';}});
