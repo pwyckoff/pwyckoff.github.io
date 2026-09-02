@@ -570,7 +570,7 @@ let _grz;window.addEventListener("resize",()=>{clearTimeout(_grz);_grz=setTimeou
 
 /* ---- MAP ---- */
 const map=L.map("map",{worldCopyJump:false,minZoom:2,maxBounds:[[-85,-180],[85,230]],maxBoundsViscosity:0.0}).setView([20,0],2);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",{maxZoom:18,noWrap:false,subdomains:"abcd",attribution:"© OpenStreetMap contributors, © CARTO"}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png?key=cb1_2ryw_1_ffde4aa603479484cd2ec303",{maxZoom:18,noWrap:false,subdomains:"abcd",attribution:"© OpenStreetMap contributors, © CARTO"}).addTo(map);
 const worldBounds=L.latLngBounds([[-85,-180],[85,230]]);
 map.setMaxBounds(worldBounds);
 map.on("drag",function(){map.panInsideBounds(worldBounds,{animate:false});});
