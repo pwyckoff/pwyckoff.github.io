@@ -77,7 +77,14 @@ permalink: /winter/
   .corner.tl { top: 17px; left: 17px; } .corner.tr { top: 17px; right: 17px; }
   .corner.bl { bottom: 17px; left: 17px; } .corner.br { bottom: 17px; right: 17px; }
 
-  .star { width: min(300px, 70vw); height: auto; display: block; }
+  .star { width: min(300px, 70vw); height: auto; display: block; overflow: visible;
+    filter: drop-shadow(0 0 4px rgba(242, 208, 134, 0.7)) drop-shadow(0 0 16px rgba(242, 208, 134, 0.45));
+    animation: glow 5s ease-in-out infinite; }
+  @keyframes glow {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(242, 208, 134, 0.5)) drop-shadow(0 0 10px rgba(242, 208, 134, 0.25)); }
+    50% { filter: drop-shadow(0 0 6px rgba(242, 208, 134, 0.9)) drop-shadow(0 0 24px rgba(242, 208, 134, 0.6)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .star { animation: none; } }
   h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: clamp(36px, 8vw, 46px); line-height: 1.05; }
   .details { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--ink-soft); }
   .when { font-family: var(--serif); font-size: 26px; line-height: 1.2; color: var(--gold); margin-bottom: 8px; }
@@ -124,10 +131,27 @@ permalink: /winter/
   .footnote a:hover { color: var(--gold); border-bottom-color: var(--gold); }
   [hidden] { display: none !important; }
 
+  h1, .details, .footnote { text-wrap: balance; }
+  .nowrap { white-space: nowrap; }
+  .status:empty { min-height: 0; margin-top: -16px; }
+  @media (max-width: 410px) {
+    .when .sep { display: none; }
+    .when .nowrap { display: block; }
+  }
+
   @media (max-width: 480px) {
-    body { padding-left: 10px; padding-right: 10px; }
-    .card { padding: 60px 30px 56px; gap: 36px; }
+    body { padding: max(10px, env(safe-area-inset-top)) 8px max(10px, env(safe-area-inset-bottom)); }
+    .card { padding: 56px 34px 44px; gap: 32px; }
+    .frame { inset: 12px; }
+    .frame.inner { inset: 18px; }
+    .corner { width: 8px; height: 8px; }
+    .corner.tl { top: 8px; left: 8px; } .corner.tr { top: 8px; right: 8px; }
+    .corner.bl { bottom: 8px; left: 8px; } .corner.br { bottom: 8px; right: 8px; }
+    .star { width: min(240px, 62vw); }
     .when { font-size: 23px; }
+    .details { font-size: 17px; }
+    .aside { font-size: 18px; }
+    .choice { padding: 13px 6px; font-size: 15px; }
   }
 </style>
 </head>
@@ -160,7 +184,7 @@ permalink: /winter/
   <h1>The Midst of Winter</h1>
 
   <div class="details">
-    <span class="when">Sunday 6 December · 3 PM onwards</span>
+    <span class="when"><span class="nowrap">Sunday 6 December</span><span class="sep"> · </span><span class="nowrap">3 PM onwards</span></span>
     <span>Address on your invitation, or just ask</span>
     <span class="aside first">Warm drinks and good company</span>
     <span class="aside">Baked goods aplenty, and welcome</span>
