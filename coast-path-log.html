@@ -114,6 +114,10 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .entry-text { min-width: 0; }
 .entry .route { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .entry .meta { display: block; color: var(--ink-2); font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.entry-hide { flex: none; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; font-size: .8125rem; padding: 0 6px; opacity: .55; }
+.entry:hover .entry-hide, .entry-hide:focus-visible { opacity: 1; }
+.entry-hide:hover { text-decoration: underline; }
+.entry.is-hidden .route, .entry.is-hidden .meta { opacity: .6; }
 .entry-remove { flex: none; width: 36px; border: 0; background: transparent; color: var(--line); cursor: pointer; font-size: 1.125rem; }
 .entry:hover .entry-remove { color: var(--ink-2); }
 .entry-remove:hover, .entry-remove:focus-visible { color: var(--danger) !important; }
@@ -207,6 +211,15 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .leaflet-container a.leaflet-popup-close-button { color: var(--ink-2); }
 .leaflet-tooltip { background: var(--surface); color: var(--ink); border: 1px solid var(--ink); border-radius: 3px; box-shadow: none; font-family: var(--font); font-size: .8125rem; }
 .leaflet-tooltip-top::before { border-top-color: var(--ink); }
+.stn { background: var(--surface); border: 2px solid var(--ink); border-radius: 1px; box-sizing: border-box; cursor: pointer; }
+.stn:hover { background: var(--ink); }
+.leaflet-tooltip.stn-name {
+  display: none; background: transparent; border: 0; box-shadow: none; padding: 0;
+  color: var(--ink); font-size: .75rem; font-weight: 600; letter-spacing: .01em;
+  text-shadow: 0 0 2px var(--surface), 0 0 2px var(--surface), 0 0 3px var(--surface);
+}
+.leaflet-tooltip.stn-name::before { display: none; }
+.show-stn-names .leaflet-tooltip.stn-name { display: block; }
 .pop-title { color: var(--ink-2); font-size: .8125rem; }
 .pop-route { font-weight: 600; }
 .pop-meta { color: var(--ink-2); font-size: .875rem; }
@@ -219,7 +232,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .drop.over { border-style: solid; border-color: var(--ink); background: var(--surface-2); }
 .howto { color: var(--ink-2); font-size: .875rem; }
 .howto summary { cursor: pointer; color: var(--ink); min-height: 30px; }
-.howto p { margin-top: 4px; }
+.howto h4 { margin: 10px 0 2px; font-size: .875rem; font-weight: 600; color: var(--ink); }
+.howto ol { margin: 0; padding-left: 1.25em; }
+.howto li { margin: 2px 0; }
+.howto p { margin-top: 2px; }
+.howto .aside { margin-top: 8px; font-size: .8125rem; }
 .import-tools { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
 .cands { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
 .cands:empty { border-top: 0; }
@@ -269,6 +286,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       <button class="chip" data-filter="walk" aria-pressed="false" type="button"><span class="swatch walk" aria-hidden="true"></span>Walk</button>
       <button class="chip" data-filter="cycle" aria-pressed="false" type="button"><span class="swatch cycle" aria-hidden="true"></span>Cycle</button>
       <button class="chip" data-filter="other" aria-pressed="false" type="button"><span class="swatch other" aria-hidden="true"></span>Other</button>
+      <button class="chip" data-filter="hidden" aria-pressed="false" type="button" hidden>Hidden <span id="hiddenCount"></span></button>
     </div>
 
     <ul class="entries" id="entries" aria-label="Walks"></ul>
@@ -355,10 +373,18 @@ button, input, textarea, select { font: inherit; color: inherit; }
         <input type="file" id="impFile" multiple hidden
                accept=".gpx,.tcx,.gz,.zip,.csv,application/zip,application/gpx+xml,text/csv">
       </div>
-      <details class="howto">
-        <summary>Getting files from Strava</summary>
-        <p>One activity: its ⋯ menu, then Export GPX.</p>
-        <p>Everything: Settings, My Account, Download or Delete Your Account. Drop the .zip here.</p>
+      <details class="howto" id="howto" open>
+        <summary>Getting your files from Strava</summary>
+        <h4>Your whole history</h4>
+        <ol>
+          <li>On strava.com in a browser (not the app), open Settings, then My Account.</li>
+          <li>Under Download your account, choose Get Started and request your archive.</li>
+          <li>Strava emails a download link, usually within a few hours. Save the .zip.</li>
+          <li>Drop the .zip here as it is, without unzipping.</li>
+        </ol>
+        <h4>A single activity</h4>
+        <p>Open it on strava.com, choose the ⋯ menu, then Export GPX. FIT files won’t read here.</p>
+        <p class="aside">Archive too big for the browser? Unzip it and drop the files from its activities folder together with activities.csv.</p>
       </details>
       <p class="status" id="impStatus" aria-live="polite"></p>
       <div class="import-tools" id="impTools" hidden>
@@ -399,20 +425,33 @@ button, input, textarea, select { font: inherit; color: inherit; }
       minSectionM: 250,  // shorter touches (crossing the path on the way inland) are dropped
       snapMaxM: 3000,    // the log flow snaps pins within this distance onto the line
       england: 'https://services.arcgis.com/JJzESW51TqeY9uat/ArcGIS/rest/services/England_Coast_Path_Route/FeatureServer/0/query',
+      // Defra's own copy of the same Natural England dataset, which may carry
+      // more recent approvals; used to fill gaps like OpenStreetMap
+      englandDefra: 'https://environment.data.gov.uk/arcgis/rest/services/NE/EnglandCoastPathRoute/FeatureServer/0/query',
       walesRelation: 1820890,
+      // OpenStreetMap's England Coast Path, used only to fill stretches missing
+      // from Natural England's layer, which holds approved stretches only
+      englandOsmRelation: 3971851,
+      fillMinM: 300,     // fill pieces shorter than this are ignored
+      fillJoinM: 300,    // fill pieces reach to the nearest official line end within this
+      stationsMaxM: 2500, // railway stations within this distance of the path are shown
       overpass: ['https://overpass.kumi.systems/api/interpreter', 'https://overpass-api.de/api/interpreter']
     },
     tiles: {
       // Stadia works on localhost without a key; on pwyckoff.github.io add the
       // domain to a free Stadia account. Each falls back to CARTO if tiles fail.
       // To keep the terrain map in dark mode too, set dark: to the light entry.
+      // Terrain background (hills, water, land cover) with the labels layer on
+      // top: the road network is left out entirely
       light: {
-        url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png',
+        url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png',
+        overlay: 'https://tiles.stadiamaps.com/tiles/stamen_terrain_labels/{z}/{x}/{y}{r}.png',
         attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 18, className: 'base-terrain'
       },
       lightFallback: {
-        url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+        overlay: 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
         maxZoom: 19, subdomains: 'abcd'
       },
@@ -437,7 +476,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     cycle: { label: 'Cycle', what: 'cycled', dash: '9 7' },
     other: { label: 'Other', what: 'other ways', dash: '1 8' }
   };
-  const PATH_ATTRIB = 'Coast path: &copy; Natural England, contains OS data &copy; Crown copyright; Wales Coast Path &copy; OpenStreetMap contributors';
+  const PATH_ATTRIB = 'Coast path: &copy; Natural England, contains OS data &copy; Crown copyright; gaps and Wales Coast Path &copy; OpenStreetMap contributors';
 
   /* =========================================================
      Helpers
@@ -558,14 +597,14 @@ button, input, textarea, select { font: inherit; color: inherit; }
   const CELL_LAT = 0.01, CELL_LON = 0.016;    // roughly 1.1 km square in England and Wales
   const cellKey = (i, j) => i * 8192 + (j + 4096);
 
-  function buildIndex(lines) {
+  function buildIndex(lines, ix = PATH) {
     let n = 0;
     lines.forEach(l => { n += l.length - 1; });
     const segs = new Float64Array(n * 4);
     const segLine = new Int32Array(n), segVert = new Int32Array(n);
     const grid = new Map();
     let k = 0;
-    PATH.cum = lines.map(l => {
+    ix.cum = lines.map(l => {
       const c = new Float64Array(l.length);
       for (let i = 1; i < l.length; i++) c[i] = c[i - 1] + distM(l[i - 1], l[i]);
       return c;
@@ -588,10 +627,10 @@ button, input, textarea, select { font: inherit; color: inherit; }
         }
       }
     });
-    PATH.segs = segs;
-    PATH.segLine = segLine;
-    PATH.segVert = segVert;
-    PATH.grid = grid;
+    ix.segs = segs;
+    ix.segLine = segLine;
+    ix.segVert = segVert;
+    ix.grid = grid;
   }
 
   // A graph of the path: line ends within 30 m of each other are joined,
@@ -720,16 +759,16 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   // Nearest point on the path within maxM metres, or null
-  function nearestOnPath(lat, lon, maxM) {
-    if (!PATH.grid) return null;
+  function nearestOnPath(lat, lon, maxM, ix = PATH) {
+    if (!ix.grid) return null;
     const ky = 111320, kx = 111320 * Math.cos(lat * Math.PI / 180);
     const ri = Math.ceil(maxM / (CELL_LAT * ky)), rj = Math.ceil(maxM / (CELL_LON * kx));
     const ci = Math.floor(lat / CELL_LAT), cj = Math.floor(lon / CELL_LON);
-    const segs = PATH.segs;
+    const segs = ix.segs;
     let best = maxM * maxM, bx = 0, by = 0, bk = -1, bt = 0, found = false;
     for (let di = -ri; di <= ri; di++) {
       for (let dj = -rj; dj <= rj; dj++) {
-        const arr = PATH.grid.get(cellKey(ci + di, cj + dj));
+        const arr = ix.grid.get(cellKey(ci + di, cj + dj));
         if (!arr) continue;
         for (const k of arr) {
           const o = k * 4;
@@ -780,11 +819,13 @@ button, input, textarea, select { font: inherit; color: inherit; }
     return { sections, miles: round(metres / M_PER_MI, 2) };
   }
 
-  async function fetchEngland(progress) {
+  const fetchEngland = progress => fetchArcgis(CONFIG.coastPath.england, 'England', progress);
+  const fetchEnglandDefra = progress => fetchArcgis(CONFIG.coastPath.englandDefra, 'England (Defra copy)', progress);
+  async function fetchArcgis(url, label, progress) {
     const lines = [];
     let offset = 0;
     for (;;) {
-      const u = new URL(CONFIG.coastPath.england);
+      const u = new URL(url);
       Object.entries({
         where: '1=1', returnGeometry: 'true', outSR: '4326',
         maxAllowableOffset: '0.00005', geometryPrecision: '5',
@@ -799,20 +840,22 @@ button, input, textarea, select { font: inherit; color: inherit; }
         if (p.length > 1) lines.push(p.map(([x, y]) => [y, x]));
       }));
       offset += feats.length;
-      progress(`Loading path: England, ${fmtWhole(offset)} stretches…`);
+      progress(`Loading path: ${label}, ${fmtWhole(offset)} stretches…`);
       if (!data.exceededTransferLimit || !feats.length) break;
     }
     if (!lines.length) throw new Error('no route came back');
     return lines;
   }
 
-  async function fetchWales(progress) {
-    const q = `[out:json][timeout:180];relation(${CONFIG.coastPath.walesRelation});>>;way._;out geom;`;
+  const fetchWales = progress => fetchRelation(CONFIG.coastPath.walesRelation, 'Wales', progress);
+  const fetchEnglandOsm = progress => fetchRelation(CONFIG.coastPath.englandOsmRelation, 'England gaps', progress);
+  async function fetchRelation(id, label, progress) {
+    const q = `[out:json][timeout:180];relation(${id});>>;way._;out geom;`;
     let lastErr;
     for (const ep of CONFIG.coastPath.overpass) {
       const host = new URL(ep).host;
       try {
-        progress('Loading path: Wales (can take a minute)…');
+        progress(`Loading path: ${label} (can take a minute)…`);
         const res = await fetch(ep, { method: 'POST', body: new URLSearchParams({ data: q }) });
         if (!res.ok) throw new Error(`${host} answered ${res.status}`);
         const data = await res.json();
@@ -829,45 +872,106 @@ button, input, textarea, select { font: inherit; color: inherit; }
     throw lastErr;
   }
 
+  // Pieces of the OSM England route that are not already within reach of the
+  // official line. Each piece is stretched to the nearest official line end so
+  // the two join up for routing.
+  function gapFill(official, osm) {
+    const cp = CONFIG.coastPath;
+    const ix = {};
+    buildIndex(official, ix);
+    const ends = [];
+    official.forEach(l => { ends.push(l[0], l[l.length - 1]); });
+    const nearestEnd = p => {
+      let best = cp.fillJoinM, hit = null;
+      for (const q of ends) {
+        if (Math.abs(q[0] - p[0]) > 0.005 || Math.abs(q[1] - p[1]) > 0.008) continue;
+        const d = distM(p, q);
+        if (d < best) { best = d; hit = q; }
+      }
+      return hit;
+    };
+    const covered = p => !!nearestOnPath(p[0], p[1], cp.bufferM + 50, ix);
+    const fills = [];
+    osm.forEach(way => {
+      // Densify, then keep runs that the official line doesn't cover
+      const pts = [way[0]];
+      for (let i = 1; i < way.length; i++) {
+        const a = way[i - 1], b = way[i];
+        const n = Math.max(1, Math.ceil(distM(a, b) / 50));
+        for (let k = 1; k <= n; k++) pts.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]);
+      }
+      let run = [];
+      const flush = () => {
+        if (run.length > 1 && lineM(run) >= cp.fillMinM) {
+          const a = nearestEnd(run[0]), b = nearestEnd(run[run.length - 1]);
+          if (a) run.unshift(a);
+          if (b) run.push(b);
+          fills.push(simplify(run, 5).map(p => [round(p[0], 5), round(p[1], 5)]));
+        }
+        run = [];
+      };
+      pts.forEach(p => { if (covered(p)) flush(); else run.push(p); });
+      flush();
+    });
+    return fills;
+  }
+
   function setPathStatus(text, retry = false) {
     $('#pathStatus').textContent = text;
     $('#pathBtn').hidden = !retry;
   }
 
-  let pathPromise = null;
+  // Two stages: the official England line and Wales go on the map as soon as
+  // they arrive (ensurePath); the slower gap fills follow (ensureFullPath).
+  // Imports wait for both, so walks on filled stretches aren't skipped.
+  let pathPromise = null, fillPromise = null, currentFill = [];
+  const parts = { england: null, wales: null, englandDefra: null, englandOsm: null };
+  const pathErrors = [];
+
+  async function loadPart(name, fetcher, force) {
+    let cached = null;
+    if (!force) { try { cached = await idb.get('path:' + name); } catch (e) { /* no cache */ } }
+    if (cached && cached.v === PATH_VERSION && Array.isArray(cached.lines)) return cached.lines;
+    const lines = await fetcher(msg => setPathStatus(msg));
+    try { await idb.set('path:' + name, { v: PATH_VERSION, at: new Date().toISOString(), lines }); }
+    catch (e) { /* works this session, refetches next time */ }
+    return lines;
+  }
+
+  function pathSummary(filling) {
+    const eng = PATH.miles.england + PATH.miles.fill;
+    const loaded = [
+      eng && `England ${fmtWhole(eng)} mi${PATH.miles.fill >= 1 ? ` (${fmtWhole(PATH.miles.fill)} filled)` : ''}`,
+      parts.wales && `Wales ${fmtWhole(PATH.miles.wales)} mi`
+    ].filter(Boolean).join(', ');
+    if (pathErrors.length) setPathStatus(`Path: ${loaded}. Missing ${pathErrors.join(', ')}.`, true);
+    else setPathStatus(`Path: ${loaded}${filling ? '; filling gaps…' : ''}`);
+  }
+
+  function installParts() {
+    const lines = [...(parts.england || []), ...currentFill, ...(parts.wales || [])];
+    installPath(lines, {
+      england: parts.england ? lineMilesAll(parts.england) : 0,
+      fill: lineMilesAll(currentFill),
+      wales: parts.wales ? lineMilesAll(parts.wales) : 0
+    });
+  }
+
   function ensurePath(force = false) {
     if (pathPromise && !force) return pathPromise;
     pathPromise = (async () => {
-      const parts = { england: null, wales: null };
-      const errors = [];
-      for (const [name, fetcher] of [['england', fetchEngland], ['wales', fetchWales]]) {
-        let cached = null;
-        if (!force) { try { cached = await idb.get('path:' + name); } catch (e) { /* no cache */ } }
-        if (cached && cached.v === PATH_VERSION && Array.isArray(cached.lines)) { parts[name] = cached.lines; continue; }
-        try {
-          parts[name] = await fetcher(msg => setPathStatus(msg));
-          try { await idb.set('path:' + name, { v: PATH_VERSION, at: new Date().toISOString(), lines: parts[name] }); }
-          catch (e) { /* works this session, refetches next time */ }
-        } catch (e) {
-          errors.push(`${name === 'england' ? 'England' : 'Wales'} (${e.message})`);
-        }
+      pathErrors.length = 0;
+      for (const [name, fetcher, label] of [['england', fetchEngland, 'England'], ['wales', fetchWales, 'Wales']]) {
+        if (parts[name] && !force) continue;
+        try { parts[name] = await loadPart(name, fetcher, force); }
+        catch (e) { pathErrors.push(`${label} (${e.message})`); }
       }
-      const lines = [...(parts.england || []), ...(parts.wales || [])];
-      if (!lines.length) throw new Error(errors.join('; '));
-      installPath(lines, {
-        england: parts.england ? lineMilesAll(parts.england) : 0,
-        wales: parts.wales ? lineMilesAll(parts.wales) : 0
-      });
-      const loaded = [
-        parts.england && `England ${fmtWhole(PATH.miles.england)} mi`,
-        parts.wales && `Wales ${fmtWhole(PATH.miles.wales)} mi`
-      ].filter(Boolean).join(', ');
-      if (errors.length) {
-        pathPromise = null;          // let "Retry path" fetch what's missing
-        setPathStatus(`Path: ${loaded}. Missing ${errors.join(', ')}.`, true);
-      } else {
-        setPathStatus(`Path: ${loaded}`);
-      }
+      if (!parts.england && !parts.wales) throw new Error(pathErrors.join('; '));
+      installParts();
+      if (!fillPromise || force) fillPromise = runFills(force);
+      pathSummary(true);
+      fillPromise.then(() => pathSummary(false));
+      if (pathErrors.length) pathPromise = null;   // let "Retry path" fetch what's missing
       return true;
     })().catch(e => {
       pathPromise = null;
@@ -876,15 +980,41 @@ button, input, textarea, select { font: inherit; color: inherit; }
     });
     return pathPromise;
   }
+
+  // Never throws: a missing gap fill just leaves the official line as it is
+  function runFills(force) {
+    return (async () => {
+      for (const [name, fetcher] of [['englandDefra', fetchEnglandDefra], ['englandOsm', fetchEnglandOsm]]) {
+        if (parts[name] && !force) continue;
+        try { parts[name] = await loadPart(name, fetcher, force); }
+        catch (e) { /* optional */ }
+      }
+      // Fill in order of authority: Defra's copy, then OpenStreetMap
+      let base = parts.england || [];
+      const fill = [];
+      for (const extra of [parts.englandDefra, parts.englandOsm]) {
+        if (!extra) continue;
+        await new Promise(r => setTimeout(r));
+        const add = base.length ? gapFill(base, extra) : extra;
+        fill.push(...add);
+        base = [...base, ...add];
+      }
+      currentFill = fill;
+      if (fill.length) installParts();
+    })().catch(() => {});
+  }
+
+  const ensureFullPath = () => ensurePath().then(() => fillPromise);
   const lineMilesAll = lines => lines.reduce((m, l) => m + lineM(l), 0) / M_PER_MI;
 
   const pathLayers = new Map();   // Leaflet map -> [halo, line]
   function prepMap(m) {
-    [['coast', 350], ['ghost', 380], ['ends', 450]].forEach(([name, z]) => {
-      m.createPane(name);
+    [['coast', 350], ['labels', 360], ['ghost', 380], ['stations', 440], ['ends', 450]].forEach(([name, z]) => {
+      if (!m.getPane(name)) m.createPane(name);
       m.getPane(name).style.zIndex = z;
     });
     m.getPane('coast').style.pointerEvents = 'none';
+    m.getPane('labels').style.pointerEvents = 'none';
     m.getPane('ghost').style.pointerEvents = 'none';
     m._coastRenderer = L.canvas({ pane: 'coast', padding: 0.5 });
     m.on('zoomend', () => styleForZoom(m));
@@ -896,6 +1026,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
   function styleForZoom(m) {
     const near = m.getZoom() >= DETAIL_ZOOM;
     m.getPane('ghost').style.display = near ? '' : 'none';
+    m.getPane('stations').style.display = m.getZoom() >= 9 ? '' : 'none';
+    m.getContainer().classList.toggle('show-stn-names', m.getZoom() >= 12);
     m.getPane('ends').style.display = near ? '' : 'none';
     const layers = pathLayers.get(m);
     if (!layers) return;
@@ -914,6 +1046,66 @@ button, input, textarea, select { font: inherit; color: inherit; }
     pathLayers.set(m, [halo, line]);
     styleForZoom(m);
   }
+  /* ---------- Railway stations near the path ---------- */
+  const STATIONS = { list: null };
+  const stationLayers = new Map();
+  async function fetchStations() {
+    const [[s0, w0], [n0, e0]] = CONFIG.bounds;
+    const q = `[out:json][timeout:120];node["railway"~"^(station|halt)$"](${s0},${w0},${n0},${e0});out;`;
+    let lastErr;
+    for (const ep of CONFIG.coastPath.overpass) {
+      try {
+        const res = await fetch(ep, { method: 'POST', body: new URLSearchParams({ data: q }) });
+        if (!res.ok) throw new Error(`${new URL(ep).host} answered ${res.status}`);
+        const data = await res.json();
+        return (data.elements || []).filter(e => {
+          const t = e.tags || {};
+          // Mainline stations only: no Tube, trams, heritage or miniature lines
+          if (!t.name) return false;
+          if (/subway|light_rail|miniature|monorail|funicular/.test(t.station || '')) return false;
+          if (t.usage === 'tourism' || t['railway:preserved'] === 'yes' || t.tourism) return false;
+          if (/underground|metro|tram|heritage/i.test(`${t.network || ''} ${t.operator || ''}`)) return false;
+          return true;
+        }).map(e => ({ name: e.tags.name, lat: e.lat, lon: e.lon }));
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr;
+  }
+  async function loadStations() {
+    let all = null;
+    try {
+      const cached = await idb.get('stations');
+      if (cached && cached.v === PATH_VERSION && Array.isArray(cached.list)) all = cached.list;
+    } catch (e) { /* no cache */ }
+    if (!all) {
+      try {
+        all = await fetchStations();
+        try { await idb.set('stations', { v: PATH_VERSION, at: new Date().toISOString(), list: all }); } catch (e) { /* ok */ }
+      } catch (e) { return; }   // stations are a nicety; the page works without them
+    }
+    STATIONS.list = all
+      .map(st => ({ ...st, near: nearestOnPath(st.lat, st.lon, CONFIG.coastPath.stationsMaxM) }))
+      .filter(st => st.near);
+    allMaps().forEach(drawStationsOn);
+  }
+  function drawStationsOn(m) {
+    if (stationLayers.has(m)) m.removeLayer(stationLayers.get(m));
+    const icon = L.divIcon({ className: 'stn', iconSize: [10, 10] });
+    const group = L.layerGroup(STATIONS.list.map(st => {
+      const mk = L.marker([st.lat, st.lon], { icon, pane: 'stations', keyboard: false, title: st.name });
+      mk.bindTooltip(esc(st.name), { permanent: true, direction: 'right', offset: [6, 0], className: 'stn-name', pane: 'stations' });
+      if (m === pickMap) {
+        // In the log flow, tapping a station starts or ends the walk there
+        mk.on('click', () => { if (flow.step < 3) { flow.labelEdited = false; setPoint(st.lat, st.lon, st.name); } });
+      } else {
+        const d = st.near.dist;
+        mk.bindPopup(`<div class="pop-route">${esc(st.name)}</div><div class="pop-meta">${d < 100 ? 'On the path' : `${d < 1000 ? fmtWhole(d) + ' m' : (d / 1000).toFixed(1) + ' km'} from the path`}</div>`);
+      }
+      return mk;
+    })).addTo(m);
+    stationLayers.set(m, group);
+  }
+
   function installPath(lines, miles) {
     PATH.lines = lines;
     PATH.miles = miles;
@@ -924,6 +1116,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     allMaps().forEach(drawPathOn);
     render();
     fillPlaceNames();
+    loadStations();
   }
   $('#pathBtn').addEventListener('click', () => { setPathStatus('Loading path…'); ensurePath().catch(() => {}); });
 
@@ -932,7 +1125,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
      entries[] are never edited; removals go in voids[].
      Coastal sections, totals and place names are derived.
      ========================================================= */
-  const emptyLog = () => ({ schema: SCHEMA, entries: [], voids: [], places: {} });
+  const emptyLog = () => ({ schema: SCHEMA, entries: [], voids: [], places: {}, hidden: [] });
   let log = loadLog();
 
   function loadLog() {
@@ -943,6 +1136,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       if (!parsed || !Array.isArray(parsed.entries)) return emptyLog();
       parsed.voids = Array.isArray(parsed.voids) ? parsed.voids : [];
       parsed.places = parsed.places && typeof parsed.places === 'object' ? parsed.places : {};
+      parsed.hidden = Array.isArray(parsed.hidden) ? parsed.hidden : [];
       return parsed;
     } catch (e) {
       return emptyLog();
@@ -965,6 +1159,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   const hasTrack = e => Array.isArray(e.track) && e.track.length > 1;
+  const isHidden = e => log.hidden.includes(e.id);
   const derived = new Map();     // entry id -> coastal sections
   function coastal(e) {
     if (!hasTrack(e) || !PATH.grid) return null;
@@ -1065,25 +1260,35 @@ button, input, textarea, select { font: inherit; color: inherit; }
   function setBase(m) {
     const theme = isDark() ? 'dark' : 'light';
     if (m._base && m._base.theme === theme) return;
-    if (m._base) m.removeLayer(m._base.layer);
-    const make = o => L.tileLayer(o.url, {
-      attribution: o.attribution, maxZoom: o.maxZoom, subdomains: o.subdomains || 'abc', className: o.className || ''
+    if (m._base) m._base.layers.forEach(l => m.removeLayer(l));
+    const make = (o, url, extra = {}) => L.tileLayer(url, {
+      attribution: o.attribution, maxZoom: o.maxZoom, subdomains: o.subdomains || 'abc', className: o.className || '', ...extra
     });
-    const layer = make(CONFIG.tiles[theme]);
+    const build = o => {
+      const layers = [make(o, o.url)];
+      if (o.overlay) layers.push(make(o, o.overlay, { attribution: '', className: 'base-labels', pane: 'labels' }));
+      return layers;
+    };
+    const main = CONFIG.tiles[theme];
+    const layers = build(main);
     let anyLoaded = false, errors = 0;
-    layer.on('tileload', () => { anyLoaded = true; });
-    layer.on('tileerror', () => {
-      if (anyLoaded || m._base.layer !== layer || ++errors < 3) return;
-      m.removeLayer(layer);
-      m._base = { theme, layer: make(CONFIG.tiles[theme + 'Fallback']).addTo(m) };
+    layers[0].on('tileload', () => { anyLoaded = true; });
+    layers[0].on('tileerror', () => {
+      if (anyLoaded || m._base.layers[0] !== layers[0] || ++errors < 3) return;
+      layers.forEach(l => m.removeLayer(l));
+      const fb = build(CONFIG.tiles[theme + 'Fallback']);
+      fb.forEach(l => l.addTo(m));
+      m._base = { theme, layers: fb };
     });
-    m._base = { theme, layer: layer.addTo(m) };
+    layers.forEach(l => l.addTo(m));
+    m._base = { theme, layers };
   }
   function newMap(id) {
     const m = L.map(id, { zoomControl: false, zoomSnap: 0.5 }).fitBounds(CONFIG.bounds);
     L.control.zoom({ position: 'topright' }).addTo(m);
-    setBase(m);
     prepMap(m);
+    setBase(m);
+    if (STATIONS.list) drawStationsOn(m);
     return m;
   }
   const allMaps = () => [map, pickMap, impMap].filter(Boolean);
@@ -1100,11 +1305,16 @@ button, input, textarea, select { font: inherit; color: inherit; }
 
   function render() {
     const all = activeEntries();
-    const shown = filter === 'all' ? all : all.filter(e => e.mode === filter);
+    const nHidden = all.filter(isHidden).length;
+    if (filter === 'hidden' && !nHidden) resetFilter();
+    $('[data-filter="hidden"]').hidden = !nHidden;
+    $('#hiddenCount').textContent = nHidden;
+    const shown = filter === 'hidden' ? all.filter(isHidden)
+      : all.filter(e => !isHidden(e) && (filter === 'all' || e.mode === filter));
 
     const total = shown.reduce((s, e) => s + shownMiles(e), 0);
     $('#total').textContent = fmtMi(total);
-    $('#totalWhat').textContent = filter === 'all' ? 'logged' : MODES[filter].what;
+    $('#totalWhat').textContent = filter === 'all' ? 'logged' : filter === 'hidden' ? 'hidden' : MODES[filter].what;
     const days = new Set(shown.map(e => e.date)).size;
     $('#counts').textContent = shown.length
       ? `${shown.length} ${shown.length === 1 ? 'outing' : 'outings'}, ${days} ${days === 1 ? 'day' : 'days'}`
@@ -1118,7 +1328,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
       const miles = c && !c.sections.length
         ? 'off the path'
         : `${isEstimate(e) ? '≈' : ''}${fmtMi(shownMiles(e))} mi`;
-      return `<li class="entry">
+      const hid = isHidden(e);
+      return `<li class="entry${hid ? ' is-hidden' : ''}">
         <button class="entry-main" type="button" data-id="${esc(e.id)}">
           <span class="swatch ${e.mode}" aria-hidden="true"></span>
           <span class="entry-text">
@@ -1126,12 +1337,13 @@ button, input, textarea, select { font: inherit; color: inherit; }
             <span class="meta">${fmtDate(e.date)}, ${miles}<span class="vh">, ${m.label}</span></span>
           </span>
         </button>
+        <button class="entry-hide" type="button" data-hide="${esc(e.id)}" aria-label="${hid ? 'Show' : 'Hide'} ${esc(route)}">${hid ? 'Show' : 'Hide'}</button>
         <button class="entry-remove" type="button" data-remove="${esc(e.id)}" aria-label="Remove ${esc(route)}">×</button>
       </li>`;
     }).join('');
     const empty = $('#empty');
     if (!all.length) { empty.hidden = false; empty.textContent = 'No walks yet.'; }
-    else if (!shown.length) { empty.hidden = false; empty.textContent = 'None yet.'; }
+    else if (!shown.length) { empty.hidden = false; empty.textContent = filter === 'all' ? 'Every walk is hidden.' : 'None yet.'; }
     else empty.hidden = true;
 
     renderBackup();
@@ -1210,6 +1422,16 @@ button, input, textarea, select { font: inherit; color: inherit; }
   $('#entries').addEventListener('click', ev => {
     const main = ev.target.closest('[data-id]');
     if (main) return focusEntry(main.dataset.id);
+    const hide = ev.target.closest('[data-hide]');
+    if (hide) {
+      const id = hide.dataset.hide;
+      const was = log.hidden.includes(id);
+      log.hidden = was ? log.hidden.filter(x => x !== id) : [...log.hidden, id];
+      saveLog();
+      render();
+      toast(was ? 'Back on the map.' : 'Hidden. Find it under Hidden.');
+      return;
+    }
     const rm = ev.target.closest('[data-remove]');
     if (rm) {
       const e = log.entries.find(x => x.id === rm.dataset.remove);
@@ -1261,6 +1483,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
       (Array.isArray(data.voids) ? data.voids : [])
         .filter(v => v && typeof v.id === 'string' && !haveVoids.has(v.id))
         .forEach(v => log.voids.push(v));
+      if (Array.isArray(data.hidden)) {
+        data.hidden.filter(id => typeof id === 'string' && !log.hidden.includes(id)).forEach(id => log.hidden.push(id));
+      }
       if (data.places && typeof data.places === 'object') {
         Object.entries(data.places).forEach(([k, v]) => {
           if (typeof v === 'string' && !(k in log.places)) log.places[k] = v;
@@ -1538,7 +1763,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     };
     log.entries.push(entry);
     if (!saveLog()) { log.entries.pop(); return; }
-    if (filter !== 'all' && filter !== entry.mode) resetFilter();
+    if (filter !== 'all' && filter !== entry.mode) resetFilter();   // includes the Hidden view
     closeFlow();
     render();
     focusEntry(entry.id);
@@ -1605,7 +1830,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     }
     renderCands(false);
     setTimeout(() => { impMap.invalidateSize(); impMap.fitBounds(CONFIG.bounds); }, 0);
-    ensurePath().then(() => { if (!cands.length) $('#impStatus').textContent = ''; }).catch(() => {
+    ensureFullPath().then(() => { if (!cands.length) $('#impStatus').textContent = ''; }).catch(() => {
       $('#impStatus').textContent = 'Path didn’t load. Use Retry path in the side panel.';
     });
     $('#impPick').focus();
@@ -1747,7 +1972,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     const status = $('#impStatus');
     try {
       status.textContent = 'Loading path…';
-      await ensurePath();
+      await ensureFullPath();
     } catch (e) {
       status.textContent = 'Path didn’t load. Use Retry path in the side panel, then try again.';
       return;
@@ -1805,7 +2030,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
         const [a, b] = [c.coast.sections[0][0], c.coast.sections.at(-1).at(-1)].map(toPt);
         c.handLogged = byHand.find(m => m.date === c.date &&
           [m.start, m.end].some(p => haversineMi(p, a) < 0.6 || haversineMi(p, b) < 0.6)) || null;
-        c.checked = !c.dup && !c.handLogged;
+        // An inland hike that only crosses or brushes the path
+        c.minor = c.coast.miles < 1 && c.coast.miles < 0.25 * c.miles;
+        c.checked = !c.dup && !c.handLogged && !c.minor;
         fresh.push(c);
       } catch (e) {
         failed++;
@@ -1828,13 +2055,15 @@ button, input, textarea, select { font: inherit; color: inherit; }
     renderCands(true);
   }
 
-  const sortedCands = () => [...cands].sort((a, b) => b.date.localeCompare(a.date));
+  const sortedCands = () => [...cands].sort((a, b) => (a.minor - b.minor) || b.date.localeCompare(a.date));
 
   function renderCands(fit) {
     $('#impTools').hidden = !cands.length;
+    $('#howto').open = !cands.length;
     $('#cands').innerHTML = sortedCands().map(c => {
       const part = c.miles - c.coast.miles > 0.2 ? ` on the path, of ${fmtMi(c.miles)} mi` : '';
-      const warn = c.handLogged ? `<span class="c-warn">May repeat “${esc(routeText(c.handLogged))}”</span>` : '';
+      const warn = c.handLogged ? `<span class="c-warn">May repeat “${esc(routeText(c.handLogged))}”</span>`
+        : c.minor && !c.dup ? '<span class="c-meta">Mostly inland</span>' : '';
       return `<li class="cand${c.dup ? ' dup' : ''}">
         <input type="checkbox" data-k="${esc(c.key)}" ${c.checked && !c.dup ? 'checked' : ''} ${c.dup ? 'disabled' : ''} aria-label="Include ${esc(c.name)}, ${fmtDate(c.date)}">
         <button class="c-name" type="button" data-zoom="${esc(c.key)}" title="Show on map">${esc(c.name)}</button>
