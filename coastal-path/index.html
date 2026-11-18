@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-WWNNy6VPWBmhj/uVLEg+wvBizE+/LcBIdXG3GMi9Lzk='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-XuV4t7arfioJPkOYWlRyl1y9QgKc5z1U4XbJ+cXURe4='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -211,6 +211,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .stretches .s-bar { height: 5px; background: var(--surface-2); border: 1px solid var(--line); }
 .stretches .s-bar i { display: block; height: 100%; background: var(--path); }
 .stretches .s-pct { font-size: .8125rem; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+.plan-intro summary { cursor: pointer; font-size: .875rem; color: var(--ink-2); }
+.plan-intro[open] summary { margin-bottom: 4px; }
+.plan-intro p { font-size: .9375rem; }
+.plan-steps { margin: 6px 0 0; padding-left: 1.3em; color: var(--ink-2); font-size: .875rem; }
+.plan-steps li { margin: 3px 0; }
 .plan-h { list-style: none; font-size: .8125rem; font-weight: 600; color: var(--ink-2); padding: 12px 0 4px; border-bottom: 1px solid var(--rule); }
 #planList { flex: none; }
 #planList .stay { display: block; color: var(--ink-2); font-size: .8125rem; font-style: italic; }
@@ -463,7 +468,22 @@ button, input, textarea, select { font: inherit; color: inherit; }
     <!-- Plan -->
     <section class="tab" data-tab="plan" hidden>
       <div class="tab-body">
-        <p class="hint" id="planHint">Tap a station on the map, then choose Plan from here.</p>
+        <details class="plan-intro" id="planIntro" open>
+          <summary>How to plan</summary>
+          <p>Find walks that cover path you haven’t walked yet.</p>
+          <ol class="plan-steps">
+            <li>Tap a station on the map, or anywhere on the path. Or search for a station or town.</li>
+            <li>Choose a trip to see its route, with places to stay on longer ones.</li>
+            <li>Once you’ve walked it, press Log this walk.</li>
+          </ol>
+        </details>
+        <form class="search" id="planSearch" role="search">
+          <label class="vh" for="planQ">Station or town</label>
+          <input id="planQ" type="search" placeholder="Station or town" autocomplete="off" enterkeyhint="search">
+          <button class="btn" type="submit">Find</button>
+        </form>
+        <p class="status" id="planStatus" aria-live="polite"></p>
+        <ul class="results" id="planMatches"></ul>
         <h2 class="tab-h" id="planFrom" hidden></h2>
         <div class="filters" id="planDay" role="group" aria-label="A day’s walk" hidden>
           <span class="plan-day-label">A day’s walk</span>
@@ -699,6 +719,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   };
 
   const SCHEMA = 1;
+  let tab = 'log';                      // the open section: log, facts, visuals, plan or data
   const PATH_VERSION = 1;
   const DETAIL_ZOOM = 10;       // markers and full GPS tracks appear from this zoom
   const MODES = {
@@ -965,6 +986,89 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (!s) return null;
     const line = PATH.segLine[s.k], v = PATH.segVert[s.k], c = PATH.cum[line];
     return { line, pos: c[v - 1] + s.t * (c[v] - c[v - 1]) };
+  }
+
+  // Routes along the path from one point to many: one outward sweep of the
+  // graph, then each route is read back from it. Much faster than one search
+  // per destination when planning trips of several days.
+  function routesFrom(from, targets, maxM) {
+    if (!PATH.graph) return [];
+    const snap = CONFIG.coastPath.snapMaxM;
+    const a = locate(from, snap);
+    if (!a) return [];
+    const { nodeAt, root, adj, n } = PATH.graph;
+    const around = q => {
+      const list = nodeAt[q.line];
+      let lo = list[0], hi = list[list.length - 1];
+      for (const x of list) {
+        if (x.pos <= q.pos && x.pos >= lo.pos) lo = x;
+        if (x.pos >= q.pos && x.pos <= hi.pos) hi = x;
+      }
+      return [lo, hi];
+    };
+    const [alo, ahi] = around(a);
+    const dist = new Float64Array(n).fill(Infinity);
+    const prevNode = new Int32Array(n).fill(-1);
+    const prevEdge = new Array(n), seedPos = new Float64Array(n);
+    const heap = [];
+    const push = (d, v) => {
+      heap.push([d, v]);
+      let i = heap.length - 1;
+      while (i > 0) { const pi = (i - 1) >> 1; if (heap[pi][0] <= heap[i][0]) break; [heap[pi], heap[i]] = [heap[i], heap[pi]]; i = pi; }
+    };
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1, r = l + 1;
+          let m = i;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === i) break;
+          [heap[m], heap[i]] = [heap[i], heap[m]];
+          i = m;
+        }
+      }
+      return top;
+    };
+    const seed = (node, d) => { const v = root(node.id); if (d < dist[v]) { dist[v] = d; seedPos[v] = node.pos; push(d, v); } };
+    seed(alo, a.pos - alo.pos);
+    seed(ahi, ahi.pos - a.pos);
+    while (heap.length) {
+      const [d, v] = pop();
+      if (d > dist[v]) continue;
+      if (d > maxM) break;
+      for (const [w, len, li, p0, p1] of adj[v]) {
+        if (d + len < dist[w]) { dist[w] = d + len; prevNode[w] = v; prevEdge[w] = [li, p0, p1]; push(d + len, w); }
+      }
+    }
+    return targets.map(t => {
+      const b = locate(t, snap);
+      if (!b) return null;
+      const [blo, bhi] = around(b);
+      let best = a.line === b.line ? Math.abs(a.pos - b.pos) : Infinity, via = null, at = 0;
+      const lo = root(blo.id), hi = root(bhi.id);
+      if (dist[lo] + (b.pos - blo.pos) < best) { best = dist[lo] + (b.pos - blo.pos); via = lo; at = blo.pos; }
+      if (dist[hi] + (bhi.pos - b.pos) < best) { best = dist[hi] + (bhi.pos - b.pos); via = hi; at = bhi.pos; }
+      if (best === Infinity || best > maxM) return null;
+      let coords;
+      if (via == null) coords = sliceLine(a.line, a.pos, b.pos);
+      else {
+        const steps = [];
+        let v = via;
+        while (prevNode[v] >= 0) { steps.push(prevEdge[v]); v = prevNode[v]; }
+        steps.reverse();
+        coords = sliceLine(a.line, a.pos, seedPos[v]);
+        steps.forEach(([li, p0, p1]) => coords.push(...sliceLine(li, p0, p1).slice(1)));
+        coords.push(...sliceLine(b.line, at, b.pos).slice(1));
+      }
+      const miles = lineM(coords) / M_PER_MI;
+      // Coastal routes wind, but not endlessly: a huge detour means a gap in the data
+      if (miles > 4 * haversineMi(from, t) + 5) return null;
+      return { t, coords, miles: round(miles, 2) };
+    });
   }
 
   // Shortest way along the path between two points: { coords, miles } or null
@@ -1400,7 +1504,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
   function styleForZoom(m) {
     const near = m.getZoom() >= DETAIL_ZOOM;
     m.getPane('ghost').style.display = near ? '' : 'none';
-    m.getPane('stations').style.display = m.getZoom() >= 11 ? '' : 'none';
+    const planning = tab === 'plan' && m.getContainer().id === 'map';
+    m.getPane('stations').style.display = m.getZoom() >= (planning ? 9 : 11) ? '' : 'none';
     m.getContainer().classList.toggle('show-stn-names', m.getZoom() >= 13);
     if (m._base) m._base.layers.forEach(l => { if (l.options.className === 'base-lines') l.setOpacity(roadOpacity(m)); });
     m.getPane('ends').style.display = near ? '' : 'none';
@@ -1476,6 +1581,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
         mk.on('click', () => { if (flow.step < 3) { flow.labelEdited = false; setPoint(st.lat, st.lon, st.name); } });
       } else {
         const d = st.near.dist;
+        mk.on('click', () => { if (tab === 'plan') setTimeout(() => planFrom(si), 0); });
         mk.bindPopup(`<div class="pop-route">${esc(st.name)}</div><div class="pop-meta">${d < 100 ? 'On the path' : `${d < 1000 ? fmtWhole(d) + ' m' : (d / 1000).toFixed(1) + ' km'} from the path`}</div>
           <button class="pop-btn" type="button" data-plan-st="${si}">Plan from here</button>`);
       }
@@ -2897,7 +3003,6 @@ button, input, textarea, select { font: inherit; color: inherit; }
   /* =========================================================
      Tabs: Log, Facts, Visuals, Plan, Data
      ========================================================= */
-  let tab = 'log';
   function showTab(t) {
     tab = t;
     document.querySelectorAll('.rail-btn').forEach(b => {
@@ -2909,6 +3014,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (t === 'visuals') renderVisuals();
     if (t === 'data') renderData();
     if (t !== 'plan') clearPlanPreview();
+    styleForZoom(map);                         // stations show from further out in Plan
     if (t !== 'visuals') setTimeout(() => map.invalidateSize(), 0);
   }
   document.querySelectorAll('.rail-btn').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -3090,11 +3196,12 @@ button, input, textarea, select { font: inherit; color: inherit; }
      Plan: from a station, walks with the most new path, from a
      day out to several days with nights along the way
      ========================================================= */
-  let planLayer = null, planChoice = null, planResults = [], planOrigin = null;
-  const PLAN_MAX_MI = 45;                       // the longest trip worth suggesting
+  let planLayer = null, planStartLayer = null, planChoice = null, planResults = [], planOrigin = null;
+  const PLAN_MAX_DAYS = 6;                      // the longest trip worth suggesting, in days
   const dayMiles = () => Number(settings.planDay) || 12;
   function clearPlanPreview() {
     if (planLayer) { map.removeLayer(planLayer); planLayer = null; }
+    if (planStartLayer) { map.removeLayer(planStartLayer); planStartLayer = null; }
   }
   function newMilesAlong(coords) {
     let total = 0, fresh = 0;
@@ -3143,14 +3250,25 @@ button, input, textarea, select { font: inherit; color: inherit; }
     return out;
   }
 
-  function planFrom(si) {
-    const st = STATIONS.list[si];
+  const planFrom = si => planFromPoint(STATIONS.list[si]);
+  // Start a plan from a station, a town, or a spot on the path: { name, lat, lon }
+  function planFromPoint(st) {
     if (!st || !PATH.graph) return;
-    planOrigin = si;
+    if (!locate(st, CONFIG.coastPath.snapMaxM)) {
+      showTab('plan');
+      $('#planStatus').textContent = `${st.name} isn’t within ${fmtWhole(CONFIG.coastPath.snapMaxM / 1000)} km of the coast path.`;
+      return;
+    }
+    planOrigin = st;
     showTab('plan');
+    // Bring the start into view, close enough for nearby stations to show
+    if (!map.getBounds().contains([st.lat, st.lon]) || map.getZoom() < 9) map.setView([st.lat, st.lon], Math.max(map.getZoom(), 10));
     map.closePopup();
     clearPlanPreview();
-    $('#planHint').hidden = true;
+    $('#planIntro').open = false;
+    $('#planQ').value = '';
+    $('#planMatches').innerHTML = '';
+    $('#planStatus').textContent = '';
     $('#planFrom').hidden = false;
     $('#planFrom').textContent = `From ${st.name}`;
     $('#planDay').hidden = false;
@@ -3158,49 +3276,67 @@ button, input, textarea, select { font: inherit; color: inherit; }
     $('#planList').innerHTML = '<li class="hint">Working it out…</li>';
     $('#planLog').hidden = true;
     planChoice = { from: st, to: null, route: null };
-    const token = planOrigin + ':' + dayMiles() + ':' + Date.now();
-    planFrom.token = token;
-    // Work through nearby stations in small batches so the page stays responsive
-    const cands = STATIONS.list.map((t, ti) => ({ t, ti }))
-      .filter(({ t, ti }) => ti !== si && haversineMi(st, t) < PLAN_MAX_MI);   // as the crow flies is never longer than the path
-    const out = [];
-    let k = 0;
-    const step = () => {
-      if (planFrom.token !== token) return;
-      const end = Math.min(cands.length, k + 6);
-      for (; k < end; k++) {
-        const { t } = cands[k];
-        const r = routeAlong(st, t);
-        if (!r || r.miles < 2 || r.miles > PLAN_MAX_MI) continue;
+    const token = `${st.name}:${dayMiles()}:${Date.now()}`;
+    planFromPoint.token = token;
+    // Mark where you start, if it isn't a station already on the map
+    if (!STATIONS.list.includes(st)) {
+      planStartLayer = L.circleMarker([st.lat, st.lon], { radius: 7, color: cssVar('--ink'), weight: 2, fillColor: cssVar('--walk'), fillOpacity: 1 })
+        .bindTooltip(esc(st.name), { direction: 'top' }).addTo(map);
+    }
+    setTimeout(() => {
+      if (planFromPoint.token !== token) return;
+      // Far enough for the longest trip: a little over six days' walking
+      const reach = dayMiles() * 1.1 * PLAN_MAX_DAYS;
+      const targets = STATIONS.list.filter(t => t !== st && t.name !== st.name && haversineMi(st, t) > 0.3 && haversineMi(st, t) < reach);
+      // Towns as a fallback for day walks where no station is within a day
+      const stationNames = new Set(STATIONS.list.map(t => t.name));
+      const towns = COAST_ORDER.filter(([name, lat, lon]) => !stationNames.has(name) && haversineMi(st, { lat, lon }) < dayMiles() * 1.1)
+        .map(([name, lat, lon]) => ({ name, lat, lon, town: true }));
+      const out = [];
+      routesFrom(st, [...targets, ...towns], reach * M_PER_MI).forEach(r => {
+        if (!r || r.miles < 2) return;
         const m = newMilesAlong(r.coords);
-        if (m.fresh < 0.5) continue;
+        if (m.fresh < 0.5) return;
         const days = daysFor(r.miles);
-        out.push({ to: t, route: r, fresh: m.fresh, days, nights: overnights(r.coords, days, st, t) });
-      }
-      if (k < cands.length) { setTimeout(step, 0); return; }
-      showPlans(out);
-    };
-    step();
+        if (days > PLAN_MAX_DAYS) return;
+        out.push({ to: r.t, route: r, fresh: m.fresh, days, nights: [] });
+      });
+      showPlans(out, st);
+    }, 30);
   }
 
-  function showPlans(out) {
-    const pick = (list, n) => list.sort((a, b) => b.fresh - a.fresh || a.route.miles - b.route.miles).slice(0, n);
-    const groups = [
-      ['Day walks', pick(out.filter(p => p.days === 1), 4)],
-      ['Two days, one night', pick(out.filter(p => p.days === 2), 3)],
-      ['Longer', pick(out.filter(p => p.days >= 3), 3)]
-    ].filter(([, list]) => list.length);
-    planResults = groups.flatMap(([, list]) => list);
-    if (!planResults.length) { $('#planList').innerHTML = '<li class="hint">No stations within reach along unwalked path.</li>'; return; }
+  function showPlans(found, from) {
+    let out = found;
+    const byFresh = (a, b) => b.fresh - a.fresh || a.route.miles - b.route.miles;
+    // Day walks; one night away; and for longer trips the best of each length,
+    // so the list spans three days to the best part of a week
+    let day = out.filter(p => p.days === 1 && !p.to.town).sort(byFresh).slice(0, 4);
+    if (!day.length) day = out.filter(p => p.days === 1 && p.to.town).sort(byFresh).slice(0, 2);
+    out = out.filter(p => !p.to.town);
+    const one = out.filter(p => p.days === 2).sort(byFresh).slice(0, 2);
+    const longer = [];
+    for (let d = 3; d <= PLAN_MAX_DAYS; d++) {
+      const best = out.filter(p => p.days === d).sort(byFresh)[0];
+      if (best) longer.push(best);
+    }
+    const trips = [...one, ...longer.slice(0, 4)];
+    [...trips].forEach(p => { p.nights = overnights(p.route.coords, p.days, from, p.to); });
+    planResults = [...day, ...trips];
     let i = 0;
-    $('#planList').innerHTML = groups.map(([title, list]) => `<li class="plan-h">${title}</li>` + list.map(p => {
+    const row = p => {
       const when = p.days > 1 ? `, ${p.days} days` : '';
       const stay = p.nights.length
         ? `<span class="stay">${p.nights.length === 1 ? 'Night' : 'Nights'}: ${p.nights.map(n => n.name ? `${esc(n.name)} (${fmtWhole(n.mi)} mi)` : `around ${fmtWhole(n.mi)} mi`).join(', ')}</span>` : '';
       return `<li class="entry"><button class="entry-main" type="button" data-plan-i="${i++}">
         <span class="entry-text"><span class="route">To ${esc(p.to.name)}</span>
-        <span class="meta">${fmtMi(p.route.miles)} mi${when}, ${fmtMi(p.fresh)} new</span>${stay}</span></button></li>`;
-    }).join('')).join('');
+        <span class="meta">${fmtMi(p.route.miles)} mi${when}, ${fmtMi(p.fresh)} new</span>${stay}${p.to.town ? '<span class="stay">No station at the end</span>' : ''}</span></button></li>`;
+    };
+    const none = text => `<li class="hint">${text}</li>`;
+    $('#planList').innerHTML =
+      `<li class="plan-h">Day walks</li>` + (day.length ? day.map(row).join('') : none('No day walks with new path from here.')) +
+      `<li class="plan-h">Overnight and longer</li>` +
+      (trips.length ? trips.map(row).join('') : '') +
+      (longer.length ? '' : none('No trip of two nights or more from here. The path data may have a gap nearby.'));
   }
 
   $('#planList').addEventListener('click', ev => {
@@ -3220,12 +3356,61 @@ button, input, textarea, select { font: inherit; color: inherit; }
     planChoice.route = p.route;
     $('#planLog').hidden = false;
   });
+  const planMatches = [];
+  $('#planSearch').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const q = $('#planQ').value.trim();
+    if (!q) return;
+    const status = $('#planStatus'), list = $('#planMatches');
+    planMatches.length = 0;
+    list.innerHTML = '';
+    const needle = q.toLowerCase();
+    const seen = new Set();
+    const add = (name, lat, lon, kind) => {
+      if (seen.has(name.toLowerCase()) || !locate({ lat, lon }, CONFIG.coastPath.snapMaxM)) return;
+      seen.add(name.toLowerCase());
+      planMatches.push({ name, lat, lon, kind });
+    };
+    (STATIONS.list || []).filter(t => t.name.toLowerCase().includes(needle)).forEach(t => add(t.name, t.lat, t.lon, 'Station'));
+    COAST_ORDER.filter(([name]) => name.toLowerCase().includes(needle)).forEach(([name, lat, lon]) => add(name, lat, lon, 'Town'));
+    if (!planMatches.length) {
+      status.textContent = 'Searching…';
+      try {
+        const rs = await searchPlaces(q);
+        (Array.isArray(rs) ? rs : []).forEach(r => add(shortLabel(r) || r.display_name, Number(r.lat), Number(r.lon), placeContext(r) || 'Place'));
+      } catch (e) {
+        status.textContent = `Search failed (${e.message}).`;
+        return;
+      }
+    }
+    if (!planMatches.length) { status.textContent = `Nothing near the coast path for “${q}”.`; return; }
+    if (planMatches.length === 1) { planFromPoint(planMatches[0]); return; }
+    status.textContent = '';
+    list.innerHTML = planMatches.slice(0, 8).map((m, i) => `<li><button type="button" data-match="${i}"><span class="r-name">${esc(m.name)}</span><span class="r-more">${esc(m.kind)}</span></button></li>`).join('');
+  });
+  $('#planMatches').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-match]');
+    if (b) planFromPoint(planMatches[Number(b.dataset.match)]);
+  });
+  // In Plan, tapping the path plans from that spot
+  map.on('click', ev => {
+    if (tab !== 'plan') return;
+    const s = nearestOnPath(ev.latlng.lat, ev.latlng.lng, 1000);
+    if (!s) { $('#planStatus').textContent = 'Tap closer to the path, or on a station.'; return; }
+    const spot = { name: 'this spot', lat: round(s.lat, 6), lon: round(s.lon, 6) };
+    planFromPoint(spot);
+    reverseGeocode(spot.lat, spot.lon).then(r => {
+      const name = r && !r.error ? shortLabel(r) : '';
+      if (name && planOrigin === spot) { spot.name = `near ${name}`; $('#planFrom').textContent = `From ${spot.name}`; }
+    }).catch(() => {});
+  });
+
   $('#planDay').addEventListener('click', ev => {
     const c = ev.target.closest('[data-day]');
     if (!c) return;
     settings.planDay = Number(c.dataset.day);
     saveSettings();
-    if (planOrigin != null) planFrom(planOrigin);
+    if (planOrigin) planFromPoint(planOrigin);
   });
 
   $('#planLog').addEventListener('click', () => {
