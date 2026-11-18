@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-TLLkLeQTxWoO+n5q9PgPDoVJKR5CdDrLtJZ/V1NJ0TM='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-5LJ3ysBSId4pZ9k3i1SSJlgflr4QHDaC85recHmesaM='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -217,6 +217,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .visuals { grid-area: map; z-index: 1100; overflow-y: auto; background: var(--surface); padding: 24px; }
 .vis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 28px 32px; max-width: 1400px; align-items: start; }
 .vis-card { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+#vis-strip, #vis-days { grid-column: 1 / -1; max-width: 900px; }
 .vis-card .btn { align-self: flex-end; padding: 0; min-height: 28px; }
 .fine { color: var(--ink-2); font-size: .75rem; }
 .vis-card canvas { width: 100%; height: auto; display: block; }
@@ -3152,13 +3153,15 @@ button, input, textarea, select { font: inherit; color: inherit; }
      ========================================================= */
   const VISUALS = [
     { id: 'map', title: 'Walked so far', w: 1000, h: 1180, draw: drawMapPoster },
+    { id: 'strip', title: 'The path, unrolled', w: 1400, h: 1800, draw: drawStrip },
+    { id: 'days', title: 'Days on the coast', w: 1180, h: () => calendarHeight(), draw: drawCalendar },
     { id: 'lengths', title: 'Walk lengths', w: 1000, h: 560, draw: drawLengths },
     { id: 'progress', title: 'The path over time', w: 1000, h: 560, draw: drawProgress },
     { id: 'months', title: 'When you walk', w: 1000, h: 560, draw: drawMonths }
   ];
   $('#visIndex').innerHTML = VISUALS.map(v => `<li><button type="button" data-vis="${v.id}">${v.title}</button></li>`).join('');
   $('#visGrid').innerHTML = VISUALS.map(v => `<figure class="vis-card" id="vis-${v.id}">
-      <canvas width="${v.w}" height="${v.h}" aria-label="${v.title}"></canvas>
+      <canvas width="${v.w}" height="${typeof v.h === 'function' ? 560 : v.h}" aria-label="${v.title}"></canvas>
       <button class="btn quiet" type="button" data-save="${v.id}">Save PNG</button></figure>`).join('');
   $('#visIndex').addEventListener('click', ev => {
     const b = ev.target.closest('[data-vis]');
@@ -3181,9 +3184,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     VISUALS.forEach(v => {
       const canvas = document.querySelector(`#vis-${v.id} canvas`);
+      const h = typeof v.h === 'function' ? v.h() : v.h;
+      if (canvas.height !== h) canvas.height = h;     // the calendar grows a row each year
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = cssVar('--surface'); ctx.fillRect(0, 0, v.w, v.h);
-      try { v.draw(ctx, v.w, v.h); } catch (e) { console.error(e); }
+      ctx.fillStyle = cssVar('--surface'); ctx.fillRect(0, 0, v.w, h);
+      try { v.draw(ctx, v.w, h); } catch (e) { console.error(e); }
     });
   }
   const C = name => cssVar(name);
@@ -3281,6 +3286,219 @@ button, input, textarea, select { font: inherit; color: inherit; }
     }
     ctx.lineTo(X(d1), Y(100 * count / total));
     ctx.strokeStyle = C('--path'); ctx.lineWidth = 3; ctx.stroke();
+  }
+
+  /* ---------- The path, unrolled: a strip map in Ogilby's manner ----------
+     The path data comes in thousands of unordered pieces. A hand-placed line of
+     coastal towns, from Berwick round to Gretna, puts them in order: each piece
+     is placed by where its middle falls along that line, and turned to run the
+     same way. The pieces are then laid end to end, 100 m per sample. */
+  const COAST_ORDER = [
+    ['Berwick', 55.77, -2.00], ['Bamburgh', 55.61, -1.71], ['Amble', 55.33, -1.58], ['Tynemouth', 55.02, -1.42],
+    ['Sunderland', 54.91, -1.37], ['Hartlepool', 54.69, -1.18], ['Redcar', 54.62, -1.06], ['Whitby', 54.49, -0.61],
+    ['Scarborough', 54.28, -0.40], ['Flamborough', 54.12, -0.08], ['Bridlington', 54.08, -0.19], ['Hornsea', 53.91, -0.17],
+    ['Spurn Head', 53.58, 0.11], ['Hull', 53.74, -0.33], ['Humber Bridge', 53.71, -0.45], ['Grimsby', 53.57, -0.08],
+    ['Mablethorpe', 53.34, 0.26], ['Skegness', 53.14, 0.34], ['Boston', 52.98, -0.02], ['Sutton Bridge', 52.77, 0.19],
+    ['King’s Lynn', 52.75, 0.40], ['Hunstanton', 52.94, 0.49], ['Wells', 52.96, 0.85], ['Cromer', 52.93, 1.30],
+    ['Great Yarmouth', 52.61, 1.73], ['Lowestoft', 52.48, 1.75], ['Southwold', 52.33, 1.68], ['Aldeburgh', 52.15, 1.60],
+    ['Felixstowe', 51.96, 1.35], ['Shotley Gate', 51.95, 1.27], ['Manningtree', 51.94, 1.07], ['Harwich', 51.94, 1.28],
+    ['Clacton', 51.79, 1.15], ['Mersea', 51.78, 0.92], ['Maldon', 51.73, 0.68], ['Burnham-on-Crouch', 51.63, 0.81],
+    ['Southend', 51.54, 0.71], ['Tilbury', 51.46, 0.36], ['Woolwich', 51.49, 0.07], ['Gravesend', 51.44, 0.37],
+    ['Sheppey', 51.40, 0.85], ['Whitstable', 51.36, 1.03], ['Margate', 51.39, 1.38], ['Ramsgate', 51.33, 1.42],
+    ['Dover', 51.12, 1.31], ['Folkestone', 51.08, 1.17], ['Dungeness', 50.91, 0.98], ['Hastings', 50.85, 0.58],
+    ['Eastbourne', 50.77, 0.29], ['Brighton', 50.82, -0.14], ['Worthing', 50.81, -0.37], ['Selsey', 50.73, -0.79],
+    ['Portsmouth', 50.80, -1.09], ['Southampton', 50.90, -1.40], ['Lymington', 50.75, -1.55], ['Bournemouth', 50.72, -1.88],
+    ['Swanage', 50.61, -1.96], ['Weymouth', 50.61, -2.45], ['Lyme Regis', 50.72, -2.94], ['Exmouth', 50.62, -3.41],
+    ['Torquay', 50.46, -3.53], ['Start Point', 50.22, -3.64], ['Plymouth', 50.37, -4.14], ['Fowey', 50.33, -4.64],
+    ['Falmouth', 50.15, -5.07], ['The Lizard', 49.96, -5.20], ['Penzance', 50.12, -5.54], ['Land’s End', 50.07, -5.71],
+    ['St Ives', 50.21, -5.48], ['Newquay', 50.41, -5.08], ['Padstow', 50.54, -4.94], ['Bude', 50.83, -4.55],
+    ['Hartland', 51.02, -4.53], ['Bideford', 51.02, -4.21], ['Ilfracombe', 51.21, -4.12], ['Minehead', 51.21, -3.47],
+    ['Weston-super-Mare', 51.35, -2.98], ['Portishead', 51.48, -2.77], ['Aust', 51.60, -2.63], ['Chepstow', 51.64, -2.67],
+    ['Newport', 51.58, -2.99], ['Cardiff', 51.46, -3.17], ['Barry', 51.39, -3.27], ['Porthcawl', 51.48, -3.70],
+    ['Swansea', 51.62, -3.94], ['Gower', 51.57, -4.29], ['Llanelli', 51.68, -4.16], ['Carmarthen', 51.86, -4.31],
+    ['Tenby', 51.67, -4.70], ['Milford Haven', 51.71, -5.03], ['St Davids', 51.88, -5.27], ['Fishguard', 52.00, -4.98],
+    ['Cardigan', 52.08, -4.66], ['Aberystwyth', 52.41, -4.08], ['Aberdyfi', 52.54, -4.05], ['Barmouth', 52.72, -4.05],
+    ['Porthmadog', 52.93, -4.13], ['Pwllheli', 52.89, -4.42], ['Aberdaron', 52.80, -4.71], ['Caernarfon', 53.14, -4.27],
+    ['Holyhead', 53.31, -4.63], ['Amlwch', 53.41, -4.34], ['Beaumaris', 53.26, -4.09], ['Bangor', 53.23, -4.13],
+    ['Conwy', 53.28, -3.83], ['Rhyl', 53.32, -3.49], ['Flint', 53.25, -3.13], ['Chester', 53.19, -2.89],
+    ['Birkenhead', 53.39, -3.01], ['Southport', 53.65, -3.01], ['Lytham', 53.74, -2.96], ['Blackpool', 53.82, -3.05],
+    ['Fleetwood', 53.92, -3.01], ['Morecambe', 54.07, -2.86], ['Arnside', 54.20, -2.83], ['Barrow', 54.11, -3.23],
+    ['Millom', 54.21, -3.27], ['Ravenglass', 54.35, -3.41], ['Whitehaven', 54.55, -3.59], ['Maryport', 54.71, -3.50],
+    ['Silloth', 54.87, -3.39], ['Gretna', 54.99, -3.07]
+  ];
+  // Position along the reference line (in its own metres) of the nearest point to p
+  const refCum = [0];
+  for (let i = 1; i < COAST_ORDER.length; i++) refCum.push(refCum[i - 1] + distM(COAST_ORDER[i - 1].slice(1), COAST_ORDER[i].slice(1)));
+  function refT(lat, lon) {
+    const kx = Math.cos(lat * Math.PI / 180);
+    let best = Infinity, bt = 0;
+    for (let i = 1; i < COAST_ORDER.length; i++) {
+      const [, a0, a1] = COAST_ORDER[i - 1], [, b0, b1] = COAST_ORDER[i];
+      const ax = (a1 - lon) * kx, ay = a0 - lat, dx = (b1 - a1) * kx, dy = b0 - a0;
+      const len2 = dx * dx + dy * dy;
+      const t = len2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
+      const px = ax + t * dx, py = ay + t * dy, d2 = px * px + py * py;
+      if (d2 < best) { best = d2; bt = refCum[i - 1] + t * (refCum[i] - refCum[i - 1]); }
+    }
+    return bt;
+  }
+  // Path samples in coastal order: { order: [sample index...], places: [[name, k]...], stations: [k...] }
+  function stripOrder() {
+    if (PATH.strip && PATH.strip.v === PATH.version) return PATH.strip;
+    const S = pathSamples();
+    const byLine = new Map();
+    for (let i = 0; i < S.n; i++) { if (!byLine.has(S.line[i])) byLine.set(S.line[i], []); byLine.get(S.line[i]).push(i); }
+    const pieces = [...byLine].map(([li, idx]) => {
+      const a = idx[0], b = idx[idx.length - 1], m = idx[idx.length >> 1];
+      const forward = refT(S.lat[a], S.lon[a]) <= refT(S.lat[b], S.lon[b]);
+      return { t: refT(S.lat[m], S.lon[m]), idx: forward ? idx : [...idx].reverse() };
+    }).sort((x, y) => x.t - y.t);
+    const order = pieces.flatMap(p => p.idx);
+    // Nearest strip position to a point, if within 6 km of the path
+    const nearestK = (lat, lon) => {
+      let best = 6000, bk = -1;
+      for (let k = 0; k < order.length; k += 4) {
+        const i = order[k];
+        if (Math.abs(S.lat[i] - lat) > 0.06 || Math.abs(S.lon[i] - lon) > 0.1) continue;
+        const d = distM([S.lat[i], S.lon[i]], [lat, lon]);
+        if (d < best) { best = d; bk = k; }
+      }
+      return bk;
+    };
+    const places = COAST_ORDER.map(([name, la, lo]) => [name, nearestK(la, lo)]).filter(([, k]) => k >= 0);
+    const stations = (STATIONS.list || []).map(st => nearestK(st.lat, st.lon)).filter(k => k >= 0);
+    return (PATH.strip = { v: PATH.version, order, places, stations });
+  }
+
+  function drawStrip(ctx, w, h) {
+    chartFrame(ctx, w, h, 'The path, unrolled', '');
+    if (!PATH.lines) return emptyNote(ctx, w, h, 'Loading path…');
+    const { S, day } = coverage();
+    const { order, places, stations } = stripOrder();
+    const K = order.length;
+    if (!K) return;
+    const walked = order.filter(i => day[i] < Infinity).length;
+    ctx.fillStyle = C('--ink-2'); ctx.font = '22px Cabin, sans-serif';
+    ctx.fillText(`${pct(walked, K)} walked, from Berwick round to Gretna. Read down each column.`, 48, 104);
+
+    const cols = 7, top = 150, bottom = h - 110, colW = (w - 96) / cols, band = 26;
+    const cap = Math.ceil(K / cols), per = (bottom - top) / cap;
+    const at = k => { const c = Math.floor(k / cap); return [48 + c * colW + colW / 2, top + (k - c * cap) * per]; };
+
+    for (let c = 0; c < cols; c++) {
+      const cx = 48 + c * colW + colW / 2, k0 = c * cap, k1 = Math.min(K, (c + 1) * cap);
+      if (k0 >= K) break;
+      const y1 = top + (k1 - k0) * per;
+      // Wales tinted, like a county shaded on an old map
+      for (let k = k0; k < k1; k++) {
+        const li = S.line[order[k]];
+        if (PATH.meta && PATH.meta.country[li] === 'W') {
+          let e = k; while (e + 1 < k1 && PATH.meta.country[S.line[order[e + 1]]] === 'W') e++;
+          ctx.fillStyle = C('--surface-2'); ctx.fillRect(cx - band / 2, top + (k - k0) * per, band, (e - k + 1) * per);
+          k = e;
+        }
+      }
+      // The ribbon's edges, as on a road-book strip
+      ctx.strokeStyle = C('--rule'); ctx.lineWidth = 1.2;
+      [-band / 2, band / 2].forEach(dx => { ctx.beginPath(); ctx.moveTo(cx + dx, top); ctx.lineTo(cx + dx, y1); ctx.stroke(); });
+      // Unwalked path dotted, walked path solid
+      ctx.setLineDash([1, 5]); ctx.lineCap = 'round'; ctx.strokeStyle = C('--path'); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, y1); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = C('--walk'); ctx.lineWidth = 7; ctx.lineCap = 'butt';
+      for (let k = k0; k < k1; k++) {
+        if (day[order[k]] === Infinity) continue;
+        let e = k; while (e + 1 < k1 && day[order[e + 1]] < Infinity) e++;
+        ctx.beginPath(); ctx.moveTo(cx, top + (k - k0) * per); ctx.lineTo(cx, top + (e - k0 + 1) * per); ctx.stroke();
+        k = e;
+      }
+    }
+    // Stations as small rings on the ribbon's edge
+    ctx.lineWidth = 1.2; ctx.strokeStyle = C('--ink-2'); ctx.fillStyle = C('--surface');
+    stations.forEach(k => { const [x, y] = at(k); ctx.beginPath(); ctx.arc(x + band / 2, y, 3, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); });
+    // Places: a tick across the ribbon, names alternating sides, skipping crowded ones
+    ctx.font = '15px Cabin, sans-serif'; ctx.textBaseline = 'middle';
+    const lastY = {};
+    let side = 1;
+    places.forEach(([name, k]) => {
+      const [x, y] = at(k), c = Math.floor(k / cap);
+      ctx.strokeStyle = C('--ink'); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(x - band / 2 - 3, y); ctx.lineTo(x + band / 2 + 3, y); ctx.stroke();
+      const key = `${c}:${side}`;
+      if (lastY[key] != null && y - lastY[key] < 20) { side = -side; }
+      const key2 = `${c}:${side}`;
+      if (lastY[key2] != null && y - lastY[key2] < 20) return;
+      lastY[key2] = y;
+      ctx.fillStyle = C('--ink'); ctx.textAlign = side > 0 ? 'left' : 'right';
+      ctx.fillText(name, x + side * (band / 2 + 6), y);
+      side = -side;
+    });
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    // Scale and key
+    const mi50 = 50 * M_PER_MI / SAMPLE_M * per;
+    const sy = h - 62;
+    ctx.strokeStyle = C('--ink'); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(48, sy); ctx.lineTo(48 + mi50, sy); ctx.moveTo(48, sy - 6); ctx.lineTo(48, sy + 6); ctx.moveTo(48 + mi50, sy - 6); ctx.lineTo(48 + mi50, sy + 6); ctx.stroke();
+    ctx.fillStyle = C('--ink-2'); ctx.font = '16px Cabin, sans-serif';
+    ctx.fillText('50 miles', 48, sy + 26);
+    const kx = 48 + Math.max(mi50, 90) + 40;
+    ctx.strokeStyle = C('--walk'); ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(kx, sy); ctx.lineTo(kx + 30, sy); ctx.stroke();
+    ctx.fillText('walked', kx + 38, sy + 5);
+    ctx.fillStyle = C('--surface-2'); ctx.fillRect(kx + 120, sy - 8, 30, 16); ctx.strokeStyle = C('--rule'); ctx.lineWidth = 1; ctx.strokeRect(kx + 120, sy - 8, 30, 16);
+    ctx.fillStyle = C('--ink-2'); ctx.fillText('Wales', kx + 158, sy + 5);
+    ctx.strokeStyle = C('--ink-2'); ctx.lineWidth = 1.2; ctx.fillStyle = C('--surface');
+    ctx.beginPath(); ctx.arc(kx + 238, sy, 4, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = C('--ink-2'); ctx.fillText('station', kx + 250, sy + 5);
+  }
+
+  /* ---------- Days on the coast: a calendar, one row per year ---------- */
+  const calendarYears = () => {
+    const ys = activeEntries().filter(e => !isHidden(e)).map(e => Number(e.date.slice(0, 4)));
+    const now = new Date().getFullYear();
+    if (!ys.length) return [now];
+    const out = [];
+    for (let y = Math.max(...ys, now); y >= Math.min(...ys); y--) out.push(y);
+    return out;
+  };
+  const CAL_ROW = 200;                                       // a year's grid plus its heading and a gap
+  const calendarHeight = () => 150 + calendarYears().length * CAL_ROW + 90;
+  function drawCalendar(ctx, w, h) {
+    const walks = activeEntries().filter(e => !isHidden(e));
+    const byDay = new Map();
+    walks.forEach(e => byDay.set(e.date, (byDay.get(e.date) || 0) + shownMiles(e)));
+    const years = calendarYears();
+    chartFrame(ctx, w, h, 'Days on the coast', walks.length ? `${byDay.size} ${byDay.size === 1 ? 'day' : 'days'}, ${fmtWhole([...byDay.values()].reduce((a, b) => a + b, 0))} miles` : '');
+    if (!walks.length) return emptyNote(ctx, w, h, 'Log a walk to see this.');
+    const sq = 16, gap = 3, step = sq + gap, left = 112;
+    const shade = mi => mi <= 0 ? 0 : mi < 3 ? 0.28 : mi < 6 ? 0.5 : mi < 10 ? 0.74 : 1;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    years.forEach((y, r) => {
+      const y0 = 150 + r * CAL_ROW;
+      ctx.fillStyle = C('--ink'); ctx.font = '600 22px Cabin, sans-serif'; ctx.fillText(String(y), 48, y0 + 22);
+      const jan1 = new Date(Date.UTC(y, 0, 1));
+      const offset = (jan1.getUTCDay() + 6) % 7;            // Monday first, as in Britain
+      const days = (Date.UTC(y + 1, 0, 1) - jan1) / 864e5;
+      ctx.font = '13px Cabin, sans-serif'; ctx.fillStyle = C('--ink-2');
+      ['M', 'W', 'F'].forEach((l, i) => ctx.fillText(l, left - 18, y0 + 34 + (i * 2) * step + 12));
+      for (let d = 0; d < days; d++) {
+        const col = Math.floor((d + offset) / 7), row = (d + offset) % 7;
+        const x = left + col * step, yy = y0 + 34 + row * step;
+        const date = new Date(jan1.getTime() + d * 864e5);
+        if (date.getUTCDate() === 1) { ctx.fillStyle = C('--ink-2'); ctx.fillText(months[date.getUTCMonth()], x, y0 + 24); }
+        const iso = date.toISOString().slice(0, 10);
+        const mi = byDay.get(iso) || 0;
+        ctx.fillStyle = C('--surface-2'); ctx.fillRect(x, yy, sq, sq);
+        if (mi > 0) { ctx.globalAlpha = shade(mi); ctx.fillStyle = C('--walk'); ctx.fillRect(x, yy, sq, sq); ctx.globalAlpha = 1; }
+      }
+    });
+    // Key
+    const ky = h - 62;
+    ctx.font = '15px Cabin, sans-serif'; ctx.fillStyle = C('--ink-2'); ctx.fillText('Miles in a day', 48, ky + 13);
+    [['0', 0], ['under 3', 1], ['3–6', 4], ['6–10', 8], ['10+', 12]].forEach(([lab, mi], i) => {
+      const x = 170 + i * 110;
+      ctx.fillStyle = C('--surface-2'); ctx.fillRect(x, ky, sq, sq);
+      if (mi) { ctx.globalAlpha = shade(mi); ctx.fillStyle = C('--walk'); ctx.fillRect(x, ky, sq, sq); ctx.globalAlpha = 1; }
+      ctx.fillStyle = C('--ink-2'); ctx.fillText(lab, x + sq + 8, ky + 13);
+    });
   }
 
   // England and Wales outline from ONS, cached; the coast path stands in if it's unavailable
