@@ -214,11 +214,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .leaflet-container a.leaflet-popup-close-button { color: var(--ink-2); }
 .leaflet-tooltip { background: var(--surface); color: var(--ink); border: 1px solid var(--ink); border-radius: 3px; box-shadow: none; font-family: var(--font); font-size: .8125rem; }
 .leaflet-tooltip-top::before { border-top-color: var(--ink); }
-.stn { background: var(--surface); border: 2px solid var(--ink); border-radius: 1px; box-sizing: border-box; cursor: pointer; }
-.stn:hover { background: var(--ink); }
+.stn { background: var(--surface); border: 1.5px solid var(--ink-2); border-radius: 50%; box-sizing: border-box; cursor: pointer; opacity: .9; }
+.stn:hover { border-color: var(--ink); background: var(--ink); }
 .leaflet-tooltip.stn-name {
   display: none; background: transparent; border: 0; box-shadow: none; padding: 0;
-  color: var(--ink); font-size: .75rem; font-weight: 600; letter-spacing: .01em;
+  color: var(--ink-2); font-size: .6875rem; font-weight: 500; font-style: italic; letter-spacing: .01em;
   text-shadow: 0 0 2px var(--surface), 0 0 2px var(--surface), 0 0 3px var(--surface);
 }
 .leaflet-tooltip.stn-name::before { display: none; }
@@ -448,6 +448,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       fillMinM: 300,     // fill pieces shorter than this are ignored
       fillJoinM: 300,    // fill pieces reach to the nearest official line end within this
       stationsMaxM: 2500, // railway stations within this distance of the path are shown
+      refreshDays: 30,    // cached path and station data older than this is quietly refetched
       overpass: ['https://overpass.kumi.systems/api/interpreter', 'https://overpass-api.de/api/interpreter']
     },
     tiles: {
@@ -864,7 +865,15 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   const fetchWales = progress => fetchRelation(CONFIG.coastPath.walesRelation, 'Wales', progress);
-  const fetchEnglandOsm = progress => fetchRelation(CONFIG.coastPath.englandOsmRelation, 'England gaps', progress);
+  // The main England Coast Path relation, plus any route or way named England
+  // Coast Path: this catches stretches not yet added to the main relation
+  const fetchEnglandOsm = progress => {
+    const [[s0, w0], [n0, e0]] = CONFIG.bounds;
+    const bb = `(${s0},${w0},${n0},${e0})`;
+    return fetchOverpassLines(`[out:json][timeout:180];(relation(${CONFIG.coastPath.englandOsmRelation});` +
+      `relation["route"~"^(hiking|foot|walking)$"]["name"~"England Coast Path",i]${bb};)->.r;` +
+      `(.r;>>;)->.m;(way.m;way["name"~"England Coast Path",i]${bb};);out geom;`, 'England gaps', progress);
+  };
   // POST to an Overpass server, giving up after a few minutes
   async function overpass(ep, q) {
     const ctrl = new AbortController();
@@ -880,8 +889,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
       clearTimeout(timer);
     }
   }
-  async function fetchRelation(id, label, progress) {
-    const q = `[out:json][timeout:180];relation(${id});>>;way._;out geom;`;
+  const fetchRelation = (id, label, progress) =>
+    fetchOverpassLines(`[out:json][timeout:180];relation(${id});>>;way._;out geom;`, label, progress);
+  async function fetchOverpassLines(q, label, progress) {
     let lastErr;
     for (const ep of CONFIG.coastPath.overpass) {
       const host = new URL(ep).host;
@@ -953,15 +963,20 @@ button, input, textarea, select { font: inherit; color: inherit; }
   // Two stages: the official England line and Wales go on the map as soon as
   // they arrive (ensurePath); the slower gap fills follow (ensureFullPath).
   // Imports wait for both, so walks on filled stretches aren't skipped.
-  let pathPromise = null, fillPromise = null, currentFill = [];
+  let pathPromise = null, fillPromise = null, currentFill = [], fillsDone = false;
   const fillErrors = [];
-  const parts = { england: null, wales: null, englandDefra: null, englandOsm: null };
+  const parts = { england: null, wales: null, englandDefra: null, englandOsm2: null };
   const pathErrors = [];
 
+  const isStale = rec => !rec || !rec.at || Date.now() - Date.parse(rec.at) > CONFIG.coastPath.refreshDays * 864e5;
+  const staleParts = new Set();
   async function loadPart(name, fetcher, force, quiet = false) {
     let cached = null;
     if (!force) { try { cached = await idb.get('path:' + name); } catch (e) { /* no cache */ } }
-    if (cached && cached.v === PATH_VERSION && Array.isArray(cached.lines)) return cached.lines;
+    if (cached && cached.v === PATH_VERSION && Array.isArray(cached.lines)) {
+      if (isStale(cached)) staleParts.add(name);
+      return cached.lines;
+    }
     const lines = await fetcher(msg => { if (!quiet) setPathStatus(msg); });
     try { await idb.set('path:' + name, { v: PATH_VERSION, at: new Date().toISOString(), lines }); }
     catch (e) { /* works this session, refetches next time */ }
@@ -976,17 +991,21 @@ button, input, textarea, select { font: inherit; color: inherit; }
     ].filter(Boolean).join(', ');
     if (pathErrors.length) setPathStatus(`Path: ${loaded}. Missing ${pathErrors.join(', ')}.`, true);
     else if (filling) setPathStatus(`Path: ${loaded}; filling gaps…`);
-    else if (!PATH.miles.fill && fillErrors.length) setPathStatus(`Path: ${loaded}. Gaps not filled (${fillErrors.join('; ')}).`, true);
+    else if (fillErrors.length) setPathStatus(`Path: ${loaded}. Gaps not filled (${fillErrors.join('; ')}).`, true);
     else setPathStatus(`Path: ${loaded}`);
   }
 
+  // Walks you count in full also extend the path line where nothing is mapped
   function installParts() {
-    const lines = [...(parts.england || []), ...currentFill, ...(parts.wales || [])];
-    installPath(lines, {
+    const mapped = [...(parts.england || []), ...currentFill, ...(parts.wales || [])];
+    const yours = activeEntries().filter(e => isWhole(e) && !isHidden(e) && hasTrack(e)).map(e => e.track);
+    const own = mapped.length && yours.length ? gapFill(mapped, yours) : [];
+    installPath([...mapped, ...own], {
       england: parts.england ? lineMilesAll(parts.england) : 0,
-      fill: lineMilesAll(currentFill),
+      fill: lineMilesAll(currentFill) + lineMilesAll(own),
       wales: parts.wales ? lineMilesAll(parts.wales) : 0
     });
+    pathSummary(!fillsDone);
   }
 
   function ensurePath(force = false) {
@@ -1016,16 +1035,18 @@ button, input, textarea, select { font: inherit; color: inherit; }
   // Never throws: a missing gap fill just leaves the official line as it is
   function runFills(force) {
     fillErrors.length = 0;
+    fillsDone = false;
     return (async () => {
-      for (const [name, fetcher] of [['englandDefra', fetchEnglandDefra], ['englandOsm', fetchEnglandOsm]]) {
+      for (const [name, fetcher] of [['englandDefra', fetchEnglandDefra], ['englandOsm2', fetchEnglandOsm]]) {
         if (parts[name] && !force) continue;
         try { parts[name] = await loadPart(name, fetcher, force, true); }
-        catch (e) { fillErrors.push(`${name === 'englandOsm' ? 'OpenStreetMap' : 'Defra'}: ${e.message}`); }
+        catch (e) { if (name === 'englandOsm2') fillErrors.push(e.message); }
       }
       // Fill in order of authority: Defra's copy, then OpenStreetMap
-      let base = parts.england || [];
+      // Wales counts as covered too, so the wider search can't add Welsh duplicates
+      let base = [...(parts.england || []), ...(parts.wales || [])];
       const fill = [];
-      for (const extra of [parts.englandDefra, parts.englandOsm]) {
+      for (const extra of [parts.englandDefra, parts.englandOsm2]) {
         if (!extra) continue;
         await new Promise(r => setTimeout(r));
         const add = base.length ? gapFill(base, extra) : extra;
@@ -1033,11 +1054,36 @@ button, input, textarea, select { font: inherit; color: inherit; }
         base = [...base, ...add];
       }
       currentFill = fill;
+      fillsDone = true;
       if (fill.length) installParts();
-    })().catch(() => {});
+      if (staleParts.size && !refreshing) refreshStale();
+    })().catch(() => { fillsDone = true; });
   }
 
   const ensureFullPath = () => ensurePath().then(() => fillPromise);
+
+  // New stretches open over time, and the sources catch up: about once a month,
+  // refetch each source quietly, then redraw the path if anything came back.
+  // The cached copy keeps the page working meanwhile and if a refetch fails.
+  let refreshing = false;
+  async function refreshStale() {
+    refreshing = true;
+    const fetchers = { england: fetchEngland, wales: fetchWales, englandDefra: fetchEnglandDefra, englandOsm2: fetchEnglandOsm };
+    let changed = false;
+    for (const name of [...staleParts]) {
+      try {
+        parts[name] = await loadPart(name, fetchers[name], true, true);
+        staleParts.delete(name);
+        changed = true;
+      } catch (e) { /* keep the cached copy; try again next visit */ }
+    }
+    if (changed) {
+      fillPromise = runFills(false);
+      await fillPromise;
+      installParts();
+    }
+    refreshing = false;
+  }
   const lineMilesAll = lines => lines.reduce((m, l) => m + lineM(l), 0) / M_PER_MI;
 
   const pathLayers = new Map();   // Leaflet map -> [halo, line]
@@ -1059,8 +1105,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
   function styleForZoom(m) {
     const near = m.getZoom() >= DETAIL_ZOOM;
     m.getPane('ghost').style.display = near ? '' : 'none';
-    m.getPane('stations').style.display = m.getZoom() >= 9 ? '' : 'none';
-    m.getContainer().classList.toggle('show-stn-names', m.getZoom() >= 12);
+    m.getPane('stations').style.display = m.getZoom() >= 11 ? '' : 'none';
+    m.getContainer().classList.toggle('show-stn-names', m.getZoom() >= 13);
     if (m._base) m._base.layers.forEach(l => { if (l.options.className === 'base-lines') l.setOpacity(roadOpacity(m)); });
     m.getPane('ends').style.display = near ? '' : 'none';
     const layers = pathLayers.get(m);
@@ -1104,11 +1150,15 @@ button, input, textarea, select { font: inherit; color: inherit; }
     throw lastErr;
   }
   async function loadStations() {
-    let all = null;
+    let all = null, stale = false;
     try {
       const cached = await idb.get('stations');
-      if (cached && cached.v === PATH_VERSION && Array.isArray(cached.list)) all = cached.list;
+      if (cached && cached.v === PATH_VERSION && Array.isArray(cached.list)) { all = cached.list; stale = isStale(cached); }
     } catch (e) { /* no cache */ }
+    if (stale) {
+      // Draw what we have, then fetch a fresh list for next time
+      fetchStations().then(list => idb.set('stations', { v: PATH_VERSION, at: new Date().toISOString(), list })).catch(() => {});
+    }
     if (!all) {
       try {
         all = await fetchStations();
@@ -1122,10 +1172,10 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
   function drawStationsOn(m) {
     if (stationLayers.has(m)) m.removeLayer(stationLayers.get(m));
-    const icon = L.divIcon({ className: 'stn', iconSize: [10, 10] });
+    const icon = L.divIcon({ className: 'stn', iconSize: [8, 8] });
     const group = L.layerGroup(STATIONS.list.map(st => {
       const mk = L.marker([st.lat, st.lon], { icon, pane: 'stations', keyboard: false, title: st.name });
-      mk.bindTooltip(esc(st.name), { permanent: true, direction: 'right', offset: [6, 0], className: 'stn-name', pane: 'stations' });
+      mk.bindTooltip(esc(st.name), { permanent: true, direction: 'right', offset: [4, 0], className: 'stn-name', pane: 'stations' });
       if (m === pickMap) {
         // In the log flow, tapping a station starts or ends the walk there
         mk.on('click', () => { if (flow.step < 3) { flow.labelEdited = false; setPoint(st.lat, st.lon, st.name); } });
@@ -1469,7 +1519,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     log.whole = was ? log.whole.filter(x => x !== id) : [...log.whole, id];
     saveLog();
     map.closePopup();
-    render();
+    if (PATH.lines) installParts(); else render();   // the walk adds to, or leaves, the path line
     toast(was ? 'Counting only the path part.' : 'Counting the whole walk.');
   });
 
@@ -1482,7 +1532,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       const was = log.hidden.includes(id);
       log.hidden = was ? log.hidden.filter(x => x !== id) : [...log.hidden, id];
       saveLog();
-      render();
+      if (PATH.lines && log.whole.includes(id)) installParts(); else render();
       toast(was ? 'Back on the map.' : 'Hidden. Find it under Hidden.');
       return;
     }
@@ -2247,7 +2297,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     }
     if (filter !== 'all') resetFilter();
     closeImport();
-    render();
+    if (PATH.lines && chosen.some(c => c.off)) installParts(); else render();
     const groups = ids.map(id => groupById.get(id)).filter(Boolean);
     if (groups.length) map.fitBounds(L.featureGroup(groups).getBounds(), { padding: [40, 40], maxZoom: 13 });
     toast(`Imported ${chosen.length}.`);
