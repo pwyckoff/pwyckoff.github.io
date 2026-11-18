@@ -1,0 +1,22 @@
+{
+  "name": "Coast path log",
+  "short_name": "Coast path",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F3F4EF",
+  "theme_color": "#F3F4EF",
+  "icons": [
+    {
+      "src": "coast-path-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "coast-path-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
