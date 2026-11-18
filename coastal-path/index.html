@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-5LJ3ysBSId4pZ9k3i1SSJlgflr4QHDaC85recHmesaM='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-WWNNy6VPWBmhj/uVLEg+wvBizE+/LcBIdXG3GMi9Lzk='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -211,6 +211,10 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .stretches .s-bar { height: 5px; background: var(--surface-2); border: 1px solid var(--line); }
 .stretches .s-bar i { display: block; height: 100%; background: var(--path); }
 .stretches .s-pct { font-size: .8125rem; color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+.plan-h { list-style: none; font-size: .8125rem; font-weight: 600; color: var(--ink-2); padding: 12px 0 4px; border-bottom: 1px solid var(--rule); }
+#planList { flex: none; }
+#planList .stay { display: block; color: var(--ink-2); font-size: .8125rem; font-style: italic; }
+.plan-day-label { font-size: .8125rem; color: var(--ink-2); align-self: center; margin-right: 4px; }
 .notyet summary { cursor: pointer; color: var(--ink-2); font-size: .875rem; padding: 6px 0; }
 
 /* Visuals */
@@ -461,6 +465,12 @@ button, input, textarea, select { font: inherit; color: inherit; }
       <div class="tab-body">
         <p class="hint" id="planHint">Tap a station on the map, then choose Plan from here.</p>
         <h2 class="tab-h" id="planFrom" hidden></h2>
+        <div class="filters" id="planDay" role="group" aria-label="A day’s walk" hidden>
+          <span class="plan-day-label">A day’s walk</span>
+          <button class="chip" type="button" data-day="8" aria-pressed="false">8 mi</button>
+          <button class="chip" type="button" data-day="12" aria-pressed="true">12 mi</button>
+          <button class="chip" type="button" data-day="16" aria-pressed="false">16 mi</button>
+        </div>
         <ul class="entries" id="planList"></ul>
         <div class="d-actions"><button class="btn" id="planLog" type="button" hidden>Log this walk</button></div>
       </div>
@@ -2053,14 +2063,14 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (b) { map.closePopup(); showTab('log'); openDetail(b.dataset.open); }
   });
 
-  document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+  document.querySelectorAll('.filters:not(#planDay) .chip').forEach(c => c.addEventListener('click', () => {
     filter = c.dataset.filter;
-    document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', String(x === c)));
+    document.querySelectorAll('.filters:not(#planDay) .chip').forEach(x => x.setAttribute('aria-pressed', String(x === c)));
     render();
   }));
   function resetFilter() {
     filter = 'all';
-    document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.filter === 'all')));
+    document.querySelectorAll('.filters:not(#planDay) .chip').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.filter === 'all')));
   }
 
   /* ---------- Backup ---------- */
@@ -3077,9 +3087,12 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   /* =========================================================
-     Plan: from a station, the walks with the most new path
+     Plan: from a station, walks with the most new path, from a
+     day out to several days with nights along the way
      ========================================================= */
-  let planLayer = null, planChoice = null, planResults = [];
+  let planLayer = null, planChoice = null, planResults = [], planOrigin = null;
+  const PLAN_MAX_MI = 45;                       // the longest trip worth suggesting
+  const dayMiles = () => Number(settings.planDay) || 12;
   function clearPlanPreview() {
     if (planLayer) { map.removeLayer(planLayer); planLayer = null; }
   }
@@ -3096,44 +3109,125 @@ button, input, textarea, select { font: inherit; color: inherit; }
     }
     return { total: total / M_PER_MI, fresh: fresh / M_PER_MI };
   }
+  // Days needed, allowing a day to run a little long rather than adding a night for a mile
+  const daysFor = mi => Math.max(1, Math.ceil(mi / (dayMiles() * 1.1)));
+
+  // Where to stay: stations and towns near the route, closest to each night's distance
+  function overnights(coords, days, from, to) {
+    if (days < 2) return [];
+    const cum = [0];
+    for (let i = 1; i < coords.length; i++) cum.push(cum[i - 1] + distM(coords[i - 1], coords[i]) / M_PER_MI);
+    const total = cum[cum.length - 1];
+    const seen = new Set([from.name, to.name]);
+    const places = [];
+    const consider = (name, lat, lon) => {
+      if (seen.has(name)) return;
+      let best = 2500, at = -1;
+      for (let i = 0; i < coords.length; i += 2) {
+        if (Math.abs(coords[i][0] - lat) > 0.03 || Math.abs(coords[i][1] - lon) > 0.05) continue;
+        const d = distM(coords[i], [lat, lon]);
+        if (d < best) { best = d; at = i; }
+      }
+      if (at >= 0) { seen.add(name); places.push({ name, lat, lon, mi: cum[at] }); }
+    };
+    (STATIONS.list || []).forEach(st => consider(st.name, st.lat, st.lon));
+    COAST_ORDER.forEach(([name, lat, lon]) => consider(name, lat, lon));
+    const out = [];
+    for (let n = 1; n < days; n++) {
+      const target = total * n / days;
+      const pick = places
+        .filter(p => Math.abs(p.mi - target) < dayMiles() * 0.4 && !out.includes(p))
+        .sort((a, b) => Math.abs(a.mi - target) - Math.abs(b.mi - target))[0];
+      out.push(pick || { name: null, mi: target });
+    }
+    return out;
+  }
+
   function planFrom(si) {
     const st = STATIONS.list[si];
     if (!st || !PATH.graph) return;
+    planOrigin = si;
     showTab('plan');
     map.closePopup();
+    clearPlanPreview();
     $('#planHint').hidden = true;
     $('#planFrom').hidden = false;
     $('#planFrom').textContent = `From ${st.name}`;
+    $('#planDay').hidden = false;
+    document.querySelectorAll('#planDay .chip').forEach(c => c.setAttribute('aria-pressed', String(Number(c.dataset.day) === dayMiles())));
     $('#planList').innerHTML = '<li class="hint">Working it out…</li>';
     $('#planLog').hidden = true;
-    setTimeout(() => {
-      const out = [];
-      STATIONS.list.forEach((t, ti) => {
-        if (ti === si || haversineMi(st, t) > 16) return;
+    planChoice = { from: st, to: null, route: null };
+    const token = planOrigin + ':' + dayMiles() + ':' + Date.now();
+    planFrom.token = token;
+    // Work through nearby stations in small batches so the page stays responsive
+    const cands = STATIONS.list.map((t, ti) => ({ t, ti }))
+      .filter(({ t, ti }) => ti !== si && haversineMi(st, t) < PLAN_MAX_MI);   // as the crow flies is never longer than the path
+    const out = [];
+    let k = 0;
+    const step = () => {
+      if (planFrom.token !== token) return;
+      const end = Math.min(cands.length, k + 6);
+      for (; k < end; k++) {
+        const { t } = cands[k];
         const r = routeAlong(st, t);
-        if (!r || r.miles < 2 || r.miles > 18) return;
+        if (!r || r.miles < 2 || r.miles > PLAN_MAX_MI) continue;
         const m = newMilesAlong(r.coords);
-        if (m.fresh >= 0.5) out.push({ to: t, route: r, fresh: m.fresh });
-      });
-      planResults = out.sort((a, b) => b.fresh - a.fresh || a.route.miles - b.route.miles).slice(0, 6);
-      $('#planList').innerHTML = planResults.length ? planResults.map((p, i) => `<li class="entry"><button class="entry-main" type="button" data-plan-i="${i}">
-          <span class="entry-text"><span class="route">To ${esc(p.to.name)}</span>
-          <span class="meta">${fmtMi(p.route.miles)} mi, ${fmtMi(p.fresh)} new</span></span></button></li>`).join('')
-        : '<li class="hint">No stations within reach along unwalked path.</li>';
-      planChoice = { from: st, to: null, route: null };
-    }, 30);
+        if (m.fresh < 0.5) continue;
+        const days = daysFor(r.miles);
+        out.push({ to: t, route: r, fresh: m.fresh, days, nights: overnights(r.coords, days, st, t) });
+      }
+      if (k < cands.length) { setTimeout(step, 0); return; }
+      showPlans(out);
+    };
+    step();
   }
+
+  function showPlans(out) {
+    const pick = (list, n) => list.sort((a, b) => b.fresh - a.fresh || a.route.miles - b.route.miles).slice(0, n);
+    const groups = [
+      ['Day walks', pick(out.filter(p => p.days === 1), 4)],
+      ['Two days, one night', pick(out.filter(p => p.days === 2), 3)],
+      ['Longer', pick(out.filter(p => p.days >= 3), 3)]
+    ].filter(([, list]) => list.length);
+    planResults = groups.flatMap(([, list]) => list);
+    if (!planResults.length) { $('#planList').innerHTML = '<li class="hint">No stations within reach along unwalked path.</li>'; return; }
+    let i = 0;
+    $('#planList').innerHTML = groups.map(([title, list]) => `<li class="plan-h">${title}</li>` + list.map(p => {
+      const when = p.days > 1 ? `, ${p.days} days` : '';
+      const stay = p.nights.length
+        ? `<span class="stay">${p.nights.length === 1 ? 'Night' : 'Nights'}: ${p.nights.map(n => n.name ? `${esc(n.name)} (${fmtWhole(n.mi)} mi)` : `around ${fmtWhole(n.mi)} mi`).join(', ')}</span>` : '';
+      return `<li class="entry"><button class="entry-main" type="button" data-plan-i="${i++}">
+        <span class="entry-text"><span class="route">To ${esc(p.to.name)}</span>
+        <span class="meta">${fmtMi(p.route.miles)} mi${when}, ${fmtMi(p.fresh)} new</span>${stay}</span></button></li>`;
+    }).join('')).join('');
+  }
+
   $('#planList').addEventListener('click', ev => {
     const b = ev.target.closest('[data-plan-i]');
     if (!b) return;
     const p = planResults[Number(b.dataset.planI)];
     clearPlanPreview();
-    planLayer = L.polyline(p.route.coords, { color: cssVar('--ink'), weight: 4, opacity: .8, dashArray: '1 7', lineCap: 'round' }).addTo(map);
+    const ink = cssVar('--ink');
+    planLayer = L.featureGroup([
+      L.polyline(p.route.coords, { color: ink, weight: 4, opacity: .8, dashArray: '1 7', lineCap: 'round' }),
+      // Overnight stops as rings on the route
+      ...p.nights.filter(n => n.name).map(n => L.circleMarker([n.lat, n.lon], { radius: 6, color: ink, weight: 2, fillColor: cssVar('--surface'), fillOpacity: 1 })
+        .bindTooltip(`Stay near ${esc(n.name)}`, { direction: 'top' }))
+    ]).addTo(map);
     map.fitBounds(planLayer.getBounds(), { padding: [50, 50], maxZoom: 14 });
     planChoice.to = p.to;
     planChoice.route = p.route;
     $('#planLog').hidden = false;
   });
+  $('#planDay').addEventListener('click', ev => {
+    const c = ev.target.closest('[data-day]');
+    if (!c) return;
+    settings.planDay = Number(c.dataset.day);
+    saveSettings();
+    if (planOrigin != null) planFrom(planOrigin);
+  });
+
   $('#planLog').addEventListener('click', () => {
     if (!planChoice || !planChoice.to) return;
     const snap = st => { const s = nearestOnPath(st.lat, st.lon, CONFIG.coastPath.snapMaxM); return { lat: round(s.lat, 6), lon: round(s.lon, 6), label: st.name }; };
@@ -3153,7 +3247,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
      ========================================================= */
   const VISUALS = [
     { id: 'map', title: 'Walked so far', w: 1000, h: 1180, draw: drawMapPoster },
-    { id: 'strip', title: 'The path, unrolled', w: 1400, h: 1800, draw: drawStrip },
+    { id: 'strip', title: 'The path, as a strip', w: 1400, h: 1800, draw: drawStrip },
     { id: 'days', title: 'Days on the coast', w: 1180, h: () => calendarHeight(), draw: drawCalendar },
     { id: 'lengths', title: 'Walk lengths', w: 1000, h: 560, draw: drawLengths },
     { id: 'progress', title: 'The path over time', w: 1000, h: 560, draw: drawProgress },
@@ -3288,7 +3382,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     ctx.strokeStyle = C('--path'); ctx.lineWidth = 3; ctx.stroke();
   }
 
-  /* ---------- The path, unrolled: a strip map in Ogilby's manner ----------
+  /* ---------- The path, as a strip: a strip map in Ogilby's manner ----------
      The path data comes in thousands of unordered pieces. A hand-placed line of
      coastal towns, from Berwick round to Gretna, puts them in order: each piece
      is placed by where its middle falls along that line, and turned to run the
@@ -3371,7 +3465,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   function drawStrip(ctx, w, h) {
-    chartFrame(ctx, w, h, 'The path, unrolled', '');
+    chartFrame(ctx, w, h, 'The path, as a strip', '');
     if (!PATH.lines) return emptyNote(ctx, w, h, 'Loading path…');
     const { S, day } = coverage();
     const { order, places, stations } = stripOrder();
