@@ -683,33 +683,77 @@ button, input, textarea, select { font: inherit; color: inherit; }
     ix.grid = grid;
   }
 
-  // A graph of the path: line ends within 30 m of each other are joined,
-  // so walks logged by hand can be drawn along the path rather than straight
-  function buildGraph() {
-    const C = 0.0005, JOIN = 30;
-    const nodes = [], nodeGrid = new Map();
-    const nodeFor = p => {
-      const ci = Math.floor(p[0] / C), cj = Math.floor(p[1] / C);
-      for (let di = -1; di <= 1; di++) {
-        for (let dj = -1; dj <= 1; dj++) {
-          for (const id of nodeGrid.get(`${ci + di},${cj + dj}`) || []) if (distM(nodes[id], p) <= JOIN) return id;
+  // A graph of the path. Lines join wherever the end of one comes within 40 m
+  // of another line, at its end or anywhere along it: T-junctions at bridges and
+  // harbours, stretch boundaries, gap fills. Hand-logged walks follow this graph.
+  function nearestOther(lat, lon, maxM, exclude) {
+    const ky = 111320, kx = 111320 * Math.cos(lat * Math.PI / 180);
+    const ri = Math.ceil(maxM / (CELL_LAT * ky)), rj = Math.ceil(maxM / (CELL_LON * kx));
+    const ci = Math.floor(lat / CELL_LAT), cj = Math.floor(lon / CELL_LON);
+    const segs = PATH.segs;
+    let best = maxM * maxM, hit = null;
+    for (let di = -ri; di <= ri; di++) {
+      for (let dj = -rj; dj <= rj; dj++) {
+        const arr = PATH.grid.get(cellKey(ci + di, cj + dj));
+        if (!arr) continue;
+        for (const k of arr) {
+          if (PATH.segLine[k] === exclude) continue;
+          const o = k * 4;
+          const ax = (segs[o + 1] - lon) * kx, ay = (segs[o] - lat) * ky;
+          const dx = (segs[o + 3] - lon) * kx - ax, dy = (segs[o + 2] - lat) * ky - ay;
+          const len2 = dx * dx + dy * dy;
+          let t = len2 ? -(ax * dx + ay * dy) / len2 : 0;
+          t = Math.max(0, Math.min(1, t));
+          const px = ax + t * dx, py = ay + t * dy, d2 = px * px + py * py;
+          if (d2 <= best) {
+            best = d2;
+            const line = PATH.segLine[k], v = PATH.segVert[k], c = PATH.cum[line];
+            hit = { line, pos: c[v - 1] + t * (c[v] - c[v - 1]) };
+          }
         }
       }
-      const id = nodes.length;
-      nodes.push(p);
-      const key = `${ci},${cj}`;
-      if (!nodeGrid.has(key)) nodeGrid.set(key, []);
-      nodeGrid.get(key).push(id);
-      return id;
-    };
-    const lineNodes = PATH.lines.map(l => [nodeFor(l[0]), nodeFor(l[l.length - 1])]);
-    const adj = nodes.map(() => []);
-    lineNodes.forEach(([a, b], i) => {
-      const len = PATH.cum[i][PATH.cum[i].length - 1];
-      adj[a].push([b, len, i]);
-      adj[b].push([a, len, i]);
+    }
+    return hit;
+  }
+
+  function buildGraph() {
+    const JOIN = 40, lines = PATH.lines, cum = PATH.cum;
+    const lenOf = i => cum[i][cum[i].length - 1];
+    const cuts = lines.map((_, i) => [0, lenOf(i)]);
+    const joins = [];                       // [lineA, posA, lineB, posB]
+    lines.forEach((l, j) => {
+      const len = lenOf(j);
+      if (distM(l[0], l[l.length - 1]) <= JOIN) joins.push([j, 0, j, len]);   // a closed loop
+      [[l[0], 0], [l[l.length - 1], len]].forEach(([p, pos]) => {
+        const hit = nearestOther(p[0], p[1], JOIN, j);
+        if (hit) { cuts[hit.line].push(hit.pos); joins.push([j, pos, hit.line, hit.pos]); }
+      });
     });
-    PATH.graph = { lineNodes, adj, n: nodes.length };
+    // One node per distinct cut along each line (cuts within 2 m merge)
+    let n = 0;
+    const nodeAt = cuts.map(cs => {
+      cs.sort((a, b) => a - b);
+      const list = [];
+      for (const c of cs) { if (!list.length || c - list[list.length - 1].pos >= 2) list.push({ pos: c, id: n++ }); }
+      return list;
+    });
+    const nodeNear = (i, pos) => nodeAt[i].reduce((b, x) => Math.abs(x.pos - pos) < Math.abs(b.pos - pos) ? x : b).id;
+    const parent = Int32Array.from({ length: n }, (_, k) => k);
+    const root = k => { while (parent[k] !== k) k = parent[k] = parent[parent[k]]; return k; };
+    joins.forEach(([la, pa, lb, pb]) => {
+      const x = root(nodeNear(la, pa)), y = root(nodeNear(lb, pb));
+      if (x !== y) parent[x] = y;
+    });
+    // Edges run between neighbouring cuts on each line
+    const adj = Array.from({ length: n }, () => []);
+    nodeAt.forEach((list, i) => {
+      for (let k = 1; k < list.length; k++) {
+        const u = root(list[k - 1].id), v = root(list[k].id), w = list[k].pos - list[k - 1].pos;
+        adj[u].push([v, w, i, list[k - 1].pos, list[k].pos]);
+        adj[v].push([u, w, i, list[k].pos, list[k - 1].pos]);
+      }
+    });
+    PATH.graph = { nodeAt, root, adj, n };
   }
 
   // The point at distance p along line i
@@ -742,65 +786,78 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (!PATH.graph) return null;
     const a = locate(from, CONFIG.coastPath.snapMaxM), b = locate(to, CONFIG.coastPath.snapMaxM);
     if (!a || !b) return null;
-    const lenOf = i => PATH.cum[i][PATH.cum[i].length - 1];
-    let coords;
-    if (a.line === b.line) {
-      coords = sliceLine(a.line, a.pos, b.pos);
-    } else {
-      const { lineNodes, adj, n } = PATH.graph;
-      const dist = new Float64Array(n).fill(Infinity);
-      const prevNode = new Int32Array(n).fill(-1), prevLine = new Int32Array(n).fill(-1);
-      const heap = [];
-      const push = (d, v) => {
-        heap.push([d, v]);
-        let i = heap.length - 1;
-        while (i > 0) { const pi = (i - 1) >> 1; if (heap[pi][0] <= heap[i][0]) break; [heap[pi], heap[i]] = [heap[i], heap[pi]]; i = pi; }
-      };
-      const pop = () => {
-        const top = heap[0], last = heap.pop();
-        if (heap.length) {
-          heap[0] = last;
-          let i = 0;
-          for (;;) {
-            const l = 2 * i + 1, r = l + 1;
-            let m = i;
-            if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
-            if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
-            if (m === i) break;
-            [heap[m], heap[i]] = [heap[i], heap[m]];
-            i = m;
-          }
-        }
-        return top;
-      };
-      const [a0, a1] = lineNodes[a.line], [b0, b1] = lineNodes[b.line];
-      const seed = (v, d) => { if (d < dist[v]) { dist[v] = d; push(d, v); } };
-      seed(a0, a.pos);
-      seed(a1, lenOf(a.line) - a.pos);
-      const toB = v => v === b0 ? b.pos : v === b1 ? lenOf(b.line) - b.pos : Infinity;
-      let best = Infinity, bestNode = -1;
-      while (heap.length) {
-        const [d, v] = pop();
-        if (d > dist[v]) continue;
-        if (d >= best) break;
-        const viaB = d + toB(v);
-        if (viaB < best) { best = viaB; bestNode = v; }
-        for (const [w, len, li] of adj[v]) {
-          if (d + len < dist[w]) { dist[w] = d + len; prevNode[w] = v; prevLine[w] = li; push(d + len, w); }
+    const { nodeAt, root, adj, n } = PATH.graph;
+    // The graph nodes either side of a point on its line
+    const around = q => {
+      const list = nodeAt[q.line];
+      let lo = list[0], hi = list[list.length - 1];
+      for (const x of list) {
+        if (x.pos <= q.pos && x.pos >= lo.pos) lo = x;
+        if (x.pos >= q.pos && x.pos <= hi.pos) hi = x;
+      }
+      return [lo, hi];
+    };
+    const [alo, ahi] = around(a), [blo, bhi] = around(b);
+    const direct = a.line === b.line ? Math.abs(a.pos - b.pos) : Infinity;
+
+    const dist = new Float64Array(n).fill(Infinity);
+    const prevNode = new Int32Array(n).fill(-1);
+    const prevEdge = new Array(n), seedPos = new Float64Array(n);
+    const heap = [];
+    const push = (d, v) => {
+      heap.push([d, v]);
+      let i = heap.length - 1;
+      while (i > 0) { const pi = (i - 1) >> 1; if (heap[pi][0] <= heap[i][0]) break; [heap[pi], heap[i]] = [heap[i], heap[pi]]; i = pi; }
+    };
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1, r = l + 1;
+          let m = i;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === i) break;
+          [heap[m], heap[i]] = [heap[i], heap[m]];
+          i = m;
         }
       }
-      if (bestNode < 0) return null;
-      // Walk back from the finish to whichever end of the start line we left by
+      return top;
+    };
+    const seed = (node, d) => { const v = root(node.id); if (d < dist[v]) { dist[v] = d; seedPos[v] = node.pos; push(d, v); } };
+    seed(alo, a.pos - alo.pos);
+    seed(ahi, ahi.pos - a.pos);
+    const toB = v => {
+      let c = Infinity, at = 0;
+      if (root(blo.id) === v && b.pos - blo.pos < c) { c = b.pos - blo.pos; at = blo.pos; }
+      if (root(bhi.id) === v && bhi.pos - b.pos < c) { c = bhi.pos - b.pos; at = bhi.pos; }
+      return [c, at];
+    };
+    let best = direct, bestNode = -1, bestAt = 0;
+    while (heap.length) {
+      const [d, v] = pop();
+      if (d > dist[v]) continue;
+      if (d >= best) break;
+      const [c, at] = toB(v);
+      if (d + c < best) { best = d + c; bestNode = v; bestAt = at; }
+      for (const [w, len, li, p0, p1] of adj[v]) {
+        if (d + len < dist[w]) { dist[w] = d + len; prevNode[w] = v; prevEdge[w] = [li, p0, p1]; push(d + len, w); }
+      }
+    }
+    if (best === Infinity) return null;
+    let coords;
+    if (bestNode < 0) {
+      coords = sliceLine(a.line, a.pos, b.pos);         // straight along one line
+    } else {
       const steps = [];
       let v = bestNode;
-      while (prevNode[v] >= 0) { steps.push([prevLine[v], prevNode[v], v]); v = prevNode[v]; }
+      while (prevNode[v] >= 0) { steps.push(prevEdge[v]); v = prevNode[v]; }
       steps.reverse();
-      coords = sliceLine(a.line, a.pos, v === a0 ? 0 : lenOf(a.line));
-      steps.forEach(([li, u]) => {
-        const len = lenOf(li);
-        coords.push(...sliceLine(li, u === lineNodes[li][0] ? 0 : len, u === lineNodes[li][0] ? len : 0).slice(1));
-      });
-      coords.push(...sliceLine(b.line, bestNode === b0 ? 0 : lenOf(b.line), b.pos).slice(1));
+      coords = sliceLine(a.line, a.pos, seedPos[v]);
+      steps.forEach(([li, p0, p1]) => coords.push(...sliceLine(li, p0, p1).slice(1)));
+      coords.push(...sliceLine(b.line, bestAt, b.pos).slice(1));
     }
     const miles = lineM(coords) / M_PER_MI;
     // A wild detour means the data has a gap here; better to draw nothing than nonsense
@@ -1537,7 +1594,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   // Roads stay in the background: faint at town level, a little firmer at street level
   const roadOpacity = m => m.getZoom() >= 14 ? .6 : .38;
   function newMap(id) {
-    const m = L.map(id, { zoomControl: false, zoomSnap: 0.5 }).fitBounds(CONFIG.bounds);
+    const m = L.map(id, { zoomControl: false }).fitBounds(CONFIG.bounds);
     L.control.zoom({ position: 'topright' }).addTo(m);
     prepMap(m);
     setBase(m);
