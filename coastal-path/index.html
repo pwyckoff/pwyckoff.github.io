@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-acbddVhKQKK55P6xM31JX6qxpTe5Qv7/aPpyIekKiZY='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-vHJdW5o1pPXEpI/HjuxGb8oXRnsOTsjMu8FE3X2laPA='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -218,6 +218,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .plan-steps li { margin: 3px 0; }
 .plan-h { list-style: none; font-size: .8125rem; font-weight: 600; color: var(--ink-2); padding: 12px 0 4px; border-bottom: 1px solid var(--rule); }
 #planList { flex: none; }
+.entries.gaps { flex: none; overflow: visible; max-height: none; }
 #planList .stay { display: block; color: var(--ink-2); font-size: .8125rem; font-style: italic; }
 .plan-day-label { font-size: .8125rem; color: var(--ink-2); align-self: center; margin-right: 4px; }
 .notyet summary { cursor: pointer; color: var(--ink-2); font-size: .875rem; padding: 6px 0; }
@@ -520,9 +521,16 @@ button, input, textarea, select { font: inherit; color: inherit; }
         </div>
         <p class="fine" id="syncStatus"></p>
 
+        <h2 class="tab-h">Gaps in the path</h2>
+        <label class="check"><input type="checkbox" id="setPredict" checked> Guess the route across gaps</label>
+        <p class="fine" id="gapReport"></p>
+        <ul class="entries gaps" id="gapList"></ul>
+        <div class="row"><button class="btn" id="guessBtn" type="button">Guess a stretch by hand</button></div>
+        <p class="hint" id="guessHint" hidden></p>
+        <ul class="entries gaps" id="manualList"></ul>
+
         <h2 class="tab-h">Settings</h2>
         <label class="check"><input type="checkbox" id="setNames" checked> Look up place names</label>
-        <label class="check"><input type="checkbox" id="setPredict" checked> Guess the route across gaps</label>
         <button class="btn quiet" id="refreshPath" type="button">Refresh path data</button>
       </div>
     </section>
@@ -1397,10 +1405,14 @@ button, input, textarea, select { font: inherit; color: inherit; }
     const own = mapped.length && yours.length ? gapFill(mapped, yours) : [];
     // Guessed routes across gaps, trimmed to where nothing mapped or walked covers them
     const guessed = [], guessedCountry = [];
-    if (settings.predict !== false && currentPredicted.length && mapped.length) {
+    const guesses = [
+      ...manualGuesses.map(m => ({ coords: m.coords, country: m.country || 'E' })),
+      ...(settings.predict !== false ? currentPredicted : [])
+    ];
+    if (guesses.length && mapped.length) {
       const base = [...mapped, ...own], bix = {};
       buildIndex(base, bix);
-      currentPredicted.forEach(p => gapFill(base, [p.coords], bix).forEach(l => { guessed.push(l); guessedCountry.push(p.country); }));
+      guesses.forEach(p => gapFill(base, [p.coords], bix).forEach(l => { guessed.push(l); guessedCountry.push(p.country); }));
     }
     const eng = parts.england || [], wal = parts.wales || [];
     const names = partNames.england || [];
@@ -1582,6 +1594,52 @@ button, input, textarea, select { font: inherit; color: inherit; }
     return hit;
   }
 
+  // Gaps found by walking round the coast in order: each piece of path is placed
+  // along the coast (as for the strip map), and where one piece's far end is loose,
+  // the next pieces along with a loose near end, on separate bits of path, are the
+  // likely other side of the gap. This pairs neighbours along the coast, not merely
+  // nearby ends, so side branches and fragments don't crowd out the real gaps.
+  function orderedGaps(lines, countryOf) {
+    const ix = {};
+    buildIndex(lines, ix);
+    const parent = lines.map((_, i) => i);
+    const find = i => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
+    const loose = lines.map(() => [false, false]);
+    lines.forEach((l, j) => {
+      [l[0], l[l.length - 1]].forEach((pt, end) => {
+        const hit = nearestOtherIx(pt[0], pt[1], 40, j, ix);
+        if (hit) { const a = find(j), b = find(hit.line); if (a !== b) parent[a] = b; }
+        else loose[j][end] = true;
+      });
+    });
+    const endPt = (j, end) => end ? lines[j][lines[j].length - 1] : lines[j][0];
+    // How much path each connected piece has: tiny isolated fragments are skipped,
+    // since a real gap has a proper stretch of path on each side
+    const compLen = new Map();
+    lines.forEach((l, j) => { const c = find(j); compLen.set(c, (compLen.get(c) || 0) + ix.cum[j][ix.cum[j].length - 1]); });
+    const substantial = j => compLen.get(find(j)) >= 1500;
+    const pieces = lines.map((l, j) => {
+      const mid = l[l.length >> 1];
+      const forward = refT(l[0][0], l[0][1]) <= refT(l[l.length - 1][0], l[l.length - 1][1]);
+      return { j, t: refT(mid[0], mid[1]), inEnd: forward ? 0 : 1, outEnd: forward ? 1 : 0 };
+    }).sort((a, b) => a.t - b.t);
+    const gaps = [];
+    pieces.forEach((p, i) => {
+      if (!loose[p.j][p.outEnd] || !substantial(p.j)) return;
+      const a = endPt(p.j, p.outEnd), alts = [];
+      for (let k = i + 1; k < pieces.length && k <= i + 40 && alts.length < 3; k++) {
+        const q = pieces[k];
+        if (!loose[q.j][q.inEnd] || !substantial(q.j) || find(q.j) === find(p.j)) continue;
+        const b = endPt(q.j, q.inEnd), d = distM(a, b);
+        if (d <= PREDICT_MAX_M) alts.push({ b, d, eb: `${q.j}:${q.inEnd}`, comp: find(q.j) });
+      }
+      if (alts.length) gaps.push({ a, ea: `${p.j}:${p.outEnd}`, comp: find(p.j), alts, country: countryOf(p.j) });
+    });
+    const looseEnds = [];
+    lines.forEach((l, j) => [0, 1].forEach(end => { if (loose[j][end] && substantial(j)) looseEnds.push({ e: `${j}:${end}`, pt: endPt(j, end) }); }));
+    return { gaps, looseEnds };
+  }
+
   // Loose ends that face each other across a missing stretch
   function findGaps(lines, countryOf) {
     const ix = {};
@@ -1624,7 +1682,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     return true;
   };
 
-  async function routeOnFootpaths(a, b, corridor) {
+  async function routeOnFootpaths(a, b, corridor, byHand = false) {
     const crow = distM(a, b), long = crow > PREDICT_LONG_M;
     // A long gap may have a headland between its ends, so look further round
     const pad = Math.max(0.03, crow / 111320 * (long ? 0.55 : 0.35));
@@ -1716,7 +1774,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     // An estuary can make a short gap several times the distance across; over long
     // gaps the coast winds less in proportion, so the check is tighter
     const len = lineM(coords);
-    if (long ? len > 3 * crow + 15000 : len > 8 * crow + 10000) return null;
+    if (byHand ? len > 10 * crow + 20000 : long ? len > 3 * crow + 15000 : len > 8 * crow + 10000) return null;
     return simplify(coords, 8).map(p => [round(p[0], 5), round(p[1], 5)]);
   }
 
@@ -1748,28 +1806,43 @@ button, input, textarea, select { font: inherit; color: inherit; }
       const eng = parts.england || [], wal = parts.wales || [];
       const mapped = [...eng, ...currentFill, ...wal];
       const nE = eng.length + currentFill.length;
-      const cands = findGaps(mapped, i => i < nE ? 'E' : 'W');
-      // Nearest pairs first; a pair is used only if a walkable route joins it, so a
-      // loose end facing a river mouth can still pair with the right end further up
+      const { gaps, looseEnds } = orderedGaps(mapped, i => i < nE ? 'E' : 'W');
       const usedEnd = new Set(), usedPair = new Set(), out = [];
-      let tried = 0;
-      for (const g of cands) {
-        if (usedEnd.has(g.ea) || usedEnd.has(g.eb) || usedPair.has(g.pair)) continue;
-        if (++tried > 40) break;
-        predictProgress.text = `guessing gaps (${out.length} found)`;
+      let requests = 0;
+      for (let gi = 0; gi < gaps.length; gi++) {
+        const g = gaps[gi];
+        if (usedEnd.has(g.ea)) continue;
+        predictProgress.text = `guessing gaps, ${gi + 1} of ${gaps.length}`;
         pathSummary(false);
-        try {
-          const coords = await predictGap(g);
-          if (coords) { out.push({ coords, country: g.country }); usedEnd.add(g.ea); usedEnd.add(g.eb); usedPair.add(g.pair); }
-        } catch (e) { /* try again next visit */ }
+        for (const alt of g.alts) {
+          const pair = [g.comp, alt.comp].sort().join('-');
+          if (usedEnd.has(alt.eb) || usedPair.has(pair)) continue;
+          let coords = null;
+          if (alt.d < 150) coords = [g.a, alt.b];                    // a small break: join it straight
+          else {
+            if (++requests > 200) break;
+            try { coords = await predictGap({ a: g.a, b: alt.b }); } catch (e) { coords = null; }
+          }
+          if (coords) {
+            out.push({ coords, country: g.country });
+            usedEnd.add(g.ea); usedEnd.add(alt.eb); usedPair.add(pair);
+            break;
+          }
+        }
       }
       predictProgress.text = '';
       currentPredicted = out;
+      gapReport = {
+        guessed: out.filter(o => lineM(o.coords) >= 150).map(o => ({ coords: o.coords, label: `${placeName(o.coords[0])} to ${placeName(o.coords[o.coords.length - 1])}`, mi: lineM(o.coords) / M_PER_MI })),
+        loose: looseEnds.filter(l => !usedEnd.has(l.e)).slice(0, 30).map(l => ({ pt: l.pt, label: placeName(l.pt) }))
+      };
+      if (tab === 'data') renderGaps();
       installParts();
     } finally {
       predicting = false;
     }
   }
+
 
   /* ---------- Railway stations near the path ---------- */
   const STATIONS = { list: null };
@@ -3640,7 +3713,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   });
   // In Plan, tapping the path plans from that spot
   map.on('click', ev => {
-    if (tab !== 'plan') return;
+    if (tab !== 'plan' || guessMode) return;
     const s = nearestOnPath(ev.latlng.lat, ev.latlng.lng, 1000);
     if (!s) { $('#planStatus').textContent = 'Tap closer to the path, or on a station.'; return; }
     const spot = { name: 'this spot', lat: round(s.lat, 6), lon: round(s.lon, 6) };
@@ -4223,6 +4296,98 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (settings.placeNames) fillPlaceNames();
   });
   $('#refreshPath').addEventListener('click', () => { setPathStatus('Loading path…'); ensurePath(true).catch(() => {}); });
+  /* ---------- The gap report, and guessing a stretch by hand ---------- */
+  const MANUAL_KEY = 'predict:manual';
+  let manualGuesses = [];          // { id, a, b, coords, label, at }
+  let guessMode = null;            // while choosing two points: { pts, layer }
+  let gapReport = null;            // { guessed: [...], loose: [...] }
+  async function loadManualGuesses() {
+    try { const r = await idb.get(MANUAL_KEY); manualGuesses = Array.isArray(r) ? r : []; } catch (e) { manualGuesses = []; }
+  }
+  const saveManual = () => idb.set(MANUAL_KEY, manualGuesses).catch(() => {});
+  // The nearest town on the reference list, for naming things without a lookup
+  function nearestTown(p) {
+    let best = 15000, name = null;
+    COAST_ORDER.forEach(([n, la, lo]) => { const d = distM(p, [la, lo]); if (d < best) { best = d; name = n; } });
+    return name;
+  }
+  const placeName = p => nearestTown(p) || `${p[0].toFixed(3)}, ${p[1].toFixed(3)}`;
+  // Which country a point's nearest stretch of path is in
+  function countryAt(p) {
+    const s = nearestOnPath(p[0], p[1], 5000);
+    return s && PATH.meta ? PATH.meta.country[PATH.segLine[s.k]] || 'E' : 'E';
+  }
+
+  function startGuessMode() {
+    if (guessMode) { endGuessMode(); return; }
+    guessMode = { pts: [], layer: L.layerGroup().addTo(map) };
+    $('#guessBtn').textContent = 'Cancel';
+    $('#guessHint').hidden = false;
+    $('#guessHint').textContent = 'Tap the map where the path stops.';
+  }
+  function endGuessMode() {
+    if (guessMode) map.removeLayer(guessMode.layer);
+    guessMode = null;
+    $('#guessBtn').textContent = 'Guess a stretch by hand';
+  }
+  $('#guessBtn').addEventListener('click', startGuessMode);
+  map.on('click', async ev => {
+    if (!guessMode) return;
+    let p = [ev.latlng.lat, ev.latlng.lng];
+    const s = nearestOnPath(p[0], p[1], 3000);
+    if (s) p = [round(s.lat, 6), round(s.lon, 6)];               // start from the path's end if it's near
+    guessMode.pts.push(p);
+    L.circleMarker(p, { radius: 6, color: cssVar('--ink'), weight: 2, fillColor: cssVar('--surface'), fillOpacity: 1 }).addTo(guessMode.layer);
+    if (guessMode.pts.length < 2) { $('#guessHint').textContent = 'Now tap where it picks up again.'; return; }
+    const [a, b] = guessMode.pts;
+    endGuessMode();
+    $('#guessHint').textContent = 'Finding paths near the shore…';
+    let coords = null, failed = false;
+    for (const band of [1500, 4000, 8000]) {
+      try { coords = await routeOnFootpaths(a, b, band, true); } catch (e) { coords = null; failed = true; }
+      if (coords) break;
+    }
+    if (!coords) {
+      $('#guessHint').textContent = failed ? 'Couldn’t reach OpenStreetMap. Try again in a moment.' : 'No walkable route near the shore between those points.';
+      return;
+    }
+    const label = `${placeName(a)} to ${placeName(b)}`;
+    manualGuesses.push({ id: uid(), a, b, coords, label, country: countryAt(a), at: new Date().toISOString() });
+    saveManual();
+    $('#guessHint').textContent = `Guessed ${fmtMi(lineM(coords) / M_PER_MI)} mi, ${label}.`;
+    installParts();
+    renderData();
+  });
+
+  function renderGaps() {
+    const show = (p, i, kind) => `<li class="entry"><button class="entry-main" type="button" data-gap="${kind}:${i}">
+      <span class="entry-text"><span class="route">${esc(p.label)}</span><span class="meta">${p.meta}</span></span></button>
+      ${kind === 'm' ? `<button class="entry-remove" type="button" data-unguess="${i}" aria-label="Remove ${esc(p.label)}">×</button>` : ''}</li>`;
+    const r = gapReport;
+    $('#gapReport').textContent = !r ? (settings.predict === false ? 'Guessing is off.' : 'Not checked yet.')
+      : `${r.guessed.length} ${r.guessed.length === 1 ? 'gap' : 'gaps'} guessed. ${r.loose.length} ${r.loose.length === 1 ? 'place' : 'places'} where the path stops without a guess (some are its true ends).`;
+    $('#gapList').innerHTML = r ? [
+      ...r.guessed.map((g, i) => show({ label: g.label, meta: `${fmtMi(g.mi)} mi guessed` }, i, 'g')),
+      ...r.loose.map((g, i) => show({ label: `Stops near ${g.label}`, meta: 'no guess' }, i, 'l'))
+    ].join('') : '';
+    $('#manualList').innerHTML = manualGuesses.map((m, i) => show({ label: m.label, meta: `${fmtMi(lineM(m.coords) / M_PER_MI)} mi, by hand` }, i, 'm')).join('');
+  }
+  ['#gapList', '#manualList'].forEach(sel => $(sel).addEventListener('click', ev => {
+    const rm = ev.target.closest('[data-unguess]');
+    if (rm) {
+      manualGuesses.splice(Number(rm.dataset.unguess), 1);
+      saveManual(); installParts(); renderData();
+      return;
+    }
+    const b = ev.target.closest('[data-gap]');
+    if (!b) return;
+    const [kind, i] = b.dataset.gap.split(':');
+    const item = kind === 'g' ? gapReport.guessed[i] : kind === 'l' ? gapReport.loose[i] : manualGuesses[i];
+    const pts = item.coords || [item.pt];
+    if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 14 });
+    else map.setView(pts[0], 13);
+  }));
+
   function renderData() {
     const on = !!syncCfg;
     $('#syncForm').hidden = on;
@@ -4232,6 +4397,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (on && !$('#syncStatus').textContent) setSyncStatus(syncCfg.lastSync ? `Last synced ${fmtDate(syncCfg.lastSync.slice(0, 10))}` : 'Sync is on.');
     $('#setNames').checked = settings.placeNames !== false;
     $('#setPredict').checked = settings.predict !== false;
+    renderGaps();
     const n = activeEntries().length;
     $('#storageInfo').textContent = `${n} ${n === 1 ? 'walk' : 'walks'} saved in this browser${storageMode === 'idb' ? '' : ' (basic storage)'}.`;
   }
@@ -4250,6 +4416,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   // Start: read the log (moving it into IndexedDB if needed), then draw
   (async () => {
     log = await initLog();
+    await loadManualGuesses();
     render();
     if (groupById.size) map.fitBounds(L.featureGroup([...groupById.values()]).getBounds(), { padding: [40, 40], maxZoom: 11 });
     ensurePath().catch(() => {});
