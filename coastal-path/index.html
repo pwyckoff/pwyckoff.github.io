@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-GagxllPAPpZWp7qAvsuSAE+drilJTFRK0CpMDandA3A='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-s6eCofdN+7RiAJKKTnjdCuQYv64zn6I3hCD/Q02wkuk='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -221,6 +221,15 @@ button, input, textarea, select { font: inherit; color: inherit; }
 #planList { flex: none; }
 .entries.gaps { flex: none; overflow: visible; max-height: none; }
 .entries.gaps .btn.quiet { align-self: center; white-space: nowrap; }
+.map-key {
+  display: flex; flex-direction: column; gap: 2px; padding: 5px 8px; margin-bottom: 4px !important;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--line); border-radius: 3px;
+  font-size: 11px; color: var(--ink-2); line-height: 1.5;
+}
+.map-key span { display: flex; align-items: center; gap: 6px; }
+.map-key .k { display: inline-block; width: 22px; height: 0; border-top: 3px dotted var(--path); }
+.map-key .k.other { border-top-color: var(--path-soft); }
+.map-key .k.guess { border-top: 3px dashed var(--path-soft); }
 .path-key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8125rem; color: var(--ink-2); }
 .path-key li { display: flex; align-items: center; gap: 6px; }
 .path-key .k { width: 26px; height: 0; border-top: 3px dotted var(--path); }
@@ -1564,12 +1573,15 @@ button, input, textarea, select { font: inherit; color: inherit; }
     m.getPane('ends').style.display = near ? '' : 'none';
     const layers = pathLayers.get(m);
     if (!layers) return;
-    const [halo, line, soft] = layers;
+    const [halo, line, soft, pecked, peckHalo] = layers;
     if (near && !m.hasLayer(halo)) halo.addTo(m).bringToBack();
     if (!near && m.hasLayer(halo)) m.removeLayer(halo);
     const dots = near ? { weight: 2, opacity: .95, dashArray: '0.5 5' } : { weight: 1.25, opacity: .7, dashArray: null };
     line.setStyle(dots);
     if (soft) soft.setStyle(near ? { ...dots, opacity: 1 } : { ...dots, opacity: .9 });
+    // Bolder pecks when zoomed out, where a fine dashed line would disappear
+    if (pecked) pecked.setStyle(near ? { weight: 2, dashArray: '6 6' } : { weight: 3, dashArray: '5 4' });
+    if (peckHalo) peckHalo.setStyle(near ? { weight: 6, opacity: .9 } : { weight: 6, opacity: .75 });
   }
   function drawPathOn(m) {
     if (pathLayers.has(m)) pathLayers.get(m).forEach(l => m.removeLayer(l));
@@ -1583,8 +1595,10 @@ button, input, textarea, select { font: inherit; color: inherit; }
     // Path that isn't the official line yet, in a lighter green: mapped stretches dotted,
     // guesses in long pecks, the way old maps show a path not yet made
     const soft = L.polyline(other, { ...opts, color: cssVar('--path-soft') }).addTo(m);
+    // Guesses keep a faint halo at every zoom, so they don't vanish into the terrain zoomed out
+    const peckHalo = L.polyline(guessed, { ...opts, color: cssVar('--halo'), weight: 6, opacity: .9 }).addTo(m);
     const pecked = L.polyline(guessed, { ...opts, color: cssVar('--path-soft'), weight: 2, opacity: 1, dashArray: '6 6' }).addTo(m);
-    pathLayers.set(m, [halo, line, soft, pecked]);
+    pathLayers.set(m, [halo, line, soft, pecked, peckHalo]);
     styleForZoom(m);
   }
   /* =========================================================
@@ -2171,6 +2185,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     derived.clear();
     routes.clear();
     allMaps().forEach(drawPathOn);
+    renderMapKey();
     render();
     fillPlaceNames();
     loadStations();
@@ -2416,7 +2431,18 @@ button, input, textarea, select { font: inherit; color: inherit; }
      ========================================================= */
   let pickMap, impMap;
   const map = newMap('map');
+  const mapKey = L.control({ position: 'bottomleft' });
+  mapKey.onAdd = () => { const d = L.DomUtil.create('div', 'map-key'); d.setAttribute('aria-label', 'Key'); return d; };
+  mapKey.addTo(map);
   L.control.scale({ position: 'bottomleft', imperial: true, metric: false, maxWidth: 120 }).addTo(map);
+  function renderMapKey() {
+    const src = (PATH.meta && PATH.meta.source) || [];
+    const rows = [['official', 'Official route'], ['other', 'Other mapped path'], ['guess', 'Guessed route']]
+      .filter(([k]) => k === 'official' || src.includes(k));
+    const el = mapKey.getContainer();
+    el.hidden = !PATH.lines || rows.length < 2;          // only worth a key once there's more than one kind
+    el.innerHTML = rows.map(([k, label]) => `<span><i class="k ${k}"></i>${label}</span>`).join('');
+  }
   const walksLayer = L.layerGroup().addTo(map);
   const groupById = new Map();
   let filter = 'all';
@@ -4223,7 +4249,13 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (outline) { path(outline, true); ctx.fillStyle = C('--surface-2'); ctx.fill('evenodd'); ctx.strokeStyle = C('--line'); ctx.lineWidth = 1; ctx.stroke(); }
     else loadOutline().then(o => { if (o && tab === 'visuals') renderVisuals(); });
     if (PATH.lines) {
-      path(PATH.lines); ctx.strokeStyle = C('--ink-2'); ctx.globalAlpha = .45; ctx.lineWidth = 1.2; ctx.stroke(); ctx.globalAlpha = 1;
+      // The whole path round: mapped stretches as a fine line, guessed ones in lighter pecks
+      const src = (PATH.meta && PATH.meta.source) || [];
+      path(PATH.lines.filter((_, i) => src[i] !== 'guess')); ctx.strokeStyle = C('--ink-2'); ctx.globalAlpha = .45; ctx.lineWidth = 1.2; ctx.stroke(); ctx.globalAlpha = 1;
+      const guessedLines = PATH.lines.filter((_, i) => src[i] === 'guess');
+      if (guessedLines.length) {
+        path(guessedLines); ctx.setLineDash([5, 4]); ctx.strokeStyle = C('--path-soft'); ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+      }
       const runs = walkedRuns();
       path(runs); ctx.strokeStyle = C('--walk'); ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
     }
@@ -4237,6 +4269,17 @@ button, input, textarea, select { font: inherit; color: inherit; }
       ctx.font = '700 72px Cabin, sans-serif'; ctx.fillText(pct(f.cov.all, f.tot.all), bx + 22, by + 124);
       ctx.fillStyle = C('--ink-2'); ctx.font = '22px Cabin, sans-serif';
       ctx.fillText(`${fmtWhole(f.toMi(f.cov.all))} of ${fmtWhole(f.toMi(f.tot.all))} miles walked`, bx + 24, by + 162);
+    }
+    // Key, bottom left
+    const ky = h - 70;
+    ctx.font = '15px Cabin, sans-serif'; ctx.fillStyle = C('--ink-2'); ctx.textAlign = 'left';
+    ctx.strokeStyle = C('--walk'); ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(48, ky); ctx.lineTo(78, ky); ctx.stroke();
+    ctx.fillText('walked', 86, ky + 5);
+    ctx.strokeStyle = C('--ink-2'); ctx.globalAlpha = .6; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(160, ky); ctx.lineTo(190, ky); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.fillText('coast path', 198, ky + 5);
+    if (PATH.lines && ((PATH.meta && PATH.meta.source) || []).includes('guess')) {
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = C('--path-soft'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(296, ky); ctx.lineTo(326, ky); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillText('guessed route', 334, ky + 5);
     }
     ctx.fillStyle = C('--ink-2'); ctx.font = '16px Cabin, sans-serif'; ctx.textAlign = 'right';
     ctx.fillText(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), w - 48, h - 64);
