@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-1WCtTzG9rPzRpDhH5359NyO9GXpmqp98OZV8OMbCOLg='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-GagxllPAPpZWp7qAvsuSAE+drilJTFRK0CpMDandA3A='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -54,6 +54,7 @@
   --focus: #2C5F86;
   --sea: #CFDDE0;
   --path: #2F7D4A;         /* national-trail green */
+  --path-soft: #86B896;    /* the same, lighter: path that isn't the official line */
   --halo: rgba(243, 244, 239, .8);
   --casing: #F3F4EF;
   --panel-w: 320px;
@@ -65,14 +66,14 @@
   :root:not([data-theme="light"]) {
     --surface: #151C20; --surface-2: #1E272C; --ink: #E3E6E1; --ink-2: #9AA5A9; --line: #33424A;
     --rule: #C9CEC8; --tide: #79A9D1; --danger: #E07A66; --walk: #E0705F; --cycle: #79A9D1;
-    --other: #D9A84E; --focus: #79A9D1; --sea: #1A2228; --path: #7FBF8E;
+    --other: #D9A84E; --focus: #79A9D1; --sea: #1A2228; --path: #7FBF8E; --path-soft: #4E7A5C;
     --halo: rgba(10, 16, 20, .6); --casing: #12191D; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --surface: #151C20; --surface-2: #1E272C; --ink: #E3E6E1; --ink-2: #9AA5A9; --line: #33424A;
   --rule: #C9CEC8; --tide: #79A9D1; --danger: #E07A66; --walk: #E0705F; --cycle: #79A9D1;
-  --other: #D9A84E; --focus: #79A9D1; --sea: #1A2228; --path: #7FBF8E;
+  --other: #D9A84E; --focus: #79A9D1; --sea: #1A2228; --path: #7FBF8E; --path-soft: #4E7A5C;
   --halo: rgba(10, 16, 20, .6); --casing: #12191D; color-scheme: dark;
 }
 
@@ -219,6 +220,12 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .plan-h { list-style: none; font-size: .8125rem; font-weight: 600; color: var(--ink-2); padding: 12px 0 4px; border-bottom: 1px solid var(--rule); }
 #planList { flex: none; }
 .entries.gaps { flex: none; overflow: visible; max-height: none; }
+.entries.gaps .btn.quiet { align-self: center; white-space: nowrap; }
+.path-key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8125rem; color: var(--ink-2); }
+.path-key li { display: flex; align-items: center; gap: 6px; }
+.path-key .k { width: 26px; height: 0; border-top: 3px dotted var(--path); }
+.path-key .k.other { border-top-color: var(--path-soft); }
+.path-key .k.guess { border-top: 3px dashed var(--path-soft); }
 #planList .stay { display: block; color: var(--ink-2); font-size: .8125rem; font-style: italic; }
 .plan-day-label { font-size: .8125rem; color: var(--ink-2); align-self: center; margin-right: 4px; }
 .notyet summary { cursor: pointer; color: var(--ink-2); font-size: .875rem; padding: 6px 0; }
@@ -522,12 +529,24 @@ button, input, textarea, select { font: inherit; color: inherit; }
         <p class="fine" id="syncStatus"></p>
 
         <h2 class="tab-h">Gaps in the path</h2>
+        <ul class="path-key" aria-label="Key">
+          <li><span class="k official" aria-hidden="true"></span>Official route</li>
+          <li><span class="k other" aria-hidden="true"></span>Other mapped path</li>
+          <li><span class="k guess" aria-hidden="true"></span>Guessed route</li>
+        </ul>
         <label class="check"><input type="checkbox" id="setPredict" checked> Guess the route across gaps</label>
         <p class="fine" id="gapReport"></p>
         <ul class="entries gaps" id="gapList"></ul>
         <div class="row"><button class="btn" id="guessBtn" type="button">Guess a stretch by hand</button></div>
         <p class="hint" id="guessHint" hidden></p>
         <ul class="entries gaps" id="manualList"></ul>
+
+        <h2 class="tab-h">Your walks</h2>
+        <p class="hint">Walks re-fit themselves whenever the path changes. This looks for any that may now be counted the wrong way.</p>
+        <div class="row"><button class="btn" id="checkBtn" type="button">Check my walks</button>
+          <button class="btn quiet" id="checkAll" type="button" hidden>Apply all</button></div>
+        <p class="fine" id="checkReport" hidden></p>
+        <ul class="entries gaps" id="checkList"></ul>
 
         <h2 class="tab-h">Settings</h2>
         <label class="check"><input type="checkbox" id="setNames" checked> Look up place names</label>
@@ -540,6 +559,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       <button class="link-btn fine" id="backupStatus" type="button"></button>
       <p class="fine" id="pathStatus">Loading path…</p>
       <p class="fine" id="nameProgress" hidden></p>
+      <button class="link-btn fine" id="checkNote" type="button" hidden></button>
     </footer>
   </aside>
 
@@ -1360,7 +1380,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   // Two stages: the official England line and Wales go on the map as soon as
   // they arrive (ensurePath); the slower gap fills follow (ensureFullPath).
   // Imports wait for both, so walks on filled stretches aren't skipped.
-  let pathPromise = null, fillPromise = null, currentFill = [], fillsDone = false;
+  let pathPromise = null, fillPromise = null, currentFill = [], currentFillSrc = [], fillsDone = false;
   const fillErrors = [];
   const parts = { england: null, wales: null, englandDefra: null, englandOsm2: null };
   const pathErrors = [];
@@ -1420,7 +1440,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
     PATH.meta = {
       country: [...eng.map(() => 'E'), ...currentFill.map(() => 'E'), ...wal.map(() => 'W'), ...own.map(() => null), ...guessedCountry],
       stretch: [...eng.map((_, i) => names[i] || null), ...currentFill.map(() => null), ...wal.map(() => null), ...own.map(() => null), ...guessed.map(() => null)],
-      guessed: [...mapped.map(() => false), ...own.map(() => false), ...guessed.map(() => true)]
+      guessed: [...mapped.map(() => false), ...own.map(() => false), ...guessed.map(() => true)],
+      source: [...eng.map(() => 'official'), ...currentFill.map((_, i) => currentFillSrc[i] || 'other'), ...wal.map(() => 'official'),
+        ...own.map(() => 'other'), ...guessed.map(() => 'guess')]
     };
     installPath([...mapped, ...own, ...guessed], {
       england: parts.england ? lineMilesAll(parts.england) : 0,
@@ -1469,15 +1491,18 @@ button, input, textarea, select { font: inherit; color: inherit; }
       // Fill in order of authority: Defra's copy, then OpenStreetMap
       // Wales counts as covered too, so the wider search can't add Welsh duplicates
       let base = [...(parts.england || []), ...(parts.wales || [])];
-      const fill = [];
+      const fill = [], src = [];
       for (const extra of [parts.englandDefra, parts.englandOsm2]) {
         if (!extra) continue;
         await new Promise(r => setTimeout(r));
         const add = base.length ? gapFill(base, extra) : extra;
         fill.push(...add);
+        // Defra's copy is Natural England's own data; OpenStreetMap's isn't the official line
+        src.push(...add.map(() => extra === parts.englandDefra ? 'official' : 'other'));
         base = [...base, ...add];
       }
       currentFill = fill;
+      currentFillSrc = src;
       fillsDone = true;
       if (fill.length) installParts();
       predictPromise = runPredictions();
@@ -1539,23 +1564,27 @@ button, input, textarea, select { font: inherit; color: inherit; }
     m.getPane('ends').style.display = near ? '' : 'none';
     const layers = pathLayers.get(m);
     if (!layers) return;
-    const [halo, line] = layers;
+    const [halo, line, soft] = layers;
     if (near && !m.hasLayer(halo)) halo.addTo(m).bringToBack();
     if (!near && m.hasLayer(halo)) m.removeLayer(halo);
-    line.setStyle(near
-      ? { weight: 2, opacity: .95, dashArray: '0.5 5' }
-      : { weight: 1.25, opacity: .7, dashArray: null });
+    const dots = near ? { weight: 2, opacity: .95, dashArray: '0.5 5' } : { weight: 1.25, opacity: .7, dashArray: null };
+    line.setStyle(dots);
+    if (soft) soft.setStyle(near ? { ...dots, opacity: 1 } : { ...dots, opacity: .9 });
   }
   function drawPathOn(m) {
     if (pathLayers.has(m)) pathLayers.get(m).forEach(l => m.removeLayer(l));
     const opts = { renderer: m._coastRenderer, pane: 'coast', interactive: false, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 };
-    const g = (PATH.meta && PATH.meta.guessed) || [];
-    const mapped = PATH.lines.filter((_, i) => !g[i]), guessed = PATH.lines.filter((_, i) => g[i]);
-    const halo = L.polyline(mapped, { ...opts, color: cssVar('--halo'), weight: 6, opacity: 1 });
-    const line = L.polyline(mapped, { ...opts, color: cssVar('--path'), attribution: PATH_ATTRIB }).addTo(m);
-    // A guess, so drawn the way old maps show a path not yet made: long pecks in grey
-    const pecked = L.polyline(guessed, { ...opts, color: cssVar('--ink-2'), weight: 1.8, opacity: .75, dashArray: '6 6' }).addTo(m);
-    pathLayers.set(m, [halo, line, pecked]);
+    const src = (PATH.meta && PATH.meta.source) || [];
+    const pick = kind => PATH.lines.filter((_, i) => (src[i] || 'official') === kind);
+    const official = pick('official'), other = pick('other'), guessed = pick('guess');
+    // A pale halo under every kind of path line keeps the lighter ones legible on terrain
+    const halo = L.polyline([...official, ...other, ...guessed], { ...opts, color: cssVar('--halo'), weight: 6, opacity: 1 });
+    const line = L.polyline(official, { ...opts, color: cssVar('--path'), attribution: PATH_ATTRIB }).addTo(m);
+    // Path that isn't the official line yet, in a lighter green: mapped stretches dotted,
+    // guesses in long pecks, the way old maps show a path not yet made
+    const soft = L.polyline(other, { ...opts, color: cssVar('--path-soft') }).addTo(m);
+    const pecked = L.polyline(guessed, { ...opts, color: cssVar('--path-soft'), weight: 2, opacity: 1, dashArray: '6 6' }).addTo(m);
+    pathLayers.set(m, [halo, line, soft, pecked]);
     styleForZoom(m);
   }
   /* =========================================================
@@ -1871,6 +1900,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       };
       if (tab === 'data') renderGaps();
       installParts();
+      noteWalkCheck();
     } finally {
       predicting = false;
     }
@@ -4050,7 +4080,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
         const ya = top + (k - k0) * per, yb = top + (e - k0 + 1) * per;
         ctx.strokeStyle = C('--surface'); ctx.lineWidth = 4; ctx.lineCap = 'butt';
         ctx.beginPath(); ctx.moveTo(cx, ya); ctx.lineTo(cx, yb); ctx.stroke();
-        ctx.setLineDash([6, 5]); ctx.strokeStyle = C('--ink-2'); ctx.lineWidth = 1.8;
+        ctx.setLineDash([6, 5]); ctx.strokeStyle = C('--path-soft'); ctx.lineWidth = 2.2;
         ctx.beginPath(); ctx.moveTo(cx, ya); ctx.lineTo(cx, yb); ctx.stroke(); ctx.setLineDash([]);
         k = e;
       }
@@ -4098,7 +4128,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     ctx.strokeStyle = C('--ink-2'); ctx.lineWidth = 1.2; ctx.fillStyle = C('--surface');
     ctx.beginPath(); ctx.arc(kx + 238, sy, 4, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
     ctx.fillStyle = C('--ink-2'); ctx.fillText('station', kx + 250, sy + 5);
-    ctx.setLineDash([6, 5]); ctx.strokeStyle = C('--ink-2'); ctx.lineWidth = 1.8;
+    ctx.setLineDash([6, 5]); ctx.strokeStyle = C('--path-soft'); ctx.lineWidth = 2.2;
     ctx.beginPath(); ctx.moveTo(kx + 330, sy); ctx.lineTo(kx + 364, sy); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillText('guessed route', kx + 372, sy + 5);
   }
@@ -4428,6 +4458,71 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (pts.length > 1) map.fitBounds(L.latLngBounds(pts), { padding: [60, 60], maxZoom: 14 });
     else map.setView(pts[0], 13);
   }));
+
+  /* ---------- Checking walks against the path as it now stands ----------
+     Walks re-clip themselves whenever the path changes. This looks for
+     choices that may no longer fit: walks counted in full that the path now
+     covers, and walks that don't touch the path at all, or barely. */
+  let walkIssues = [];
+  function checkWalks() {
+    walkIssues = [];
+    if (!PATH.grid) return walkIssues;
+    activeEntries().filter(e => hasTrack(e) && !isHidden(e)).forEach(e => {
+      const total = typeof e.miles === 'number' ? e.miles : lineM(e.track) / M_PER_MI;
+      const clipped = coastalSections(e.track);       // as if not counted in full
+      if (isWhole(e)) {
+        if (clipped.miles >= 0.85 * total) walkIssues.push({ e, kind: 'covered', text: `The path now covers ${pct(clipped.miles, total)} of it`, fix: 'Count only the path' });
+      } else if (!clipped.sections.length) {
+        walkIssues.push({ e, kind: 'off', text: 'Not on the path', fix: 'Hide' });
+      } else if (clipped.miles < 1 && clipped.miles < 0.25 * total) {
+        walkIssues.push({ e, kind: 'inland', text: `Mostly inland: ${fmtMi(clipped.miles)} of ${fmtMi(total)} mi on the path`, fix: 'Hide' });
+      }
+    });
+    return walkIssues;
+  }
+  function applyIssue(x) {
+    if (x.kind === 'covered') { log.whole = log.whole.filter(id => id !== x.e.id); log.setsAt.whole = new Date().toISOString(); }
+    else if (!log.hidden.includes(x.e.id)) { log.hidden = [...log.hidden, x.e.id]; log.setsAt.hidden = new Date().toISOString(); }
+  }
+  function renderWalkCheck(ran) {
+    const list = $('#checkList');
+    if (!ran) { list.innerHTML = ''; return; }
+    const n = activeEntries().filter(e => hasTrack(e) && !isHidden(e)).length;
+    $('#checkReport').hidden = false;
+    $('#checkReport').textContent = walkIssues.length
+      ? `${walkIssues.length} of ${n} imported ${n === 1 ? 'walk' : 'walks'} may need a look.`
+      : n === 1 ? 'Your imported walk looks right against the path.' : n ? `All ${n} imported walks look right against the path.` : 'No imported walks to check.';
+    $('#checkAll').hidden = walkIssues.length < 2;
+    list.innerHTML = walkIssues.map((x, i) => `<li class="entry">
+      <button class="entry-main" type="button" data-check-open="${i}"><span class="entry-text">
+        <span class="route">${esc(routeText(x.e))}</span><span class="meta">${fmtDate(x.e.date)}. ${esc(x.text)}</span></span></button>
+      <button class="btn quiet" type="button" data-check-fix="${i}">${x.fix}</button></li>`).join('');
+  }
+  $('#checkBtn').addEventListener('click', () => { checkWalks(); renderWalkCheck(true); });
+  $('#checkList').addEventListener('click', ev => {
+    const open = ev.target.closest('[data-check-open]');
+    if (open) { const x = walkIssues[Number(open.dataset.checkOpen)]; showTab('log'); openDetail(x.e.id); return; }
+    const fix = ev.target.closest('[data-check-fix]');
+    if (!fix) return;
+    applyIssue(walkIssues[Number(fix.dataset.checkFix)]);
+    saveLog();
+    if (PATH.lines) installParts(); else render();
+    checkWalks(); renderWalkCheck(true); noteWalkCheck();
+  });
+  $('#checkAll').addEventListener('click', () => {
+    walkIssues.forEach(applyIssue);
+    saveLog();
+    if (PATH.lines) installParts(); else render();
+    checkWalks(); renderWalkCheck(true); noteWalkCheck();
+    toast('Done. Anything hidden is under Hidden in the log.');
+  });
+  // After the path has been filled in, mention it if any walks need a look
+  function noteWalkCheck() {
+    const n = checkWalks().length;
+    $('#checkNote').hidden = !n;
+    $('#checkNote').textContent = `${n} ${n === 1 ? 'walk' : 'walks'} may need a look`;
+  }
+  $('#checkNote').addEventListener('click', () => { showTab('data'); renderWalkCheck(true); $('#checkBtn').scrollIntoView({ block: 'center' }); });
 
   function renderData() {
     const on = !!syncCfg;
