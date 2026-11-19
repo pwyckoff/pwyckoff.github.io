@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-vHJdW5o1pPXEpI/HjuxGb8oXRnsOTsjMu8FE3X2laPA='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-1WCtTzG9rPzRpDhH5359NyO9GXpmqp98OZV8OMbCOLg='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -1261,19 +1261,20 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   const fetchWales = progress => fetchRelation(CONFIG.coastPath.walesRelation, 'Wales', progress);
-  // The main England Coast Path relation, plus any route or way named England
-  // Coast Path: this catches stretches not yet added to the main relation
+  // The main England Coast Path relation, plus any route relation named England
+  // Coast Path: this catches stretches not yet added to the main relation. (Searching
+  // every way in England by name would be far heavier on the server for little gain.)
   const fetchEnglandOsm = progress => {
     const [[s0, w0], [n0, e0]] = CONFIG.bounds;
     const bb = `(${s0},${w0},${n0},${e0})`;
     return fetchOverpassLines(`[out:json][timeout:180];(relation(${CONFIG.coastPath.englandOsmRelation});` +
       `relation["route"~"^(hiking|foot|walking)$"]["name"~"England Coast Path",i]${bb};)->.r;` +
-      `(.r;>>;)->.m;(way.m;way["name"~"England Coast Path",i]${bb};);out geom;`, 'England gaps', progress);
+      `(.r;>>;)->.m;way.m;out geom;`, 'England gaps', progress);
   };
   // POST to an Overpass server, giving up after a few minutes
-  async function overpass(ep, q) {
+  async function overpass(ep, q, ms = 200000) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 200000);
+    const timer = setTimeout(() => ctrl.abort(), ms);
     try {
       const res = await fetch(ep, { method: 'POST', body: new URLSearchParams({ data: q }), signal: ctrl.signal });
       if (!res.ok) throw new Error(`${new URL(ep).host} answered ${res.status}`);
@@ -1485,7 +1486,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   // Imports wait for the gap fills and the guessed routes, so walks on either count
-  const ensureFullPath = () => ensurePath().then(() => fillPromise).then(() => predictPromise);
+  const ensureFullPath = () => ensurePath().then(() => fillPromise)
+    .then(() => Promise.race([predictPromise, new Promise(r => setTimeout(r, 45000))]));
 
   // New stretches open over time, and the sources catch up: about once a month,
   // refetch each source quietly, then redraw the path if anything came back.
@@ -1567,6 +1569,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
      line, and give way to the official route when it is published.
      ========================================================= */
   const PREDICT_V = 1, PREDICT_MAX_M = 120000, PREDICT_LONG_M = 25000;
+  const PREDICT_TIMEOUT_MS = 60000;         // give up on a slow request; the gap is tried again next visit
   let currentPredicted = [], predicting = false, predictPromise = null;
   const predictProgress = { text: '' };
 
@@ -1689,27 +1692,57 @@ button, input, textarea, select { font: inherit; color: inherit; }
     const s0 = Math.min(a[0], b[0]) - pad, n0 = Math.max(a[0], b[0]) + pad;
     const w0 = Math.min(a[1], b[1]) - pad * 1.6, e0 = Math.max(a[1], b[1]) + pad * 1.6;
     const bb = `(${s0.toFixed(4)},${w0.toFixed(4)},${n0.toFixed(4)},${e0.toFixed(4)})`;
-    const hw = Object.keys(ROAD_FACTOR).join('|');
-    const q = `[out:json][timeout:120];way["natural"="coastline"]${bb}->.c;` +
-      `way(around.c:${corridor})["highway"~"^(${hw})$"]${bb}->.w;.c out geom${bb};.w out body geom;`;
-    let data = null, lastErr;
-    for (const ep of CONFIG.coastPath.overpass) {
-      try { data = await overpass(ep, q); break; } catch (e) { lastErr = e; }
-    }
-    if (!data) throw lastErr;
-    const coast = [], ways = [];
-    (data.elements || []).forEach(e => {
-      if (e.type !== 'way' || !Array.isArray(e.geometry)) return;
-      if (e.tags && e.tags.natural === 'coastline') {
-        // Clipped geometry can have gaps where the way leaves the search area: split there
-        let run = [];
-        e.geometry.forEach(g => {
-          if (g && isFinite(g.lat) && isFinite(g.lon)) run.push([g.lat, g.lon]);
-          else { if (run.length > 1) coast.push(run); run = []; }
-        });
-        if (run.length > 1) coast.push(run);
+    // Step 1: the coastline in the area. Cheap: coastline is indexed, and the
+    // geometry comes back clipped to the area.
+    const ask = async q => {
+      let lastErr;
+      for (const ep of CONFIG.coastPath.overpass) {
+        try { return await overpass(ep, q, PREDICT_TIMEOUT_MS); } catch (e) { lastErr = e; }
       }
-      else if (e.tags && walkable(e.tags) && Array.isArray(e.nodes)) ways.push(e);
+      throw lastErr;
+    };
+    const cdata = await ask(`[out:json][timeout:60];way["natural"="coastline"]${bb};out geom${bb};`);
+    const coast = [];
+    (cdata.elements || []).forEach(e => {
+      if (e.type !== 'way' || !Array.isArray(e.geometry)) return;
+      // Clipped geometry can have gaps where the way leaves the area: split there
+      let run = [];
+      e.geometry.forEach(g => {
+        if (g && isFinite(g.lat) && isFinite(g.lon)) run.push([g.lat, g.lon]);
+        else { if (run.length > 1) coast.push(run); run = []; }
+      });
+      if (run.length > 1) coast.push(run);
+    });
+    // Step 2: the shoreline band as a set of small squares along the coastline (or
+    // along the gap itself where no coastline is mapped), then the walkable ways in
+    // just those squares. Plain box searches like this are fast for the server,
+    // unlike asking for everything near a long, complicated shape.
+    let cellM = Math.max(1000, corridor * 1.4);
+    const along = coast.length ? coast : [[a, b]];
+    let cells;
+    for (;;) {
+      cells = new Map();
+      const dLat = cellM / 111320, dLon = cellM / (111320 * Math.cos((a[0] + b[0]) / 2 * Math.PI / 180));
+      along.forEach(l => spread(l, Math.max(2, Math.ceil(lineM(l) / (cellM / 2)))).forEach(([la, lo]) => {
+        if (la < s0 || la > n0 || lo < w0 || lo > e0) return;
+        const i = Math.floor(la / dLat), j = Math.floor(lo / dLon);
+        // the cell and its neighbours, so the band reaches the corridor's width either side
+        for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) cells.set(`${i + di},${j + dj}`, [i + di, j + dj, dLat, dLon]);
+      }));
+      [a, b].forEach(([la, lo]) => { const i = Math.floor(la / dLat), j = Math.floor(lo / dLon); cells.set(`${i},${j}`, [i, j, dLat, dLon]); });
+      if (cells.size <= 400) break;
+      cellM *= 1.5;                              // a long, intricate coast: coarser squares, one request
+    }
+    const hw = Object.keys(ROAD_FACTOR).join('|');
+    const boxes = [...cells.values()].map(([i, j, dLat, dLon]) =>
+      `way["highway"~"^(${hw})$"](${(i * dLat).toFixed(4)},${(j * dLon).toFixed(4)},${((i + 1) * dLat).toFixed(4)},${((j + 1) * dLon).toFixed(4)});`).join('');
+    const wdata = await ask(`[out:json][timeout:60];(${boxes});out body geom;`);
+    const ways = [];
+    const seenWay = new Set();
+    (wdata.elements || []).forEach(e => {
+      if (e.type !== 'way' || !Array.isArray(e.geometry)) return;
+      if (e.id != null) { if (seenWay.has(e.id)) return; seenWay.add(e.id); }   // a way in two squares comes back twice
+      if (e.tags && walkable(e.tags) && Array.isArray(e.nodes)) ways.push(e);
     });
     if (!ways.length) return null;
     const cix = {};
@@ -1791,7 +1824,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     const bands = distM(g.a, g.b) > PREDICT_LONG_M ? [1500, 4000, 8000] : [1500, 4000];
     let failed = false;
     for (const corridor of bands) {
-      try { coords = await routeOnFootpaths(g.a, g.b, corridor); } catch (e) { coords = null; failed = true; }
+      try { coords = await routeOnFootpaths(g.a, g.b, corridor); } catch (e) { coords = null; failed = true; break; }
       if (coords) break;
     }
     // Remember a found route, or a definite "no route"; a failed request is tried again next visit
@@ -1812,7 +1845,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       for (let gi = 0; gi < gaps.length; gi++) {
         const g = gaps[gi];
         if (usedEnd.has(g.ea)) continue;
-        predictProgress.text = `guessing gaps, ${gi + 1} of ${gaps.length}`;
+        predictProgress.text = `guessing gaps, ${gi + 1} of ${gaps.length} (near ${placeName(g.a)})`;
         pathSummary(false);
         for (const alt of g.alts) {
           const pair = [g.comp, alt.comp].sort().join('-');
@@ -2832,10 +2865,18 @@ button, input, textarea, select { font: inherit; color: inherit; }
     try {
       for (;;) {
         const seen = new Set(), pending = [];
+        // Lookups are rounded to about 100 m, so a name found for one point serves its neighbours
+        const k3 = p => `${p.lat.toFixed(3)},${p.lon.toFixed(3)}`;
+        const near = new Map();
+        Object.entries(log.places).forEach(([k, v]) => { const [la, lo] = k.split(',').map(Number); near.set(k3({ lat: la, lon: lo }), v); });
+        let reused = false;
         activeEntries().forEach(e => endpoints(e).forEach(p => {
           const k = ptKey(p);
-          if (!p.label && !(k in log.places) && !seen.has(k)) { seen.add(k); pending.push(p); }
+          if (p.label || k in log.places) return;
+          if (near.has(k3(p))) { log.places[k] = near.get(k3(p)); reused = true; return; }
+          if (!seen.has(k3(p))) { seen.add(k3(p)); pending.push(p); }
         }));
+        if (reused) saveLog();
         if (!pending.length) { prog.hidden = true; break; }
         prog.hidden = false;
         prog.textContent = `Naming places, ${pending.length} left`;
