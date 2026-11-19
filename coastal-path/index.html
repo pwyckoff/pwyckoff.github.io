@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-s6eCofdN+7RiAJKKTnjdCuQYv64zn6I3hCD/Q02wkuk='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-dxY9WT77dITGHJmhRA+MPSIeGm3odo9y9Kl1SLL0j5I='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -1855,6 +1855,69 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   let lastPredictRequest = 0;
+  // A shared request for gap guessing, with the short time limit
+  async function overpassAsk(q) {
+    let lastErr;
+    for (const ep of CONFIG.coastPath.overpass) {
+      try { return await overpass(ep, q, PREDICT_TIMEOUT_MS); } catch (e) { lastErr = e; }
+    }
+    throw lastErr;
+  }
+  // A rough guess for a gap with no joined-up footpaths: trace the shoreline itself.
+  // OSM's coastline is one continuous line, running up each estuary to its tidal
+  // limit and back down the other bank, so this never cuts across land or water.
+  async function routeAlongCoastline(a, b) {
+    const crow = distM(a, b);
+    const pad = Math.max(0.05, crow / 111320 * 0.6);
+    const s0 = Math.min(a[0], b[0]) - pad, n0 = Math.max(a[0], b[0]) + pad;
+    const w0 = Math.min(a[1], b[1]) - pad * 1.6, e0 = Math.max(a[1], b[1]) + pad * 1.6;
+    const bb = `(${s0.toFixed(4)},${w0.toFixed(4)},${n0.toFixed(4)},${e0.toFixed(4)})`;
+    const data = await overpassAsk(`[out:json][timeout:60];way["natural"="coastline"]${bb};out body geom${bb};`);
+    const idx = new Map(), pts = [], adj = [];
+    const node = (id, g) => { let i = idx.get(id); if (i == null) { i = pts.length; idx.set(id, i); pts.push([g.lat, g.lon]); adj.push([]); } return i; };
+    (data.elements || []).forEach(w => {
+      if (w.type !== 'way' || !Array.isArray(w.nodes) || !Array.isArray(w.geometry)) return;
+      for (let k = 1; k < w.nodes.length && k < w.geometry.length; k++) {
+        const g0 = w.geometry[k - 1], g1 = w.geometry[k];
+        if (!g0 || !g1 || !isFinite(g0.lat) || !isFinite(g1.lat)) continue;    // clipped away
+        const u = node(w.nodes[k - 1], g0), v = node(w.nodes[k], g1), len = distM(pts[u], pts[v]);
+        adj[u].push([v, len]); adj[v].push([u, len]);
+      }
+    });
+    if (!pts.length) return null;
+    const snap = p => { let best = 3000, bi = -1; pts.forEach((q, i) => { const d = distM(p, q); if (d < best) { best = d; bi = i; } }); return bi; };
+    const sa = snap(a), sb = snap(b);
+    if (sa < 0 || sb < 0) return null;
+    const dist = new Float64Array(pts.length).fill(Infinity), prev = new Int32Array(pts.length).fill(-1);
+    dist[sa] = 0;
+    const heap = [[0, sa]];
+    while (heap.length) {
+      // a simple heap is plenty for a coastline's worth of points
+      let bi = 0; for (let i = 1; i < heap.length; i++) if (heap[i][0] < heap[bi][0]) bi = i;
+      const [d, v] = heap[bi]; heap[bi] = heap[heap.length - 1]; heap.pop();
+      if (d > dist[v]) continue;
+      if (v === sb) break;
+      for (const [w, len] of adj[v]) if (d + len < dist[w]) { dist[w] = d + len; prev[w] = v; heap.push([d + len, w]); }
+    }
+    if (dist[sb] === Infinity) return null;
+    const out = [];
+    for (let v = sb; v >= 0; v = prev[v]) out.push(pts[v]);
+    out.reverse();
+    const coords = [a, ...out, b];
+    if (lineM(coords) > 6 * crow + 30000) return null;
+    return simplify(coords, 15).map(p => [round(p[0], 5), round(p[1], 5)]);
+  }
+  async function roughGap(g) {
+    const key = `predict:v${PREDICT_V}:rough:${g.a.map(v => v.toFixed(4)).join(',')}:${g.b.map(v => v.toFixed(4)).join(',')}`;
+    try { const c = await idb.get(key); if (c && !isStale(c)) return c.coords || null; } catch (e) { /* none */ }
+    const wait = lastPredictRequest + 2000 - Date.now();
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    lastPredictRequest = Date.now();
+    const coords = await routeAlongCoastline(g.a, g.b);      // a failed request throws, so isn't remembered
+    try { await idb.set(key, { at: new Date().toISOString(), coords }); } catch (e) { /* ok */ }
+    return coords;
+  }
+
   async function predictGap(g) {
     const key = `predict:v${PREDICT_V}:${g.a.map(v => v.toFixed(4)).join(',')}:${g.b.map(v => v.toFixed(4)).join(',')}`;
     try { const c = await idb.get(key); if (c && !isStale(c)) return c.coords || null; } catch (e) { /* none */ }
@@ -1906,10 +1969,28 @@ button, input, textarea, select { font: inherit; color: inherit; }
           }
         }
       }
+      // Second pass: every gap still open gets closed, so the line runs all the way
+      // round. A short crossing (a river mouth or harbour taken by ferry or bridge)
+      // is joined straight; anything longer traces the shoreline.
+      for (let gi = 0; gi < gaps.length; gi++) {
+        const g = gaps[gi];
+        if (usedEnd.has(g.ea)) continue;
+        const alt = g.alts.find(x => !usedEnd.has(x.eb) && !usedPair.has([g.comp, x.comp].sort().join('-')));
+        if (!alt) continue;
+        predictProgress.text = `tracing the shore across gaps (near ${placeName(g.a)})`;
+        pathSummary(false);
+        let coords = null, how = 'shore';
+        if (alt.d < 2000) { coords = [g.a, alt.b]; how = 'crossing'; }
+        else if (requests++ < 200) { try { coords = await roughGap({ a: g.a, b: alt.b }); } catch (e) { coords = null; } }
+        if (coords) {
+          out.push({ coords, country: g.country, rough: how });
+          usedEnd.add(g.ea); usedEnd.add(alt.eb); usedPair.add([g.comp, alt.comp].sort().join('-'));
+        }
+      }
       predictProgress.text = '';
       currentPredicted = out;
       gapReport = {
-        guessed: out.filter(o => lineM(o.coords) >= 150).map(o => ({ coords: o.coords, label: `${placeName(o.coords[0])} to ${placeName(o.coords[o.coords.length - 1])}`, mi: lineM(o.coords) / M_PER_MI })),
+        guessed: out.filter(o => lineM(o.coords) >= 150).map(o => ({ coords: o.coords, label: `${placeName(o.coords[0])} to ${placeName(o.coords[o.coords.length - 1])}`, mi: lineM(o.coords) / M_PER_MI, rough: o.rough })),
         loose: looseEnds.filter(l => !usedEnd.has(l.e)).slice(0, 30).map(l => ({ pt: l.pt, label: placeName(l.pt) }))
       };
       if (tab === 'data') renderGaps();
@@ -4481,7 +4562,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     $('#gapReport').textContent = !r ? (settings.predict === false ? 'Guessing is off.' : 'Not checked yet.')
       : `${r.guessed.length} ${r.guessed.length === 1 ? 'gap' : 'gaps'} guessed. ${r.loose.length} ${r.loose.length === 1 ? 'place' : 'places'} where the path stops without a guess (some are its true ends).`;
     $('#gapList').innerHTML = r ? [
-      ...r.guessed.map((g, i) => show({ label: g.label, meta: `${fmtMi(g.mi)} mi guessed` }, i, 'g')),
+      ...r.guessed.map((g, i) => show({ label: g.label, meta: g.rough === 'crossing' ? 'a short crossing, joined straight' : g.rough ? `${fmtMi(g.mi)} mi, roughly along the shoreline` : `${fmtMi(g.mi)} mi guessed` }, i, 'g')),
       ...r.loose.map((g, i) => show({ label: `Stops near ${g.label}`, meta: 'no guess' }, i, 'l'))
     ].join('') : '';
     $('#manualList').innerHTML = manualGuesses.map((m, i) => show({ label: m.label, meta: `${fmtMi(lineM(m.coords) / M_PER_MI)} mi, by hand` }, i, 'm')).join('');
