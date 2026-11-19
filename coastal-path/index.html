@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-XuV4t7arfioJPkOYWlRyl1y9QgKc5z1U4XbJ+cXURe4='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-YH/KjQH192FnG3Skr8DFZkNBmtSIVs4s/x2uhcuh8sk='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -522,6 +522,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 
         <h2 class="tab-h">Settings</h2>
         <label class="check"><input type="checkbox" id="setNames" checked> Look up place names</label>
+        <label class="check"><input type="checkbox" id="setPredict" checked> Guess the route across gaps</label>
         <button class="btn quiet" id="refreshPath" type="button">Refresh path data</button>
       </div>
     </section>
@@ -1301,10 +1302,10 @@ button, input, textarea, select { font: inherit; color: inherit; }
   // Pieces of the OSM England route that are not already within reach of the
   // official line. Each piece is stretched to the nearest official line end so
   // the two join up for routing.
-  function gapFill(official, osm) {
+  function gapFill(official, osm, prebuilt) {
     const cp = CONFIG.coastPath;
-    const ix = {};
-    buildIndex(official, ix);
+    const ix = prebuilt || {};
+    if (!prebuilt) buildIndex(official, ix);
     const ends = [];
     official.forEach(l => { ends.push(l[0], l[l.length - 1]); });
     const nearestEnd = p => {
@@ -1377,15 +1378,16 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   function pathSummary(filling) {
-    const eng = PATH.miles.england + PATH.miles.fill;
+    const eng = PATH.miles.england + PATH.miles.fill + (PATH.miles.guessed || 0);
+    const extra = [PATH.miles.fill >= 1 && `${fmtWhole(PATH.miles.fill)} filled`, PATH.miles.guessed >= 1 && `${fmtWhole(PATH.miles.guessed)} guessed`].filter(Boolean).join(', ');
     const loaded = [
-      eng && `England ${fmtWhole(eng)} mi${PATH.miles.fill >= 1 ? ` (${fmtWhole(PATH.miles.fill)} filled)` : ''}`,
+      eng && `England ${fmtWhole(eng)} mi${extra ? ` (${extra})` : ''}`,
       parts.wales && `Wales ${fmtWhole(PATH.miles.wales)} mi`
     ].filter(Boolean).join(', ');
     if (pathErrors.length) setPathStatus(`Path: ${loaded}. Missing ${pathErrors.join(', ')}.`, true);
     else if (filling) setPathStatus(`Path: ${loaded}; filling gaps…`);
     else if (fillErrors.length) setPathStatus(`Path: ${loaded}. Gaps not filled (${fillErrors.join('; ')}).`, true);
-    else setPathStatus(`Path: ${loaded}`);
+    else setPathStatus(`Path: ${loaded}${predictProgress.text ? `; ${predictProgress.text}…` : ''}`);
   }
 
   // Walks you count in full also extend the path line where nothing is mapped
@@ -1393,15 +1395,24 @@ button, input, textarea, select { font: inherit; color: inherit; }
     const mapped = [...(parts.england || []), ...currentFill, ...(parts.wales || [])];
     const yours = activeEntries().filter(e => isWhole(e) && !isHidden(e) && hasTrack(e)).map(e => e.track);
     const own = mapped.length && yours.length ? gapFill(mapped, yours) : [];
+    // Guessed routes across gaps, trimmed to where nothing mapped or walked covers them
+    const guessed = [], guessedCountry = [];
+    if (settings.predict !== false && currentPredicted.length && mapped.length) {
+      const base = [...mapped, ...own], bix = {};
+      buildIndex(base, bix);
+      currentPredicted.forEach(p => gapFill(base, [p.coords], bix).forEach(l => { guessed.push(l); guessedCountry.push(p.country); }));
+    }
     const eng = parts.england || [], wal = parts.wales || [];
     const names = partNames.england || [];
     PATH.meta = {
-      country: [...eng.map(() => 'E'), ...currentFill.map(() => 'E'), ...wal.map(() => 'W'), ...own.map(() => null)],
-      stretch: [...eng.map((_, i) => names[i] || null), ...currentFill.map(() => null), ...wal.map(() => null), ...own.map(() => null)]
+      country: [...eng.map(() => 'E'), ...currentFill.map(() => 'E'), ...wal.map(() => 'W'), ...own.map(() => null), ...guessedCountry],
+      stretch: [...eng.map((_, i) => names[i] || null), ...currentFill.map(() => null), ...wal.map(() => null), ...own.map(() => null), ...guessed.map(() => null)],
+      guessed: [...mapped.map(() => false), ...own.map(() => false), ...guessed.map(() => true)]
     };
-    installPath([...mapped, ...own], {
+    installPath([...mapped, ...own, ...guessed], {
       england: parts.england ? lineMilesAll(parts.england) : 0,
       fill: lineMilesAll(currentFill) + lineMilesAll(own),
+      guessed: lineMilesAll(guessed),
       wales: parts.wales ? lineMilesAll(parts.wales) : 0
     });
     pathSummary(!fillsDone);
@@ -1455,11 +1466,13 @@ button, input, textarea, select { font: inherit; color: inherit; }
       currentFill = fill;
       fillsDone = true;
       if (fill.length) installParts();
+      predictPromise = runPredictions();
       if (staleParts.size && !refreshing) refreshStale();
     })().catch(() => { fillsDone = true; });
   }
 
-  const ensureFullPath = () => ensurePath().then(() => fillPromise);
+  // Imports wait for the gap fills and the guessed routes, so walks on either count
+  const ensureFullPath = () => ensurePath().then(() => fillPromise).then(() => predictPromise);
 
   // New stretches open over time, and the sources catch up: about once a month,
   // refetch each source quietly, then redraw the path if anything came back.
@@ -1521,11 +1534,220 @@ button, input, textarea, select { font: inherit; color: inherit; }
   function drawPathOn(m) {
     if (pathLayers.has(m)) pathLayers.get(m).forEach(l => m.removeLayer(l));
     const opts = { renderer: m._coastRenderer, pane: 'coast', interactive: false, lineCap: 'round', lineJoin: 'round', smoothFactor: 1.5 };
-    const halo = L.polyline(PATH.lines, { ...opts, color: cssVar('--halo'), weight: 6, opacity: 1 });
-    const line = L.polyline(PATH.lines, { ...opts, color: cssVar('--path'), attribution: PATH_ATTRIB }).addTo(m);
-    pathLayers.set(m, [halo, line]);
+    const g = (PATH.meta && PATH.meta.guessed) || [];
+    const mapped = PATH.lines.filter((_, i) => !g[i]), guessed = PATH.lines.filter((_, i) => g[i]);
+    const halo = L.polyline(mapped, { ...opts, color: cssVar('--halo'), weight: 6, opacity: 1 });
+    const line = L.polyline(mapped, { ...opts, color: cssVar('--path'), attribution: PATH_ATTRIB }).addTo(m);
+    // A guess, so drawn the way old maps show a path not yet made: long pecks in grey
+    const pecked = L.polyline(guessed, { ...opts, color: cssVar('--ink-2'), weight: 1.8, opacity: .75, dashArray: '6 6' }).addTo(m);
+    pathLayers.set(m, [halo, line, pecked]);
     styleForZoom(m);
   }
+  /* =========================================================
+     A likely route across gaps
+     Where the mapped path stops and another piece starts a little way off
+     (Harwich and Mistley, say), guess the eventual route: walkable ways near
+     the shore from OpenStreetMap, preferring footpaths to roads and staying
+     as close to the coastline as possible. OSM's coastline runs up estuaries
+     to their tidal limit, so the guess goes round to the first crossing, as
+     the official path usually does. Guesses are cached, drawn as a pecked
+     line, and give way to the official route when it is published.
+     ========================================================= */
+  const PREDICT_V = 1, PREDICT_MAX_M = 25000;
+  let currentPredicted = [], predicting = false, predictPromise = null;
+  const predictProgress = { text: '' };
+
+  function nearestOtherIx(lat, lon, maxM, exclude, ix) {
+    const ky = 111320, kx = 111320 * Math.cos(lat * Math.PI / 180);
+    const ri = Math.ceil(maxM / (CELL_LAT * ky)), rj = Math.ceil(maxM / (CELL_LON * kx));
+    const ci = Math.floor(lat / CELL_LAT), cj = Math.floor(lon / CELL_LON);
+    let best = maxM * maxM, hit = null;
+    for (let di = -ri; di <= ri; di++) {
+      for (let dj = -rj; dj <= rj; dj++) {
+        const arr = ix.grid.get(cellKey(ci + di, cj + dj));
+        if (!arr) continue;
+        for (const k of arr) {
+          if (ix.segLine[k] === exclude) continue;
+          const o = k * 4, segs = ix.segs;
+          const ax = (segs[o + 1] - lon) * kx, ay = (segs[o] - lat) * ky;
+          const dx = (segs[o + 3] - lon) * kx - ax, dy = (segs[o + 2] - lat) * ky - ay;
+          const len2 = dx * dx + dy * dy;
+          const t = len2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2)) : 0;
+          const px = ax + t * dx, py = ay + t * dy, d2 = px * px + py * py;
+          if (d2 <= best) { best = d2; hit = { line: ix.segLine[k] }; }
+        }
+      }
+    }
+    return hit;
+  }
+
+  // Loose ends that face each other across a missing stretch
+  function findGaps(lines, countryOf) {
+    const ix = {};
+    buildIndex(lines, ix);
+    const parent = lines.map((_, i) => i);
+    const find = i => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
+    const ends = [];
+    lines.forEach((l, j) => {
+      [l[0], l[l.length - 1]].forEach(pt => {
+        const hit = nearestOtherIx(pt[0], pt[1], 40, j, ix);
+        if (hit) { const a = find(j), b = find(hit.line); if (a !== b) parent[a] = b; }
+        else ends.push({ line: j, pt });
+      });
+    });
+    // Two loose ends close together but on separate pieces of path are a gap
+    const cands = [];
+    for (let i = 0; i < ends.length; i++) {
+      for (let k = i + 1; k < ends.length; k++) {
+        const a = ends[i], b = ends[k];
+        if (Math.abs(a.pt[0] - b.pt[0]) > 0.25 || Math.abs(a.pt[1] - b.pt[1]) > 0.4) continue;
+        if (find(a.line) === find(b.line)) continue;
+        const d = distM(a.pt, b.pt);
+        if (d >= 150 && d <= PREDICT_MAX_M) cands.push({ i, k, d });
+      }
+    }
+    cands.sort((x, y) => x.d - y.d);
+    return cands.map(({ i, k }) => {
+      const ca = find(ends[i].line), cb = find(ends[k].line);
+      return { ea: i, eb: k, pair: ca < cb ? `${ca}-${cb}` : `${cb}-${ca}`, a: ends[i].pt, b: ends[k].pt, country: countryOf(ends[i].line) };
+    });
+  }
+
+  const ROAD_FACTOR = { footway: 1, path: 1, bridleway: 1, pedestrian: 1, steps: 1, cycleway: 1, track: 1,
+    service: 1.3, living_street: 1.3, residential: 1.5, unclassified: 1.5, tertiary: 2.2, secondary: 3.5 };
+  const walkable = t => {
+    if (!ROAD_FACTOR[t.highway]) return false;
+    if (/^(no|private)$/.test(t.foot || '')) return false;
+    if (/^(no|private)$/.test(t.access || '') && !/^(yes|designated|permissive)$/.test(t.foot || '')) return false;
+    return true;
+  };
+
+  async function routeOnFootpaths(a, b, corridor) {
+    const pad = Math.max(0.03, distM(a, b) / 111320 * 0.35);
+    const s0 = Math.min(a[0], b[0]) - pad, n0 = Math.max(a[0], b[0]) + pad;
+    const w0 = Math.min(a[1], b[1]) - pad * 1.6, e0 = Math.max(a[1], b[1]) + pad * 1.6;
+    const bb = `(${s0.toFixed(4)},${w0.toFixed(4)},${n0.toFixed(4)},${e0.toFixed(4)})`;
+    const hw = Object.keys(ROAD_FACTOR).join('|');
+    const q = `[out:json][timeout:120];way["natural"="coastline"]${bb}->.c;` +
+      `way(around.c:${corridor})["highway"~"^(${hw})$"]->.w;.c out geom;.w out body geom;`;
+    let data = null, lastErr;
+    for (const ep of CONFIG.coastPath.overpass) {
+      try { data = await overpass(ep, q); break; } catch (e) { lastErr = e; }
+    }
+    if (!data) throw lastErr;
+    const coast = [], ways = [];
+    (data.elements || []).forEach(e => {
+      if (e.type !== 'way' || !Array.isArray(e.geometry)) return;
+      if (e.tags && e.tags.natural === 'coastline') coast.push(e.geometry.map(g => [g.lat, g.lon]));
+      else if (e.tags && walkable(e.tags) && Array.isArray(e.nodes)) ways.push(e);
+    });
+    if (!ways.length) return null;
+    const cix = {};
+    if (coast.length) buildIndex(coast.filter(l => l.length > 1), cix);
+    // A walking network: nodes shared between ways join them
+    const idx = new Map(), pts = [], adj = [];
+    const node = (id, g) => { let i = idx.get(id); if (i == null) { i = pts.length; idx.set(id, i); pts.push([g.lat, g.lon]); adj.push([]); } return i; };
+    ways.forEach(w => {
+      const f = ROAD_FACTOR[w.tags.highway];
+      for (let k = 1; k < w.nodes.length && k < w.geometry.length; k++) {
+        const u = node(w.nodes[k - 1], w.geometry[k - 1]), v = node(w.nodes[k], w.geometry[k]);
+        const len = distM(pts[u], pts[v]);
+        const mid = [(pts[u][0] + pts[v][0]) / 2, (pts[u][1] + pts[v][1]) / 2];
+        const near = coast.length ? nearestOnPath(mid[0], mid[1], 2000, cix) : null;
+        const wgt = len * f * (1 + (near ? near.dist : 2000) / 400);   // hug the shore
+        adj[u].push([v, wgt]); adj[v].push([u, wgt]);
+      }
+    });
+    const snap = p => {
+      let best = 600, bi = -1;
+      pts.forEach((q, i) => { if (Math.abs(q[0] - p[0]) < 0.006 && Math.abs(q[1] - p[1]) < 0.01) { const d = distM(p, q); if (d < best) { best = d; bi = i; } } });
+      return bi;
+    };
+    const sa = snap(a), sb = snap(b);
+    if (sa < 0 || sb < 0) return null;
+    const dist = new Float64Array(pts.length).fill(Infinity), prev = new Int32Array(pts.length).fill(-1);
+    const heap = [[0, sa]];
+    dist[sa] = 0;
+    const push = (d, v) => {
+      heap.push([d, v]);
+      let i = heap.length - 1;
+      while (i > 0) { const pi = (i - 1) >> 1; if (heap[pi][0] <= heap[i][0]) break; [heap[pi], heap[i]] = [heap[i], heap[pi]]; i = pi; }
+    };
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1, r = l + 1;
+          let m = i;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === i) break;
+          [heap[m], heap[i]] = [heap[i], heap[m]];
+          i = m;
+        }
+      }
+      return top;
+    };
+    while (heap.length) {
+      const [d, v] = pop();
+      if (d > dist[v]) continue;
+      if (v === sb) break;
+      for (const [w, wgt] of adj[v]) if (d + wgt < dist[w]) { dist[w] = d + wgt; prev[w] = v; push(d + wgt, w); }
+    }
+    if (dist[sb] === Infinity) return null;
+    const out = [];
+    for (let v = sb; v >= 0; v = prev[v]) out.push(pts[v]);
+    out.reverse();
+    const coords = [a, ...out, b];
+    // An estuary can make the walk several times the distance across, but not endlessly
+    if (lineM(coords) > 8 * distM(a, b) + 10000) return null;
+    return simplify(coords, 8).map(p => [round(p[0], 5), round(p[1], 5)]);
+  }
+
+  async function predictGap(g) {
+    const key = `predict:v${PREDICT_V}:${g.a.map(v => v.toFixed(4)).join(',')}:${g.b.map(v => v.toFixed(4)).join(',')}`;
+    try { const c = await idb.get(key); if (c && !isStale(c)) return c.coords || null; } catch (e) { /* none */ }
+    let coords = null;
+    for (const corridor of [1500, 4000]) {      // widen once if the shoreline paths don't join up
+      coords = await routeOnFootpaths(g.a, g.b, corridor);
+      if (coords) break;
+    }
+    try { await idb.set(key, { at: new Date().toISOString(), coords }); } catch (e) { /* ok */ }
+    return coords;
+  }
+
+  async function runPredictions() {
+    if (predicting || settings.predict === false || !parts.england) return;
+    predicting = true;
+    try {
+      const eng = parts.england || [], wal = parts.wales || [];
+      const mapped = [...eng, ...currentFill, ...wal];
+      const nE = eng.length + currentFill.length;
+      const cands = findGaps(mapped, i => i < nE ? 'E' : 'W');
+      // Nearest pairs first; a pair is used only if a walkable route joins it, so a
+      // loose end facing a river mouth can still pair with the right end further up
+      const usedEnd = new Set(), usedPair = new Set(), out = [];
+      let tried = 0;
+      for (const g of cands) {
+        if (usedEnd.has(g.ea) || usedEnd.has(g.eb) || usedPair.has(g.pair)) continue;
+        if (++tried > 120) break;
+        predictProgress.text = `guessing gaps (${out.length} found)`;
+        pathSummary(false);
+        try {
+          const coords = await predictGap(g);
+          if (coords) { out.push({ coords, country: g.country }); usedEnd.add(g.ea); usedEnd.add(g.eb); usedPair.add(g.pair); }
+        } catch (e) { /* try again next visit */ }
+      }
+      predictProgress.text = '';
+      currentPredicted = out;
+      installParts();
+    } finally {
+      predicting = false;
+    }
+  }
+
   /* ---------- Railway stations near the path ---------- */
   const STATIONS = { list: null };
   const stationLayers = new Map();
@@ -1746,7 +1968,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     const f = computeFacts();
     const rows = [];
     const add = (k, v, sub) => rows.push(`<dt>${k}</dt><dd>${v}${sub ? `<span>${sub}</span>` : ''}</dd>`);
-    add('Path walked', pct(f.cov.all, f.tot.all), `${fmtWhole(f.toMi(f.cov.all))} of ${fmtWhole(f.toMi(f.tot.all))} mi`);
+    add('Path walked', pct(f.cov.all, f.tot.all), `${fmtWhole(f.toMi(f.cov.all))} of ${fmtWhole(f.toMi(f.tot.all))} mi${PATH.miles.guessed >= 1 ? `, including ${fmtWhole(PATH.miles.guessed)} mi of guessed route` : ''}`);
     if (f.tot.E && f.tot.W) add('By country', `England ${pct(f.cov.E, f.tot.E)}`, `Wales ${pct(f.cov.W, f.tot.W)}`);
     if (f.stretches.length) {
       add('Stretches done', `${f.completed.length} of ${f.stretches.length}`);
@@ -3683,6 +3905,17 @@ button, input, textarea, select { font: inherit; color: inherit; }
       // Unwalked path dotted, walked path solid
       ctx.setLineDash([1, 5]); ctx.lineCap = 'round'; ctx.strokeStyle = C('--path'); ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx, y1); ctx.stroke(); ctx.setLineDash([]);
+      const guessed = (PATH.meta && PATH.meta.guessed) || [];
+      for (let k = k0; k < k1; k++) {
+        if (!guessed[S.line[order[k]]]) continue;
+        let e = k; while (e + 1 < k1 && guessed[S.line[order[e + 1]]]) e++;
+        const ya = top + (k - k0) * per, yb = top + (e - k0 + 1) * per;
+        ctx.strokeStyle = C('--surface'); ctx.lineWidth = 4; ctx.lineCap = 'butt';
+        ctx.beginPath(); ctx.moveTo(cx, ya); ctx.lineTo(cx, yb); ctx.stroke();
+        ctx.setLineDash([6, 5]); ctx.strokeStyle = C('--ink-2'); ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(cx, ya); ctx.lineTo(cx, yb); ctx.stroke(); ctx.setLineDash([]);
+        k = e;
+      }
       ctx.strokeStyle = C('--walk'); ctx.lineWidth = 7; ctx.lineCap = 'butt';
       for (let k = k0; k < k1; k++) {
         if (day[order[k]] === Infinity) continue;
@@ -3727,6 +3960,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
     ctx.strokeStyle = C('--ink-2'); ctx.lineWidth = 1.2; ctx.fillStyle = C('--surface');
     ctx.beginPath(); ctx.arc(kx + 238, sy, 4, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
     ctx.fillStyle = C('--ink-2'); ctx.fillText('station', kx + 250, sy + 5);
+    ctx.setLineDash([6, 5]); ctx.strokeStyle = C('--ink-2'); ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(kx + 330, sy); ctx.lineTo(kx + 364, sy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillText('guessed route', kx + 372, sy + 5);
   }
 
   /* ---------- Days on the coast: a calendar, one row per year ---------- */
@@ -3952,6 +4188,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
   let settings = { placeNames: true };
   try { settings = { ...settings, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch (e) { /* defaults */ }
   const saveSettings = () => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* ignore */ } };
+  $('#setPredict').addEventListener('change', ev => {
+    settings.predict = ev.target.checked;
+    saveSettings();
+    if (settings.predict && !currentPredicted.length) runPredictions(); else if (PATH.lines) installParts();
+  });
   $('#setNames').addEventListener('change', ev => {
     settings.placeNames = ev.target.checked;
     saveSettings();
@@ -3966,6 +4207,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     $('#syncOff').hidden = !on;
     if (on && !$('#syncStatus').textContent) setSyncStatus(syncCfg.lastSync ? `Last synced ${fmtDate(syncCfg.lastSync.slice(0, 10))}` : 'Sync is on.');
     $('#setNames').checked = settings.placeNames !== false;
+    $('#setPredict').checked = settings.predict !== false;
     const n = activeEntries().length;
     $('#storageInfo').textContent = `${n} ${n === 1 ? 'walk' : 'walks'} saved in this browser${storageMode === 'idb' ? '' : ' (basic storage)'}.`;
   }
