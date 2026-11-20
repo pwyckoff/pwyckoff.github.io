@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-dxY9WT77dITGHJmhRA+MPSIeGm3odo9y9Kl1SLL0j5I='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-XbToBz1jymHejvG6xkQT4OVGAmSJooAT/46k9WGqgK0='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -1425,6 +1425,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (pathErrors.length) setPathStatus(`Path: ${loaded}. Missing ${pathErrors.join(', ')}.`, true);
     else if (filling) setPathStatus(`Path: ${loaded}; filling gaps…`);
     else if (fillErrors.length) setPathStatus(`Path: ${loaded}. Gaps not filled (${fillErrors.join('; ')}).`, true);
+    else if (predictError) setPathStatus(`Path: ${loaded}. Guessing gaps stopped (${predictError}).`, true);
     else setPathStatus(`Path: ${loaded}${predictProgress.text ? `; ${predictProgress.text}…` : ''}`);
   }
 
@@ -1938,9 +1939,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
     return coords;
   }
 
+  let predictError = '';
   async function runPredictions() {
     if (predicting || settings.predict === false || !parts.england) return;
     predicting = true;
+    predictError = '';
     try {
       const eng = parts.england || [], wal = parts.wales || [];
       const mapped = [...eng, ...currentFill, ...wal];
@@ -1965,6 +1968,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
           if (coords) {
             out.push({ coords, country: g.country });
             usedEnd.add(g.ea); usedEnd.add(alt.eb); usedPair.add(pair);
+            if (out.length % 3 === 0) { currentPredicted = out.slice(); installParts(); }   // draw as we go
             break;
           }
         }
@@ -1985,6 +1989,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
         if (coords) {
           out.push({ coords, country: g.country, rough: how });
           usedEnd.add(g.ea); usedEnd.add(alt.eb); usedPair.add([g.comp, alt.comp].sort().join('-'));
+          if (out.length % 3 === 0) { currentPredicted = out.slice(); installParts(); }
         }
       }
       predictProgress.text = '';
@@ -1996,6 +2001,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
       if (tab === 'data') renderGaps();
       installParts();
       noteWalkCheck();
+    } catch (e) {
+      predictProgress.text = '';
+      predictError = e && e.message ? e.message : String(e);
+      console.error('Guessing gaps stopped:', e);
+      pathSummary(false);
     } finally {
       predicting = false;
     }
