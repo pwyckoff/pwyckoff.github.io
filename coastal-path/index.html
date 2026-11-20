@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-XbToBz1jymHejvG6xkQT4OVGAmSJooAT/46k9WGqgK0='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-kcuJ+KyuHjYPRgmMs0ffjHl9Z/nXzhnaZJGEZuuM908='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -545,6 +545,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
         </ul>
         <label class="check"><input type="checkbox" id="setPredict" checked> Guess the route across gaps</label>
         <p class="fine" id="gapReport"></p>
+        <p class="fine" id="trailReport"></p>
         <ul class="entries gaps" id="gapList"></ul>
         <div class="row"><button class="btn" id="guessBtn" type="button">Guess a stretch by hand</button></div>
         <p class="hint" id="guessHint" hidden></p>
@@ -718,6 +719,18 @@ button, input, textarea, select { font: inherit; color: inherit; }
       fillJoinM: 300,    // fill pieces reach to the nearest official line end within this
       stationsMaxM: 2500, // railway stations within this distance of the path are shown
       refreshDays: 30,    // cached path and station data older than this is quietly refetched
+      // Existing trails along stretches the official line doesn't have yet, each clipped
+      // to a box around just that stretch (the Essex Way, say, runs 81 miles from Epping)
+      trails: [
+        { name: 'Essex Way', match: '^Essex Way$', box: [51.92, 1.03, 51.965, 1.295], fills: 'Manningtree to Harwich' },
+        { name: 'Wivenhoe Trail', match: 'Wivenhoe Trail', box: [51.85, 0.90, 51.89, 0.98], fills: 'Colchester to Wivenhoe' },
+        { name: 'Suffolk Coast Path', match: 'Suffolk Coast', box: [51.96, 1.30, 52.18, 1.63], fills: 'Felixstowe to Aldeburgh' },
+        { name: 'Norfolk Coast Path', match: 'Norfolk Coast Path', box: [52.90, 0.47, 53.00, 1.16], fills: 'Hunstanton to Weybourne' },
+        { name: 'Lancashire Coastal Way', match: 'Lancashire Coastal Way', box: [53.86, -3.10, 54.21, -2.74], fills: 'Silverdale to Cleveleys' },
+        { name: 'Cumbria Coastal Way', match: 'Cumbria Coastal Way', box: [54.76, -3.45, 55.01, -3.04], fills: 'Gretna to Allonby' },
+        { name: 'Hadrian’s Wall Path', match: 'Hadrian.s Wall Path', box: [54.88, -3.25, 54.96, -2.92], fills: 'Bowness-on-Solway to Carlisle' },
+        { name: 'Isle of Wight Coastal Path', match: 'Isle of Wight Coastal Path', box: [50.70, -1.32, 50.77, -1.21], fills: 'Wootton Bridge to the Medina' }
+      ],
       overpass: ['https://overpass.kumi.systems/api/interpreter', 'https://overpass-api.de/api/interpreter']
     },
     // ONS country boundaries, used for the land outline on the progress poster
@@ -1366,9 +1379,17 @@ button, input, textarea, select { font: inherit; color: inherit; }
         for (let k = 1; k <= n; k++) pts.push([a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]);
       }
       let run = [];
+      // Join to an official line end if one is near, otherwise to the nearest point
+      // anywhere along the official line (trails often meet the path partway along)
+      const join = p => {
+        const e = nearestEnd(p);
+        if (e) return e;
+        const s = nearestOnPath(p[0], p[1], cp.fillJoinM, ix);
+        return s ? [round(s.lat, 6), round(s.lon, 6)] : null;
+      };
       const flush = () => {
         if (run.length > 1 && lineM(run) >= cp.fillMinM) {
-          const a = nearestEnd(run[0]), b = nearestEnd(run[run.length - 1]);
+          const a = join(run[0]), b = join(run[run.length - 1]);
           if (a) run.unshift(a);
           if (b) run.push(b);
           fills.push(simplify(run, 5).map(p => [round(p[0], 5), round(p[1], 5)]));
@@ -1511,6 +1532,20 @@ button, input, textarea, select { font: inherit; color: inherit; }
         src.push(...add.map(() => extra === parts.englandDefra ? 'official' : 'other'));
         base = [...base, ...add];
       }
+      // Then the known trails, only where nothing above covers the ground
+      for (const t of CONFIG.coastPath.trails) {
+        const name = 'trail:' + t.name;
+        if (!parts[name] || force) {
+          try { parts[name] = await loadPart(name, () => fetchTrail(t), force, true); }
+          catch (e) { trailMiles[t.name] = null; continue; }
+        }
+        await new Promise(r => setTimeout(r));
+        const add = parts[name].length && base.length ? gapFill(base, parts[name]) : [];
+        trailMiles[t.name] = lineMilesAll(add);
+        fill.push(...add);
+        src.push(...add.map(() => 'other'));
+        base = [...base, ...add];
+      }
       currentFill = fill;
       currentFillSrc = src;
       fillsDone = true;
@@ -1534,7 +1569,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
     let changed = false;
     for (const name of [...staleParts]) {
       try {
-        parts[name] = await loadPart(name, fetchers[name], true, true);
+        const t = name.startsWith('trail:') && CONFIG.coastPath.trails.find(x => 'trail:' + x.name === name);
+        parts[name] = await loadPart(name, t ? () => fetchTrail(t) : fetchers[name], true, true);
         staleParts.delete(name);
         changed = true;
       } catch (e) { /* keep the cached copy; try again next visit */ }
@@ -1612,7 +1648,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
      the official path usually does. Guesses are cached, drawn as a pecked
      line, and give way to the official route when it is published.
      ========================================================= */
-  const PREDICT_V = 1, PREDICT_MAX_M = 120000, PREDICT_LONG_M = 25000;
+  const PREDICT_V = 2, PREDICT_MAX_M = 120000, PREDICT_LONG_M = 25000;   // v2: walking routes preferred
   const PREDICT_TIMEOUT_MS = 60000;         // give up on a slow request; the gap is tried again next visit
   let currentPredicted = [], predicting = false, predictPromise = null;
   const predictProgress = { text: '' };
@@ -1641,11 +1677,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
     return hit;
   }
 
-  // Gaps found by walking round the coast in order: each piece of path is placed
-  // along the coast (as for the strip map), and where one piece's far end is loose,
-  // the next pieces along with a loose near end, on separate bits of path, are the
-  // likely other side of the gap. This pairs neighbours along the coast, not merely
-  // nearby ends, so side branches and fragments don't crowd out the real gaps.
+  // Gaps: loose ends on separate, substantial pieces of path that sit near each
+  // other along the coast. Every piece is placed in coastal order (as for the strip
+  // map), and both of its loose ends are matched with loose ends on other pieces
+  // just before or after it in that order. Which way a piece "faces" doesn't matter,
+  // so loops round islands and estuaries can't hide a gap.
   function orderedGaps(lines, countryOf) {
     const ix = {};
     buildIndex(lines, ix);
@@ -1660,31 +1696,32 @@ button, input, textarea, select { font: inherit; color: inherit; }
       });
     });
     const endPt = (j, end) => end ? lines[j][lines[j].length - 1] : lines[j][0];
-    // How much path each connected piece has: tiny isolated fragments are skipped,
-    // since a real gap has a proper stretch of path on each side
+    // Tiny isolated fragments are skipped: a real gap has a proper stretch of path on each side
     const compLen = new Map();
     lines.forEach((l, j) => { const c = find(j); compLen.set(c, (compLen.get(c) || 0) + ix.cum[j][ix.cum[j].length - 1]); });
     const substantial = j => compLen.get(find(j)) >= 1500;
-    const pieces = lines.map((l, j) => {
-      const mid = l[l.length >> 1];
-      const forward = refT(l[0][0], l[0][1]) <= refT(l[l.length - 1][0], l[l.length - 1][1]);
-      return { j, t: refT(mid[0], mid[1]), inEnd: forward ? 0 : 1, outEnd: forward ? 1 : 0 };
-    }).sort((a, b) => a.t - b.t);
-    const gaps = [];
-    pieces.forEach((p, i) => {
-      if (!loose[p.j][p.outEnd] || !substantial(p.j)) return;
-      const a = endPt(p.j, p.outEnd), alts = [];
-      for (let k = i + 1; k < pieces.length && k <= i + 40 && alts.length < 3; k++) {
-        const q = pieces[k];
-        if (!loose[q.j][q.inEnd] || !substantial(q.j) || find(q.j) === find(p.j)) continue;
-        const b = endPt(q.j, q.inEnd), d = distM(a, b);
-        if (d <= PREDICT_MAX_M) alts.push({ b, d, eb: `${q.j}:${q.inEnd}`, comp: find(q.j) });
+    const order = lines.map((l, j) => ({ j, t: refT(l[l.length >> 1][0], l[l.length >> 1][1]) })).sort((a, b) => a.t - b.t);
+    const rank = new Map(order.map((p, r) => [p.j, r]));
+    const ends = [];                                  // loose ends on substantial pieces
+    lines.forEach((l, j) => [0, 1].forEach(end => {
+      if (loose[j][end] && substantial(j)) ends.push({ e: `${j}:${end}`, j, pt: endPt(j, end), r: rank.get(j), comp: find(j) });
+    }));
+    ends.sort((a, b) => a.r - b.r);
+    const cands = [], seen = new Set(), WINDOW = 60;
+    for (let x = 0; x < ends.length; x++) {
+      for (let y = x + 1; y < ends.length && ends[y].r - ends[x].r <= WINDOW; y++) {
+        const A = ends[x], B = ends[y];
+        if (A.comp === B.comp) continue;
+        const d = distM(A.pt, B.pt);
+        if (d > PREDICT_MAX_M) continue;
+        const key = A.e < B.e ? `${A.e}|${B.e}` : `${B.e}|${A.e}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        cands.push({ ea: A.e, eb: B.e, a: A.pt, b: B.pt, d, apart: B.r - A.r,
+          pair: A.comp < B.comp ? `${A.comp}-${B.comp}` : `${B.comp}-${A.comp}`, country: countryOf(A.j) });
       }
-      if (alts.length) gaps.push({ a, ea: `${p.j}:${p.outEnd}`, comp: find(p.j), alts, country: countryOf(p.j) });
-    });
-    const looseEnds = [];
-    lines.forEach((l, j) => [0, 1].forEach(end => { if (loose[j][end] && substantial(j)) looseEnds.push({ e: `${j}:${end}`, pt: endPt(j, end) }); }));
-    return { gaps, looseEnds };
+    }
+    return { cands, looseEnds: ends.map(x => ({ e: x.e, pt: x.pt })) };
   }
 
   // Loose ends that face each other across a missing stretch
@@ -1780,7 +1817,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
     const hw = Object.keys(ROAD_FACTOR).join('|');
     const boxes = [...cells.values()].map(([i, j, dLat, dLon]) =>
       `way["highway"~"^(${hw})$"](${(i * dLat).toFixed(4)},${(j * dLon).toFixed(4)},${((i + 1) * dLat).toFixed(4)},${((j + 1) * dLon).toFixed(4)});`).join('');
-    const wdata = await ask(`[out:json][timeout:60];(${boxes});out body geom;`);
+    // The same request also asks which of these ways belong to walking routes
+    const wdata = await ask(`[out:json][timeout:60];(${boxes})->.w;.w out body geom;` +
+      `rel(bw.w)["route"~"^(hiking|foot|walking)$"]->.r;way.w(r.r);out ids;`);
+    const onTrail = new Set();
+    (wdata.elements || []).forEach(e => { if (e.type === 'way' && !e.geometry && e.id != null) onTrail.add(e.id); });
     const ways = [];
     const seenWay = new Set();
     (wdata.elements || []).forEach(e => {
@@ -1795,7 +1836,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
     const idx = new Map(), pts = [], adj = [];
     const node = (id, g) => { let i = idx.get(id); if (i == null) { i = pts.length; idx.set(id, i); pts.push([g.lat, g.lon]); adj.push([]); } return i; };
     ways.forEach(w => {
-      const f = ROAD_FACTOR[w.tags.highway];
+      // Ways on a walking route (the Essex Way, the Saxon Shore Way...) are strongly preferred
+      const f = ROAD_FACTOR[w.tags.highway] * (onTrail.has(w.id) ? 0.55 : 1);
       for (let k = 1; k < w.nodes.length && k < w.geometry.length; k++) {
         const u = node(w.nodes[k - 1], w.geometry[k - 1]), v = node(w.nodes[k], w.geometry[k]);
         const len = distM(pts[u], pts[v]);
@@ -1856,6 +1898,30 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   let lastPredictRequest = 0;
+  // One existing trail's ways within its box. Named route relations in a small box
+  // are cheap to find; their member ways come back clipped to the box.
+  async function fetchTrail(t) {
+    const bb = `(${t.box.join(',')})`;
+    const q = `[out:json][timeout:90];relation["route"~"^(hiking|foot|walking|bicycle)$"]["name"~"${t.match}",i]${bb}->.r;way(r.r)${bb};out geom${bb};`;
+    let data = null, lastErr;
+    for (const ep of CONFIG.coastPath.overpass) {
+      try { data = await overpass(ep, q, 120000); break; } catch (e) { lastErr = e; }
+    }
+    if (!data) throw lastErr;
+    const lines = [];
+    (data.elements || []).forEach(e => {
+      if (e.type !== 'way' || !Array.isArray(e.geometry)) return;
+      let run = [];
+      e.geometry.forEach(g => {
+        if (g && isFinite(g.lat) && isFinite(g.lon)) run.push([round(g.lat, 5), round(g.lon, 5)]);
+        else { if (run.length > 1) lines.push(run); run = []; }
+      });
+      if (run.length > 1) lines.push(run);
+    });
+    return lines;          // may be empty if OpenStreetMap names the trail differently
+  }
+  const trailMiles = {};
+
   // A shared request for gap guessing, with the short time limit
   async function overpassAsk(q) {
     let lastErr;
@@ -1948,49 +2014,54 @@ button, input, textarea, select { font: inherit; color: inherit; }
       const eng = parts.england || [], wal = parts.wales || [];
       const mapped = [...eng, ...currentFill, ...wal];
       const nE = eng.length + currentFill.length;
-      const { gaps, looseEnds } = orderedGaps(mapped, i => i < nE ? 'E' : 'W');
-      const usedEnd = new Set(), usedPair = new Set(), out = [];
+      const { cands, looseEnds } = orderedGaps(mapped, i => i < nE ? 'E' : 'W');
+      const usedEnd = new Set(), usedPair = new Set(), out = [], tries = new Map();
+      const take = (c, coords, rough) => {
+        out.push({ coords, country: c.country, rough });
+        usedEnd.add(c.ea); usedEnd.add(c.eb); usedPair.add(c.pair);
+        if (out.length % 3 === 0) { currentPredicted = out.slice(); installParts(); }   // draw as we go
+      };
+      const free = c => !usedEnd.has(c.ea) && !usedEnd.has(c.eb) && !usedPair.has(c.pair);
+      // Each loose end gets three chances per pass
+      const allowed = (c, pass) => {
+        const ka = `${pass}:${c.ea}`, kb = `${pass}:${c.eb}`;
+        if ((tries.get(ka) || 0) >= 3 || (tries.get(kb) || 0) >= 3) return false;
+        tries.set(ka, (tries.get(ka) || 0) + 1); tries.set(kb, (tries.get(kb) || 0) + 1);
+        return true;
+      };
       let requests = 0;
-      for (let gi = 0; gi < gaps.length; gi++) {
-        const g = gaps[gi];
-        if (usedEnd.has(g.ea)) continue;
-        predictProgress.text = `guessing gaps, ${gi + 1} of ${gaps.length} (near ${placeName(g.a)})`;
+      // Pass 1: walkable routes near the shore. Nearest pairs first, with distance
+      // weighted by how far apart the pieces sit in coastal order, so the next piece
+      // along beats a nearer one across an estuary
+      const score = c => c.d * (1 + c.apart / 4);
+      const byDist = [...cands].sort((x, y) => score(x) - score(y));
+      for (let i = 0; i < byDist.length; i++) {
+        const c = byDist[i];
+        if (!free(c)) continue;
+        if (c.d < 150) { take(c, [c.a, c.b], null); continue; }            // a small break: join it straight
+        if (!allowed(c, 1) || requests >= 200) continue;
+        predictProgress.text = `guessing gaps (near ${placeName(c.a)})`;
         pathSummary(false);
-        for (const alt of g.alts) {
-          const pair = [g.comp, alt.comp].sort().join('-');
-          if (usedEnd.has(alt.eb) || usedPair.has(pair)) continue;
-          let coords = null;
-          if (alt.d < 150) coords = [g.a, alt.b];                    // a small break: join it straight
-          else {
-            if (++requests > 200) break;
-            try { coords = await predictGap({ a: g.a, b: alt.b }); } catch (e) { coords = null; }
-          }
-          if (coords) {
-            out.push({ coords, country: g.country });
-            usedEnd.add(g.ea); usedEnd.add(alt.eb); usedPair.add(pair);
-            if (out.length % 3 === 0) { currentPredicted = out.slice(); installParts(); }   // draw as we go
-            break;
-          }
-        }
+        requests++;
+        let coords = null;
+        try { coords = await predictGap({ a: c.a, b: c.b }); } catch (e) { coords = null; }
+        if (coords) take(c, coords, null);
       }
-      // Second pass: every gap still open gets closed, so the line runs all the way
-      // round. A short crossing (a river mouth or harbour taken by ferry or bridge)
-      // is joined straight; anything longer traces the shoreline.
-      for (let gi = 0; gi < gaps.length; gi++) {
-        const g = gaps[gi];
-        if (usedEnd.has(g.ea)) continue;
-        const alt = g.alts.find(x => !usedEnd.has(x.eb) && !usedPair.has([g.comp, x.comp].sort().join('-')));
-        if (!alt) continue;
-        predictProgress.text = `tracing the shore across gaps (near ${placeName(g.a)})`;
-        pathSummary(false);
+      // Pass 2: close what's left, neighbours along the coast first. A short crossing
+      // (a river mouth or harbour taken by ferry or bridge) is joined straight; anything
+      // longer traces the shoreline.
+      const byOrder = [...cands].sort((x, y) => x.apart - y.apart || x.d - y.d);
+      for (const c of byOrder) {
+        if (!free(c) || !allowed(c, 2)) continue;
         let coords = null, how = 'shore';
-        if (alt.d < 2000) { coords = [g.a, alt.b]; how = 'crossing'; }
-        else if (requests++ < 200) { try { coords = await roughGap({ a: g.a, b: alt.b }); } catch (e) { coords = null; } }
-        if (coords) {
-          out.push({ coords, country: g.country, rough: how });
-          usedEnd.add(g.ea); usedEnd.add(alt.eb); usedPair.add([g.comp, alt.comp].sort().join('-'));
-          if (out.length % 3 === 0) { currentPredicted = out.slice(); installParts(); }
+        if (c.d < 2000) { coords = [c.a, c.b]; how = 'crossing'; }
+        else if (requests < 260) {
+          predictProgress.text = `tracing the shore across gaps (near ${placeName(c.a)})`;
+          pathSummary(false);
+          requests++;
+          try { coords = await roughGap({ a: c.a, b: c.b }); } catch (e) { coords = null; }
         }
+        if (coords) take(c, coords, how);
       }
       predictProgress.text = '';
       currentPredicted = out;
@@ -2010,6 +2081,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       predicting = false;
     }
   }
+
 
 
   /* ---------- Railway stations near the path ---------- */
@@ -4564,7 +4636,16 @@ button, input, textarea, select { font: inherit; color: inherit; }
     renderData();
   });
 
+  function renderTrails() {
+    const rows = CONFIG.coastPath.trails.filter(t => t.name in trailMiles).map(t => {
+      const mi = trailMiles[t.name];
+      const found = (parts['trail:' + t.name] || []).length > 0;
+      return mi == null ? `${t.name}: couldn’t load` : !found ? `${t.name}: not found in OpenStreetMap` : mi >= 0.1 ? `${t.name} ${fmtMi(mi)} mi` : `${t.name}: already covered`;
+    });
+    $('#trailReport').textContent = rows.length ? `From existing trails: ${rows.join(', ')}.` : '';
+  }
   function renderGaps() {
+    renderTrails();
     const show = (p, i, kind) => `<li class="entry"><button class="entry-main" type="button" data-gap="${kind}:${i}">
       <span class="entry-text"><span class="route">${esc(p.label)}</span><span class="meta">${p.meta}</span></span></button>
       ${kind === 'm' ? `<button class="entry-remove" type="button" data-unguess="${i}" aria-label="Remove ${esc(p.label)}">×</button>` : ''}</li>`;
