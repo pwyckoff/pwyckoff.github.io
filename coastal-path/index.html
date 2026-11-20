@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-X/sc7inSuY1ZQAjm1oP6v/726kWsyOTGc7xAiwhMmyE='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src 'self' https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-8hltdivPEoEDkfGrUAAHcmVrp/NSQjwJZXjgQmknjZ8='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src 'self' https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -735,7 +735,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
         { name: 'Lancashire Coastal Way', match: 'Lancashire Coastal Way', box: [53.86, -3.10, 54.21, -2.74], fills: 'Silverdale to Cleveleys' },
         { name: 'Cumbria Coastal Way', match: 'Cumbria Coastal Way', box: [54.76, -3.45, 55.01, -3.04], fills: 'Gretna to Allonby' },
         { name: 'Hadrian’s Wall Path', match: 'Hadrian.s Wall Path', box: [54.88, -3.25, 54.96, -2.92], fills: 'Bowness-on-Solway to Carlisle' },
-        { name: 'Isle of Wight Coastal Path', match: 'Isle of Wight Coastal Path', box: [50.70, -1.32, 50.77, -1.21], fills: 'Wootton Bridge to the Medina' }
+        { name: 'Isle of Wight Coastal Path', match: 'Isle of Wight Coastal Path', box: [50.57, -1.60, 50.78, -1.06], fills: 'the island' },
+        { name: 'Solent Way', match: 'Solent Way', box: [50.70, -1.72, 50.86, -1.30], fills: 'Highcliffe to Calshot' }
       ],
       overpass: ['https://overpass.kumi.systems/api/interpreter', 'https://overpass-api.de/api/interpreter']
     },
@@ -1416,7 +1417,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   // Two stages: the official England line and Wales go on the map as soon as
   // they arrive (ensurePath); the slower gap fills follow (ensureFullPath).
   // Imports wait for both, so walks on filled stretches aren't skipped.
-  let pathPromise = null, fillPromise = null, currentFill = [], currentFillSrc = [], fillsDone = false;
+  let pathPromise = null, fillPromise = null, currentFill = [], currentFillSrc = [], fillsDone = false, fillProgress = '';
   const fillErrors = [];
   const parts = { england: null, wales: null, englandDefra: null, englandOsm2: null };
   const pathErrors = [];
@@ -1456,7 +1457,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       parts.wales && `Wales ${fmtWhole(PATH.miles.wales + (PATH.miles.guessedWales || 0))} mi${PATH.miles.guessedWales >= 1 ? ` (${fmtWhole(PATH.miles.guessedWales)} guessed)` : ''}`
     ].filter(Boolean).join(', ');
     if (pathErrors.length) setPathStatus(`Path: ${loaded}. Missing ${pathErrors.join(', ')}.`, true);
-    else if (filling) setPathStatus(`Path: ${loaded}; filling gaps…`);
+    else if (filling) setPathStatus(`Path: ${loaded}; filling gaps${fillProgress ? ` (${fillProgress})` : ''}…`);
     else if (fillErrors.length) setPathStatus(`Path: ${loaded}. Gaps not filled (${fillErrors.join('; ')}).`, true);
     else if (predictError) setPathStatus(`Path: ${loaded}. Guessing gaps stopped (${predictError}).`, true);
     else setPathStatus(`Path: ${loaded}${predictProgress.text ? `; ${predictProgress.text}…` : ''}`);
@@ -1630,6 +1631,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
     return (async () => {
       for (const [name, fetcher] of [['englandDefra', fetchEnglandDefra], ['englandOsm2', fetchEnglandOsm]]) {
         if (parts[name] && !force) continue;
+        fillProgress = name === 'englandDefra' ? 'Defra’s copy of the route' : 'OpenStreetMap’s England Coast Path';
+        pathSummary(true);
         try { parts[name] = await loadPart(name, fetcher, force, true); }
         catch (e) { if (name === 'englandOsm2') fillErrors.push(e.message); }
       }
@@ -1647,8 +1650,12 @@ button, input, textarea, select { font: inherit; color: inherit; }
         base = [...base, ...add];
       }
       // Then the known trails, only where nothing above covers the ground
-      for (const t of CONFIG.coastPath.trails) {
+      const trails = CONFIG.coastPath.trails;
+      for (let ti = 0; ti < trails.length; ti++) {
+        const t = trails[ti];
         const name = trailKey(t);
+        fillProgress = `${t.name}, ${ti + 1} of ${trails.length}`;
+        pathSummary(true);
         if (!parts[name] || force) {
           try { parts[name] = await loadPart(name, () => fetchTrail(t), force, true); }
           catch (e) { trailMiles[t.name] = null; continue; }
@@ -1659,7 +1666,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
         fill.push(...add);
         src.push(...add.map(() => 'other'));
         base = [...base, ...add];
+        if (add.length) { currentFill = fill.slice(); currentFillSrc = src.slice(); installParts(); }   // show it now
       }
+      fillProgress = '';
       currentFill = fill;
       currentFillSrc = src;
       fillsDone = true;
@@ -2031,7 +2040,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       if (wait > 0) await new Promise(r => setTimeout(r, wait));
       lastTrailRequest = Date.now();
       for (const ep of CONFIG.coastPath.overpass) {
-        try { data = await overpass(ep, q, 120000); break; } catch (e) { lastErr = e; }
+        try { data = await overpass(ep, q, 40000); break; } catch (e) { lastErr = e; }
       }
       if (data) break;
     }
