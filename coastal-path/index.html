@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-kcuJ+KyuHjYPRgmMs0ffjHl9Z/nXzhnaZJGEZuuM908='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-X/sc7inSuY1ZQAjm1oP6v/726kWsyOTGc7xAiwhMmyE='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src 'self' https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -544,6 +544,12 @@ button, input, textarea, select { font: inherit; color: inherit; }
           <li><span class="k guess" aria-hidden="true"></span>Guessed route</li>
         </ul>
         <label class="check"><input type="checkbox" id="setPredict" checked> Guess the route across gaps</label>
+        <p class="fine" id="completeReport"></p>
+        <div class="row">
+          <button class="btn" id="savePathBtn" type="button">Save the full path</button>
+          <button class="btn quiet" id="rebuildBtn" type="button">Rebuild from sources</button>
+        </div>
+        <p class="fine" id="savedNote"></p>
         <p class="fine" id="gapReport"></p>
         <p class="fine" id="trailReport"></p>
         <ul class="entries gaps" id="gapList"></ul>
@@ -722,7 +728,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       // Existing trails along stretches the official line doesn't have yet, each clipped
       // to a box around just that stretch (the Essex Way, say, runs 81 miles from Epping)
       trails: [
-        { name: 'Essex Way', match: '^Essex Way$', box: [51.92, 1.03, 51.965, 1.295], fills: 'Manningtree to Harwich' },
+        { name: 'Essex Way', match: 'Essex Way', box: [51.92, 1.03, 51.965, 1.295], fills: 'Manningtree to Harwich' },
         { name: 'Wivenhoe Trail', match: 'Wivenhoe Trail', box: [51.85, 0.90, 51.89, 0.98], fills: 'Colchester to Wivenhoe' },
         { name: 'Suffolk Coast Path', match: 'Suffolk Coast', box: [51.96, 1.30, 52.18, 1.63], fills: 'Felixstowe to Aldeburgh' },
         { name: 'Norfolk Coast Path', match: 'Norfolk Coast Path', box: [52.90, 0.47, 53.00, 1.16], fills: 'Hunstanton to Weybourne' },
@@ -1437,6 +1443,12 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
 
   function pathSummary(filling) {
+    if (saved && !rebuilding) {
+      const when = saved.created ? ` (saved ${fmtDate(saved.created.slice(0, 10))})` : '';
+      const eng = PATH.miles.england + PATH.miles.fill + (PATH.miles.guessed || 0), g = (PATH.miles.guessed || 0) + (PATH.miles.guessedWales || 0);
+      setPathStatus(`Path${when}: England ${fmtWhole(eng)} mi, Wales ${fmtWhole(PATH.miles.wales + (PATH.miles.guessedWales || 0))} mi${g >= 1 ? `, ${fmtWhole(g)} guessed` : ''}`);
+      return;
+    }
     const eng = PATH.miles.england + PATH.miles.fill + (PATH.miles.guessed || 0);
     const extra = [PATH.miles.fill >= 1 && `${fmtWhole(PATH.miles.fill)} filled`, PATH.miles.guessed >= 1 && `${fmtWhole(PATH.miles.guessed)} guessed`].filter(Boolean).join(', ');
     const loaded = [
@@ -1450,8 +1462,109 @@ button, input, textarea, select { font: inherit; color: inherit; }
     else setPathStatus(`Path: ${loaded}${predictProgress.text ? `; ${predictProgress.text}…` : ''}`);
   }
 
+  /* =========================================================
+     The saved full path
+     Build the path once (official data, trails, guesses), check it, then save
+     it as coast-path-full.geojson in this folder. When that file is there the
+     page loads it instead of rebuilding: instant, the same for every visitor,
+     and no load on the data services. "Rebuild from sources" redoes it.
+     ========================================================= */
+  const SAVED_FILE = 'coast-path-full.geojson';
+  let saved = null, rebuilding = false;
+  const EXPECTED_MI = { E: 2689, W: 870 };            // the routes' published lengths, for the completeness check
+
+  async function loadSavedPath() {
+    try {
+      const res = await fetch(SAVED_FILE, { cache: 'no-cache' });
+      if (!res.ok) return null;
+      const fc = await res.json();
+      if (!fc || !Array.isArray(fc.features) || !fc.features.length) return null;
+      const lines = [], source = [], country = [], stretch = [];
+      fc.features.forEach(f => {
+        const c = f && f.geometry && f.geometry.coordinates;
+        if (!Array.isArray(c) || c.length < 2) return;
+        lines.push(c.map(([lo, la]) => [la, lo]));
+        const pr = f.properties || {};
+        source.push(pr.source || 'official'); country.push(pr.country || 'E'); stretch.push(pr.stretch || null);
+      });
+      return lines.length ? { lines, meta: { source, country, stretch }, created: (fc.properties || {}).created || null } : null;
+    } catch (e) { return null; }
+  }
+
+  // The saved path plus anything personal on top: walks counted in full, and hand-drawn guesses
+  function installSaved() {
+    const mapped = saved.lines;
+    const yours = activeEntries().filter(e => isWhole(e) && !isHidden(e) && hasTrack(e)).map(e => e.track);
+    const base = [...mapped], bix = {};
+    buildIndex(base, bix);
+    const own = yours.length ? gapFill(base, yours, bix) : [];
+    const hand = [], handCountry = [];
+    if (manualGuesses.length) {
+      const b2 = [...mapped, ...own], ix2 = {};
+      buildIndex(b2, ix2);
+      manualGuesses.forEach(m => gapFill(b2, [m.coords], ix2).forEach(l => { hand.push(l); handCountry.push(m.country || 'E'); }));
+    }
+    const sm = saved.meta;
+    PATH.meta = {
+      country: [...sm.country, ...own.map(() => null), ...handCountry],
+      stretch: [...sm.stretch, ...own.map(() => null), ...hand.map(() => null)],
+      guessed: [...sm.source.map(s => s === 'guess'), ...own.map(() => false), ...hand.map(() => true)],
+      source: [...sm.source, ...own.map(() => 'other'), ...hand.map(() => 'guess')],
+      own: [...mapped.map(() => false), ...own.map(() => true), ...hand.map(() => false)]
+    };
+    const all = [...mapped, ...own, ...hand];
+    const miles = (src, ctry) => lineMilesAll(all.filter((_, i) => PATH.meta.source[i] === src && (PATH.meta.country[i] || 'E') === ctry));
+    installPath(all, {
+      england: miles('official', 'E'), fill: miles('other', 'E'), guessed: miles('guess', 'E'),
+      guessedWales: miles('guess', 'W'), wales: miles('official', 'W') + miles('other', 'W')
+    });
+    pathSummary(false);
+  }
+
+  // Where the path still stops, worked out from the line itself: no requests needed
+  function looseEndsNow() {
+    if (!PATH.lines) return [];
+    const base = PATH.lines.filter((_, i) => !(PATH.meta.own || [])[i]);
+    return orderedGaps(base, () => 'E').looseEnds;
+  }
+  function completeness() {
+    const eng = PATH.miles.england + PATH.miles.fill + (PATH.miles.guessed || 0);
+    const wal = PATH.miles.wales + (PATH.miles.guessedWales || 0);
+    return `England ${fmtWhole(eng)} of about ${fmtWhole(EXPECTED_MI.E)} mi, Wales ${fmtWhole(wal)} of about ${fmtWhole(EXPECTED_MI.W)} mi.`;
+  }
+
+  function savePath() {
+    if (!PATH.lines) return;
+    const m = PATH.meta || {};
+    const keep = PATH.lines.map((_, i) => !(m.own || [])[i]);          // your own walks stay personal
+    const fc = {
+      type: 'FeatureCollection',
+      properties: { created: new Date().toISOString(), note: 'King Charles III England Coast Path and Wales Coast Path, with unofficial stretches. Built by the coast path log.' },
+      features: PATH.lines.map((l, i) => keep[i] ? {
+        type: 'Feature',
+        properties: { source: (m.source || [])[i] || 'official', country: (m.country || [])[i] || null, stretch: (m.stretch || [])[i] || null },
+        geometry: { type: 'LineString', coordinates: l.map(p => [round(p[1], 5), round(p[0], 5)]) }
+      } : null).filter(Boolean)
+    };
+    const blob = new Blob([JSON.stringify(fc)], { type: 'application/geo+json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = SAVED_FILE;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast(`Saved. Put ${SAVED_FILE} in the coastal-path folder on GitHub.`);
+  }
+  function rebuildPath() {
+    rebuilding = true;
+    setPathStatus('Rebuilding from sources…');
+    if (saved) { gapReport = null; }
+    ensurePath().then(() => fillPromise).catch(() => {});
+    renderData();
+  }
+
   // Walks you count in full also extend the path line where nothing is mapped
   function installParts() {
+    if (saved && !rebuilding) { installSaved(); return; }
     const mapped = [...(parts.england || []), ...currentFill, ...(parts.wales || [])];
     const yours = activeEntries().filter(e => isWhole(e) && !isHidden(e) && hasTrack(e)).map(e => e.track);
     const own = mapped.length && yours.length ? gapFill(mapped, yours) : [];
@@ -1473,7 +1586,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
       stretch: [...eng.map((_, i) => names[i] || null), ...currentFill.map(() => null), ...wal.map(() => null), ...own.map(() => null), ...guessed.map(() => null)],
       guessed: [...mapped.map(() => false), ...own.map(() => false), ...guessed.map(() => true)],
       source: [...eng.map(() => 'official'), ...currentFill.map((_, i) => currentFillSrc[i] || 'other'), ...wal.map(() => 'official'),
-        ...own.map(() => 'other'), ...guessed.map(() => 'guess')]
+        ...own.map(() => 'other'), ...guessed.map(() => 'guess')],
+      own: [...mapped.map(() => false), ...own.map(() => true), ...guessed.map(() => false)]
     };
     installPath([...mapped, ...own, ...guessed], {
       england: parts.england ? lineMilesAll(parts.england) : 0,
@@ -1534,7 +1648,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       }
       // Then the known trails, only where nothing above covers the ground
       for (const t of CONFIG.coastPath.trails) {
-        const name = 'trail:' + t.name;
+        const name = trailKey(t);
         if (!parts[name] || force) {
           try { parts[name] = await loadPart(name, () => fetchTrail(t), force, true); }
           catch (e) { trailMiles[t.name] = null; continue; }
@@ -1569,7 +1683,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     let changed = false;
     for (const name of [...staleParts]) {
       try {
-        const t = name.startsWith('trail:') && CONFIG.coastPath.trails.find(x => 'trail:' + x.name === name);
+        const t = name.startsWith('trail2:') && CONFIG.coastPath.trails.find(x => trailKey(x) === name);
         parts[name] = await loadPart(name, t ? () => fetchTrail(t) : fetchers[name], true, true);
         staleParts.delete(name);
         changed = true;
@@ -1900,12 +2014,26 @@ button, input, textarea, select { font: inherit; color: inherit; }
   let lastPredictRequest = 0;
   // One existing trail's ways within its box. Named route relations in a small box
   // are cheap to find; their member ways come back clipped to the box.
+  // Trails are often recorded as stage routes ("Essex Way: Mistley Heath to Harwich")
+  // grouped under a parent, or simply as paths carrying the trail's name, so this
+  // starts from the paths in the box: the routes they belong to whose name contains
+  // the trail's, plus any paths named after it.
+  let lastTrailRequest = 0;
   async function fetchTrail(t) {
     const bb = `(${t.box.join(',')})`;
-    const q = `[out:json][timeout:90];relation["route"~"^(hiking|foot|walking|bicycle)$"]["name"~"${t.match}",i]${bb}->.r;way(r.r)${bb};out geom${bb};`;
+    const q = `[out:json][timeout:90];way["highway"]${bb}->.w;` +
+      `rel(bw.w)["name"~"${t.match}",i]->.r;` +
+      `(way(r.r)${bb};way["name"~"${t.match}",i]${bb};);out geom${bb};`;
     let data = null, lastErr;
-    for (const ep of CONFIG.coastPath.overpass) {
-      try { data = await overpass(ep, q, 120000); break; } catch (e) { lastErr = e; }
+    // Paced, with one more go after a pause if the servers turn it away
+    for (const pause of [0, 12000]) {
+      const wait = Math.max(pause, lastTrailRequest + 1500 - Date.now());
+      if (wait > 0) await new Promise(r => setTimeout(r, wait));
+      lastTrailRequest = Date.now();
+      for (const ep of CONFIG.coastPath.overpass) {
+        try { data = await overpass(ep, q, 120000); break; } catch (e) { lastErr = e; }
+      }
+      if (data) break;
     }
     if (!data) throw lastErr;
     const lines = [];
@@ -1921,6 +2049,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     return lines;          // may be empty if OpenStreetMap names the trail differently
   }
   const trailMiles = {};
+  const trailKey = t => 'trail2:' + t.name;        // trail2: found via the paths in the box
 
   // A shared request for gap guessing, with the short time limit
   async function overpassAsk(q) {
@@ -4639,18 +4768,30 @@ button, input, textarea, select { font: inherit; color: inherit; }
   function renderTrails() {
     const rows = CONFIG.coastPath.trails.filter(t => t.name in trailMiles).map(t => {
       const mi = trailMiles[t.name];
-      const found = (parts['trail:' + t.name] || []).length > 0;
+      const found = (parts[trailKey(t)] || []).length > 0;
       return mi == null ? `${t.name}: couldn’t load` : !found ? `${t.name}: not found in OpenStreetMap` : mi >= 0.1 ? `${t.name} ${fmtMi(mi)} mi` : `${t.name}: already covered`;
     });
     $('#trailReport').textContent = rows.length ? `From existing trails: ${rows.join(', ')}.` : '';
   }
+  $('#savePathBtn').addEventListener('click', savePath);
+  $('#rebuildBtn').addEventListener('click', rebuildPath);
   function renderGaps() {
     renderTrails();
+    $('#completeReport').textContent = PATH.lines ? completeness() : '';
+    $('#savedNote').textContent = saved && !rebuilding
+      ? `Using your saved path${saved.created ? ` from ${fmtDate(saved.created.slice(0, 10))}` : ''}. Rebuild when the official data has caught up.`
+      : 'Once the path looks right, save it and put the file in the coastal-path folder on GitHub.';
+    // With the saved path, the breaks come from the line itself
+    if (saved && !rebuilding && PATH.lines) {
+      const loose = looseEndsNow();
+      gapReport = { guessed: [], loose: loose.slice(0, 30).map(l => ({ pt: l.pt, label: placeName(l.pt) })) };
+    }
     const show = (p, i, kind) => `<li class="entry"><button class="entry-main" type="button" data-gap="${kind}:${i}">
       <span class="entry-text"><span class="route">${esc(p.label)}</span><span class="meta">${p.meta}</span></span></button>
       ${kind === 'm' ? `<button class="entry-remove" type="button" data-unguess="${i}" aria-label="Remove ${esc(p.label)}">×</button>` : ''}</li>`;
     const r = gapReport;
     $('#gapReport').textContent = !r ? (settings.predict === false ? 'Guessing is off.' : 'Not checked yet.')
+      : saved && !rebuilding ? `${r.loose.length} ${r.loose.length === 1 ? 'place' : 'places'} where the path stops (two are its true ends, at Berwick and Gretna).`
       : `${r.guessed.length} ${r.guessed.length === 1 ? 'gap' : 'gaps'} guessed. ${r.loose.length} ${r.loose.length === 1 ? 'place' : 'places'} where the path stops without a guess (some are its true ends).`;
     $('#gapList').innerHTML = r ? [
       ...r.guessed.map((g, i) => show({ label: g.label, meta: g.rough === 'crossing' ? 'a short crossing, joined straight' : g.rough ? `${fmtMi(g.mi)} mi, roughly along the shoreline` : `${fmtMi(g.mi)} mi guessed` }, i, 'g')),
@@ -4770,7 +4911,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
     await loadManualGuesses();
     render();
     if (groupById.size) map.fitBounds(L.featureGroup([...groupById.values()]).getBounds(), { padding: [40, 40], maxZoom: 11 });
-    ensurePath().catch(() => {});
+    saved = await loadSavedPath();
+    if (saved) installSaved(); else ensurePath().catch(() => {});
     fillPlaceNames();
     if (syncCfg) syncNow();
     // Offline: a small service worker keeps the page and its libraries cached
