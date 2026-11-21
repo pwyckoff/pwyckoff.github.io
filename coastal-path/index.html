@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-8hltdivPEoEDkfGrUAAHcmVrp/NSQjwJZXjgQmknjZ8='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src 'self' https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-AsD8y/ULT6gbVIi7PHd3OPNtle8KH+buT3Fvf00/sWA='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src 'self' https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -1772,7 +1772,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
      line, and give way to the official route when it is published.
      ========================================================= */
   const PREDICT_V = 2, PREDICT_MAX_M = 120000, PREDICT_LONG_M = 25000;   // v2: walking routes preferred
-  const PREDICT_TIMEOUT_MS = 60000;         // give up on a slow request; the gap is tried again next visit
+  const PREDICT_TIMEOUT_MS = 60000;
+  const PREDICT_MAX_SEGS = 150000;          // the most road segments worth routing over for one gap         // give up on a slow request; the gap is tried again next visit
   let currentPredicted = [], predicting = false, predictPromise = null;
   const predictProgress = { text: '' };
 
@@ -1953,23 +1954,37 @@ button, input, textarea, select { font: inherit; color: inherit; }
       if (e.tags && walkable(e.tags) && Array.isArray(e.nodes)) ways.push(e);
     });
     if (!ways.length) return null;
+    // Dense towns can return a vast street network. Keep the work bounded: past a
+    // limit, drop ordinary streets and keep footpaths, tracks, bridleways and lanes;
+    // past it still, leave this gap for the shoreline pass.
+    let net = ways;
+    const segCount = list => list.reduce((n, w) => n + w.nodes.length - 1, 0);
+    if (segCount(net) > PREDICT_MAX_SEGS) net = net.filter(w => !/^(residential|service|living_street|tertiary|secondary|primary)$/.test(w.tags.highway) || onTrail.has(w.id));
+    if (segCount(net) > PREDICT_MAX_SEGS) return null;
     const cix = {};
     if (coast.length) buildIndex(coast.filter(l => l.length > 1), cix);
+    // Distance to the shore, measured once per way (at its ends and middle), not per segment
+    const shoreDist = w => {
+      if (!coast.length) return 2000;
+      const g = w.geometry, probe = [g[0], g[g.length >> 1], g[g.length - 1]];
+      let d = 2000;
+      probe.forEach(q => { if (q) { const n = nearestOnPath(q.lat, q.lon, 1500, cix); if (n && n.dist < d) d = n.dist; } });
+      return d;
+    };
     // A walking network: nodes shared between ways join them
     const idx = new Map(), pts = [], adj = [];
     const node = (id, g) => { let i = idx.get(id); if (i == null) { i = pts.length; idx.set(id, i); pts.push([g.lat, g.lon]); adj.push([]); } return i; };
-    ways.forEach(w => {
+    for (let wi = 0; wi < net.length; wi++) {
+      const w = net[wi];
+      if (wi % 4000 === 3999) await new Promise(r => setTimeout(r));       // keep the page responsive
       // Ways on a walking route (the Essex Way, the Saxon Shore Way...) are strongly preferred
-      const f = ROAD_FACTOR[w.tags.highway] * (onTrail.has(w.id) ? 0.55 : 1);
+      const f = ROAD_FACTOR[w.tags.highway] * (onTrail.has(w.id) ? 0.55 : 1) * (1 + shoreDist(w) / 400);   // and hug the shore
       for (let k = 1; k < w.nodes.length && k < w.geometry.length; k++) {
         const u = node(w.nodes[k - 1], w.geometry[k - 1]), v = node(w.nodes[k], w.geometry[k]);
-        const len = distM(pts[u], pts[v]);
-        const mid = [(pts[u][0] + pts[v][0]) / 2, (pts[u][1] + pts[v][1]) / 2];
-        const near = coast.length ? nearestOnPath(mid[0], mid[1], 2000, cix) : null;
-        const wgt = len * f * (1 + (near ? near.dist : 2000) / 400);   // hug the shore
+        const wgt = distM(pts[u], pts[v]) * f;
         adj[u].push([v, wgt]); adj[v].push([u, wgt]);
       }
-    });
+    }
     const snap = p => {
       let best = 600, bi = -1;
       pts.forEach((q, i) => { if (Math.abs(q[0] - p[0]) < 0.006 && Math.abs(q[1] - p[1]) < 0.01) { const d = distM(p, q); if (d < best) { best = d; bi = i; } } });
@@ -2090,19 +2105,39 @@ button, input, textarea, select { font: inherit; color: inherit; }
       }
     });
     if (!pts.length) return null;
-    const snap = p => { let best = 3000, bi = -1; pts.forEach((q, i) => { const d = distM(p, q); if (d < best) { best = d; bi = i; } }); return bi; };
+    const snap = p => { let best = 3000, bi = -1; pts.forEach((q, i) => { if (Math.abs(q[0] - p[0]) < 0.03 && Math.abs(q[1] - p[1]) < 0.05) { const d = distM(p, q); if (d < best) { best = d; bi = i; } } }); return bi; };
     const sa = snap(a), sb = snap(b);
     if (sa < 0 || sb < 0) return null;
     const dist = new Float64Array(pts.length).fill(Infinity), prev = new Int32Array(pts.length).fill(-1);
     dist[sa] = 0;
     const heap = [[0, sa]];
+    const push = (d, v) => {
+      heap.push([d, v]);
+      let i = heap.length - 1;
+      while (i > 0) { const pi = (i - 1) >> 1; if (heap[pi][0] <= heap[i][0]) break; [heap[pi], heap[i]] = [heap[i], heap[pi]]; i = pi; }
+    };
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1, r = l + 1;
+          let m = i;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === i) break;
+          [heap[m], heap[i]] = [heap[i], heap[m]];
+          i = m;
+        }
+      }
+      return top;
+    };
     while (heap.length) {
-      // a simple heap is plenty for a coastline's worth of points
-      let bi = 0; for (let i = 1; i < heap.length; i++) if (heap[i][0] < heap[bi][0]) bi = i;
-      const [d, v] = heap[bi]; heap[bi] = heap[heap.length - 1]; heap.pop();
+      const [d, v] = pop();
       if (d > dist[v]) continue;
       if (v === sb) break;
-      for (const [w, len] of adj[v]) if (d + len < dist[w]) { dist[w] = d + len; prev[w] = v; heap.push([d + len, w]); }
+      for (const [w, len] of adj[v]) if (d + len < dist[w]) { dist[w] = d + len; prev[w] = v; push(d + len, w); }
     }
     if (dist[sb] === Infinity) return null;
     const out = [];
@@ -2132,7 +2167,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     lastPredictRequest = Date.now();
     let coords = null;
     // Widen the band if the shoreline paths don't join up; long gaps get one more try
-    const bands = distM(g.a, g.b) > PREDICT_LONG_M ? [1500, 4000, 8000] : [1500, 4000];
+    const bands = [1500, 4000];             // wider bands cost too much in towns; the shoreline pass covers the rest
     let failed = false;
     for (const corridor of bands) {
       try { coords = await routeOnFootpaths(g.a, g.b, corridor); } catch (e) { coords = null; failed = true; break; }
