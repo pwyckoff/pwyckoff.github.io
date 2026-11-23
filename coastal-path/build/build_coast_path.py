@@ -189,6 +189,16 @@ class Fetcher:
             return {'elements': w.get('england_osm', [])}
         if key.startswith('overpass:trail:'):
             return {'elements': w.get('trails', {}).get(key.split(':', 2)[2], [])}
+        if key.startswith('overpass:area-coast'):
+            # Clip to the area, as the real service does with out geom(box)
+            s0, w0, n0, e0 = map(float, key[key.index('(') + 1:key.index(')')].split(','))
+            clip = lambda g: g if (s0 <= g['lat'] <= n0 and w0 <= g['lon'] <= e0) else None
+            return {'elements': [dict(e, geometry=[clip(g) for g in e['geometry']]) for e in w.get('coastline', [])]}
+        if key.startswith('overpass:area-paths'):
+            if not key.endswith(':0'):
+                return {'elements': []}
+            ids = [{'type': 'way', 'id': i} for i in w.get('on_walking_routes', [])]
+            return {'elements': w.get('ways', []) + ids}
         if key.startswith('overpass:coast'):
             return {'elements': w.get('coastline', [])}
         if key.startswith('overpass:paths'):
@@ -202,10 +212,10 @@ class Fetcher:
             time.sleep(wait)
         self.last = time.time()
 
-    def overpass(self, key, query, timeout=180):
+    def overpass(self, key, query, timeout=180, attempts=3):
         def go():
             last_err = None
-            for attempt in range(3):
+            for attempt in range(attempts):
                 for ep in OVERPASS:
                     self.pause()
                     try:
@@ -216,7 +226,8 @@ class Fetcher:
                         last_err = f'{ep} answered {r.status_code}'
                     except Exception as e:      # noqa: BLE001
                         last_err = f'{ep}: {e}'
-                time.sleep(20 * (attempt + 1))  # back off before trying the servers again
+                if attempt + 1 < attempts:
+                    time.sleep(20 * (attempt + 1))  # back off before trying the servers again
             raise RuntimeError(last_err)
         return self.get('overpass:' + key, go)
 
@@ -452,143 +463,177 @@ def find_gaps(path):
 
 
 # --------------------------------------------------------------------------
-# Filling a gap: footpaths near the shore, a short crossing, or the shoreline
+# Filling the gaps, area by area. Neighbouring gaps are grouped into areas up to
+# about 60 km across; each area's coastline and footpaths are fetched once, and
+# every gap in it is then worked out locally, with no more requests.
 # --------------------------------------------------------------------------
 
-def box_around(a, b, pad_frac=0.35, min_pad=3000):
-    pad = max(min_pad, math.dist(a, b) * pad_frac)
-    xs, ys = (a[0], b[0]), (a[1], b[1])
-    sw = wgs((min(xs) - pad, min(ys) - pad))
-    ne = wgs((max(xs) + pad, max(ys) + pad))
-    return (round(sw[0], 4), round(sw[1], 4), round(ne[0], 4), round(ne[1], 4))
+AREA_MAX_M = 60000     # the widest area fetched in one go
+CELL_M = 2000          # footpaths are fetched in squares this size along the coastline
+CELLS_PER_QUERY = 250
 
 
-def coastline(fetch, box):
+def area_box(points, pad=4000):
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    corners = [wgs((x, y)) for x in (min(xs) - pad, max(xs) + pad) for y in (min(ys) - pad, max(ys) + pad)]
+    return (round(min(c[0] for c in corners), 4), round(min(c[1] for c in corners), 4),
+            round(max(c[0] for c in corners), 4), round(max(c[1] for c in corners), 4))
+
+
+def cell_box(i, j):
+    corners = [wgs((x, y)) for x in (i * CELL_M, (i + 1) * CELL_M) for y in (j * CELL_M, (j + 1) * CELL_M)]
+    return (round(min(c[0] for c in corners), 4), round(min(c[1] for c in corners), 4),
+            round(max(c[0] for c in corners), 4), round(max(c[1] for c in corners), 4))
+
+
+class Network:
+    """A routing network: points, neighbours, and a grid for finding the nearest point."""
+    def __init__(self):
+        self.pts, self.adj, self.index, self.grid = [], [], {}, {}
+
+    def node(self, nid, xy):
+        i = self.index.get(nid)
+        if i is None:
+            i = self.index[nid] = len(self.pts)
+            self.pts.append(xy)
+            self.adj.append([])
+            self.grid.setdefault((int(xy[0] // 250), int(xy[1] // 250)), []).append(i)
+        return i
+
+    def edge(self, u, v, w):
+        self.adj[u].append((v, w))
+        self.adj[v].append((u, w))
+
+    def nearest(self, p, snap):
+        best, bi = snap, -1
+        r = int(snap // 250) + 1
+        ci, cj = int(p[0] // 250), int(p[1] // 250)
+        for di in range(-r, r + 1):
+            for dj in range(-r, r + 1):
+                for i in self.grid.get((ci + di, cj + dj), ()):
+                    d = math.dist(p, self.pts[i])
+                    if d < best:
+                        best, bi = d, i
+        return bi
+
+    def route(self, a, b, snap, ratio):
+        sa, sb = self.nearest(a, snap), self.nearest(b, snap)
+        if sa < 0 or sb < 0:
+            return None
+        k, extra = ratio
+        limit = (k * math.dist(a, b) + extra) * 8      # weights run above lengths; don't search forever
+        dist, prev, heap = {sa: 0.0}, {}, [(0.0, sa)]
+        while heap:
+            d, v = heapq.heappop(heap)
+            if d > dist.get(v, 1e18):
+                continue
+            if v == sb or d > limit:
+                break
+            for w, wgt in self.adj[v]:
+                nd = d + wgt
+                if nd < dist.get(w, 1e18):
+                    dist[w], prev[w] = nd, v
+                    heapq.heappush(heap, (nd, w))
+        if sb not in prev and sb != sa:
+            return None
+        chain, v = [], sb
+        while v != sa:
+            chain.append(self.pts[v])
+            v = prev[v]
+        chain.append(self.pts[sa])
+        line = LineString([a] + chain[::-1] + [b])
+        if line.length > k * math.dist(a, b) + extra:
+            return None
+        return line.simplify(8)
+
+
+def fetch_area(fetch, gaps, attempts=1):
+    """Coastline and walkable ways for an area of gaps. Returns (footpath network, shoreline network)."""
+    pts = [g['a']['xy'] for g in gaps] + [g['b']['xy'] for g in gaps]
+    box = area_box(pts)
     bb = '({},{},{},{})'.format(*box)
-    d = fetch.overpass('coast' + bb, f'[out:json][timeout:120];way["natural"="coastline"]{bb};out body geom{bb};')
-    return d
-
-
-def route_footpaths(fetch, a, b, corridor):
-    box = box_around(a, b)
-    bb = '({},{},{},{})'.format(*box)
-    cdata = coastline(fetch, box)
-    coast = osm_lines(cdata)
+    cdata = fetch.overpass('area-coast' + bb, f'[out:json][timeout:120];way["natural"="coastline"]{bb};out body geom{bb};',
+                           timeout=150, attempts=attempts)
+    shore = Network()
+    coast_lines = []
+    for w in cdata.get('elements', []):
+        if w.get('type') != 'way' or 'nodes' not in w:
+            continue
+        geo, run = w.get('geometry') or [], []
+        for k in range(min(len(w['nodes']), len(geo))):
+            g = geo[k]
+            if not g or not isinstance(g.get('lat'), (int, float)):
+                if len(run) > 1:
+                    coast_lines.append(LineString(run))
+                run = []
+                continue
+            xy = TO_BNG(g['lon'], g['lat'])
+            run.append(xy)
+            u = shore.node(w['nodes'][k], xy)
+            if k and geo[k - 1] and isinstance(geo[k - 1].get('lat'), (int, float)):
+                v = shore.index[w['nodes'][k - 1]]
+                shore.edge(u, v, math.dist(xy, shore.pts[v]))
+        if len(run) > 1:
+            coast_lines.append(LineString(run))
+    # Squares along the coastline (and round every gap end), then the ways in them
+    cells = set()
+    for l in coast_lines:
+        n = max(2, int(l.length / (CELL_M / 2)))
+        for k in range(n + 1):
+            p = l.interpolate(k / n, normalized=True)
+            i, j = int(p.x // CELL_M), int(p.y // CELL_M)
+            cells |= {(i + di, j + dj) for di in (-1, 0, 1) for dj in (-1, 0, 1)}
+    for x, y in pts:
+        i, j = int(x // CELL_M), int(y // CELL_M)
+        cells |= {(i + di, j + dj) for di in (-1, 0, 1) for dj in (-1, 0, 1)}
+    cells = sorted(cells)
     hw = '|'.join(ROAD_FACTOR)
-    # Walkable ways within the corridor of the coastline, and which of them are on walking routes
-    q = (f'[out:json][timeout:180];way["natural"="coastline"]{bb}->.c;'
-         f'way(around.c:{corridor})["highway"~"^({hw})$"]{bb}->.w;.w out body geom;'
-         f'rel(bw.w)["route"~"^(hiking|foot|walking)$"]->.r;way.w(r.r);out ids;')
-    data = fetch.overpass(f'paths{bb}:{corridor}', q)
-    on_trail = {e['id'] for e in data.get('elements', []) if e.get('type') == 'way' and 'geometry' not in e}
-    ways = [e for e in data.get('elements', []) if e.get('type') == 'way' and 'geometry' in e and 'nodes' in e
-            and (e.get('tags') or {}).get('highway') in ROAD_FACTOR
-            and (e.get('tags') or {}).get('foot') not in ('no', 'private')
-            and not ((e.get('tags') or {}).get('access') in ('no', 'private')
-                     and (e.get('tags') or {}).get('foot') not in ('yes', 'designated', 'permissive'))]
-    if not ways:
-        return None
-    ctree = STRtree(coast) if coast else None
+    ways, on_trail = {}, set()
+    for c0 in range(0, len(cells), CELLS_PER_QUERY):
+        chunk = cells[c0:c0 + CELLS_PER_QUERY]
+        boxes = ''.join('way["highway"~"^({})$"]({},{},{},{});'.format(hw, *cell_box(i, j)) for i, j in chunk)
+        q = (f'[out:json][timeout:180];({boxes})->.w;.w out body geom;'
+             f'rel(bw.w)["route"~"^(hiking|foot|walking)$"]->.r;way.w(r.r);out ids;')
+        d = fetch.overpass(f'area-paths{bb}:{c0}', q, timeout=210, attempts=attempts)
+        for e in d.get('elements', []):
+            if e.get('type') != 'way':
+                continue
+            if 'geometry' in e and 'nodes' in e:
+                ways[e['id']] = e
+            else:
+                on_trail.add(e.get('id'))
+    ctree = STRtree(coast_lines) if coast_lines else None
 
     def shore_dist(w):
         if ctree is None:
             return 2000
-        g = w['geometry']
-        best = 2000
+        g, best = w['geometry'], 2000
         for q_ in (g[0], g[len(g) // 2], g[-1]):
             if q_:
                 p = Point(TO_BNG(q_['lon'], q_['lat']))
-                idx = ctree.nearest(p)
-                best = min(best, coast[idx].distance(p))
+                best = min(best, coast_lines[ctree.nearest(p)].distance(p))
         return best
 
-    pts, adj, index = [], [], {}
-
-    def node(nid, g):
-        if nid not in index:
-            index[nid] = len(pts)
-            pts.append(TO_BNG(g['lon'], g['lat']))
-            adj.append([])
-        return index[nid]
-
-    for w in ways:
-        f = ROAD_FACTOR[w['tags']['highway']] * (0.55 if w['id'] in on_trail else 1) * (1 + shore_dist(w) / 400)
-        for k in range(1, min(len(w['nodes']), len(w['geometry']))):
-            g0, g1 = w['geometry'][k - 1], w['geometry'][k]
-            if not g0 or not g1:
-                continue
-            u, v = node(w['nodes'][k - 1], g0), node(w['nodes'][k], g1)
-            wgt = math.dist(pts[u], pts[v]) * f
-            adj[u].append((v, wgt))
-            adj[v].append((u, wgt))
-    return shortest(pts, adj, a, b, snap=600, ratio=(8, 10000) if math.dist(a, b) < 25000 else (3, 15000))
-
-
-def route_shoreline(fetch, a, b):
-    box = box_around(a, b, pad_frac=0.6, min_pad=5000)
-    data = coastline(fetch, box)
-    pts, adj, index = [], [], {}
-    for w in data.get('elements', []):
-        if w.get('type') != 'way' or 'nodes' not in w:
+    net = Network()
+    for w in ways.values():
+        t = w.get('tags') or {}
+        if t.get('highway') not in ROAD_FACTOR or t.get('foot') in ('no', 'private'):
             continue
-        geo = w.get('geometry') or []
-        for k in range(1, min(len(w['nodes']), len(geo))):
-            g0, g1 = geo[k - 1], geo[k]
-            if not g0 or not g1:
-                continue
-            for nid, g in ((w['nodes'][k - 1], g0), (w['nodes'][k], g1)):
-                if nid not in index:
-                    index[nid] = len(pts)
-                    pts.append(TO_BNG(g['lon'], g['lat']))
-                    adj.append([])
-            u, v = index[w['nodes'][k - 1]], index[w['nodes'][k]]
-            d = math.dist(pts[u], pts[v])
-            adj[u].append((v, d))
-            adj[v].append((u, d))
-    return shortest(pts, adj, a, b, snap=3000, ratio=(6, 30000))
-
-
-def shortest(pts, adj, a, b, snap, ratio):
-    if not pts:
-        return None
-
-    def nearest(p):
-        best, bi = snap, -1
-        for i, q in enumerate(pts):
-            if abs(q[0] - p[0]) < snap and abs(q[1] - p[1]) < snap:
-                d = math.dist(p, q)
-                if d < best:
-                    best, bi = d, i
-        return bi
-    sa, sb = nearest(a), nearest(b)
-    if sa < 0 or sb < 0:
-        return None
-    dist = {sa: 0.0}
-    prev = {}
-    heap = [(0.0, sa)]
-    while heap:
-        d, v = heapq.heappop(heap)
-        if d > dist.get(v, 1e18):
+        if t.get('access') in ('no', 'private') and t.get('foot') not in ('yes', 'designated', 'permissive'):
             continue
-        if v == sb:
-            break
-        for w, wgt in adj[v]:
-            nd = d + wgt
-            if nd < dist.get(w, 1e18):
-                dist[w], prev[w] = nd, v
-                heapq.heappush(heap, (nd, w))
-    if sb not in dist:
-        return None
-    chain, v = [], sb
-    while v != sa:
-        chain.append(pts[v])
-        v = prev[v]
-    chain.append(pts[sa])
-    line = LineString([a] + chain[::-1] + [b])
-    k, extra = ratio
-    if line.length > k * math.dist(a, b) + extra:
-        return None
-    return line.simplify(8)
+        f = ROAD_FACTOR[t['highway']] * (0.55 if w['id'] in on_trail else 1) * (1 + shore_dist(w) / 400)
+        prev = None
+        for k in range(min(len(w['nodes']), len(w['geometry']))):
+            g = w['geometry'][k]
+            if not g:
+                prev = None
+                continue
+            u = net.node(w['nodes'][k], TO_BNG(g['lon'], g['lat']))
+            if prev is not None:
+                net.edge(u, prev, math.dist(net.pts[u], net.pts[prev]) * f)
+            prev = u
+    return net, shore
 
 
 def fill_gaps(fetch, path, report):
@@ -602,59 +647,92 @@ def fill_gaps(fetch, path, report):
         used_pair.add(c['pair'])
         gaps.append(c)
     gaps.sort(key=lambda c: c['a']['t'])
-    log(f'{len(gaps)} gaps to fill')
+    # Group neighbouring gaps into areas
+    areas, cur = [], []
+    for g in gaps:
+        pts = [p for c in cur + [g] for p in (c['a']['xy'], c['b']['xy'])]
+        span = max(max(p[0] for p in pts) - min(p[0] for p in pts), max(p[1] for p in pts) - min(p[1] for p in pts))
+        if cur and span > AREA_MAX_M:
+            areas.append(cur)
+            cur = []
+        cur.append(g)
+    if cur:
+        areas.append(cur)
+    log(f'{len(gaps)} gaps to fill, in {len(areas)} areas')
 
-    def fill(c):
+    def fill(c, net, shore):
         a, b, d = c['a']['xy'], c['b']['xy'], c['d']
         if d < 150:
             return LineString([a, b]), 'joined straight'
-        for corridor in (1500, 4000):
-            try:
-                g = route_footpaths(fetch, a, b, corridor)
-            except Exception as e:       # noqa: BLE001
-                log('   footpath search failed:', e)
-                g = None
-                break
+        if net is not None:
+            g = net.route(a, b, 600, (8, 10000) if d < 25000 else (3, 15000))
             if g is not None:
                 return g, 'guessed along footpaths near the shore'
         if d < 2000:
             return LineString([a, b]), 'a short crossing, joined straight'
-        try:
-            g = route_shoreline(fetch, a, b)
-        except Exception as e:           # noqa: BLE001
-            log('   shoreline trace failed:', e)
-            g = None
-        return (g, 'roughly along the shoreline') if g is not None else (None, None)
+        if shore is not None:
+            g = shore.route(a, b, 3000, (6, 30000))
+            if g is not None:
+                return g, 'roughly along the shoreline'
+        return None, None
 
-    unfilled = []
-    for i, c in enumerate(gaps):
-        log(f'[{i + 1}/{len(gaps)}] {place_name(c["a"]["xy"])} to {place_name(c["b"]["xy"])}, {c["d"] / 1000:.1f} km apart')
-        g, how = fill(c)
-        if g is None:
-            unfilled.append(c)
-            continue
-        mi = path.add_all([g], 'guess', how, country=c['a']['country'])
-        report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
-    # A gap that couldn't be filled frees its ends to try their next-best partners
-    for c in unfilled:
-        used_end -= {c['a']['id'], c['b']['id']}
-        used_pair.discard(c['pair'])
-    retry_ends = {e for c in unfilled for e in (c['a']['id'], c['b']['id'])}
-    tries = {}
-    for c in sorted((c for c in cands if c not in unfilled and (c['a']['id'] in retry_ends or c['b']['id'] in retry_ends)), key=score):
-        ia, ib = c['a']['id'], c['b']['id']
-        if ia in used_end or ib in used_end or c['pair'] in used_pair:
-            continue
-        if tries.get(ia, 0) >= 2 or tries.get(ib, 0) >= 2:
-            continue
-        tries[ia] = tries.get(ia, 0) + 1
-        tries[ib] = tries.get(ib, 0) + 1
-        g, how = fill(c)
-        if g is not None:
-            used_end |= {ia, ib}
-            used_pair.add(c['pair'])
-            mi = path.add_all([g], 'guess', how, country=c['a']['country'])
+    done = set()
+
+    def process(area, net, shore):
+        for c in area:
+            g, how = fill(c, net, shore)
+            if g is None:
+                continue
+            done.add(id(c))
+            mi = path.add_all([g], 'guess', how, country=c['a']['country'], clip=False)
             report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
+        # Ends of unfilled gaps here try their next-best partners, within this area's data
+        unfilled = [c for c in area if id(c) not in done]
+        if not unfilled or net is None:
+            return
+        for c in unfilled:
+            used_end.difference_update({c['a']['id'], c['b']['id']})
+            used_pair.discard(c['pair'])
+        free_ends = {e for c in unfilled for e in (c['a']['id'], c['b']['id'])}
+        tries = {}
+        for c in sorted((c for c in cands if c not in area and (c['a']['id'] in free_ends or c['b']['id'] in free_ends)), key=score):
+            ia, ib = c['a']['id'], c['b']['id']
+            if ia in used_end or ib in used_end or c['pair'] in used_pair or tries.get(ia, 0) >= 2 or tries.get(ib, 0) >= 2:
+                continue
+            tries[ia] = tries.get(ia, 0) + 1
+            tries[ib] = tries.get(ib, 0) + 1
+            g, how = fill(c, net, shore)
+            if g is not None:
+                used_end.update({ia, ib})
+                used_pair.add(c['pair'])
+                mi = path.add_all([g], 'guess', how, country=c['a']['country'], clip=False)
+                report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
+
+    deferred = []
+    for ai, area in enumerate(areas):
+        log(f'[area {ai + 1}/{len(areas)}] {len(area)} gaps near {place_name(area[0]["a"]["xy"])}')
+        net = shore = None
+        if any(c['d'] >= 150 for c in area):
+            try:
+                net, shore = fetch_area(fetch, area)
+            except Exception as e:           # noqa: BLE001
+                log('   couldn\u2019t fetch this area for now, will retry at the end:', e)
+                deferred.append(area)
+                continue
+        process(area, net, shore)
+    # Areas that failed get another go after a cool-down; only if that fails too do
+    # their gaps fall back to straight links for short breaks
+    if deferred:
+        log(f'Retrying {len(deferred)} area(s) after a pause...')
+        time.sleep(0 if fetch.mock else 180)
+    for area in deferred:
+        net = shore = None
+        try:
+            net, shore = fetch_area(fetch, area, attempts=2)
+        except Exception as e:               # noqa: BLE001
+            log(f'   still unavailable near {place_name(area[0]["a"]["xy"])}:', e)
+            report.setdefault('unfetched', []).append(where(area[0]['a']['xy']))
+        process(area, net, shore)
     report['loose'] = [where(e['xy']) for e in ends if e['id'] not in used_end]
 
 
@@ -693,20 +771,39 @@ def build(fetch):
     mi = path.add_all(osm_lines(fetch.overpass('england-osm', q)), 'other', 'England Coast Path in OpenStreetMap')
     report['sources'].append(('OpenStreetMap\u2019s England Coast Path routes (incl. stretches mapped before opening)', mi))
 
-    for name, match, box, fills in TRAILS:
-        log(f'Trail: {name}...')
+    def trail(name, match, box, fills):
         bb = '({},{},{},{})'.format(*box)
         q = (f'[out:json][timeout:120];way["highway"]{bb}->.w;rel(bw.w)["name"~"{match}",i]->.r;'
              f'(way(r.r){bb};way["name"~"{match}",i]{bb};);out geom{bb};')
-        try:
-            lines = osm_lines(fetch.overpass('trail:' + name, q))
-        except Exception as e:           # noqa: BLE001
-            log('   unavailable:', e)
-            report['sources'].append((f'{name} ({fills}): couldn\u2019t load', 0))
-            continue
+        lines = osm_lines(fetch.overpass('trail:' + name, q))
         mi = path.add_all(lines, 'other', name)
-        note = '' if lines else ': not found in OpenStreetMap'
-        report['sources'].append((f'{name} ({fills}){note}', mi))
+        report['sources'].append((f'{name} ({fills})' + ('' if lines else ': not found in OpenStreetMap'), mi))
+
+    failed = []
+    for t in TRAILS:
+        log(f'Trail: {t[0]}...')
+        try:
+            trail(*t)
+        except Exception as e:           # noqa: BLE001
+            log('   unavailable for now, will retry:', e)
+            failed.append(t)
+    # Server trouble is usually brief: retry after a cool-down, before guessing starts,
+    # so a trail that loads second time is used rather than guessed over
+    for round_ in (1, 2):
+        if not failed:
+            break
+        log(f'Retrying {len(failed)} trail(s) after a pause...')
+        time.sleep(0 if fetch.mock else 120 * round_)
+        still = []
+        for t in failed:
+            try:
+                trail(*t)
+            except Exception as e:       # noqa: BLE001
+                log(f'   {t[0]} still unavailable:', e)
+                still.append(t)
+        failed = still
+    for name, match, box, fills in failed:
+        report['sources'].append((f'{name} ({fills}): couldn\u2019t load', 0))
 
     log('Guessing the remaining gaps...')
     fill_gaps(fetch, path, report)
@@ -749,6 +846,11 @@ def write_report(path, report, out):
         lines += [f'| {a} | {b} | {how} | {m:,.1f} |' for a, b, how, m in report['gaps']]
     else:
         lines.append('None.')
+    if report.get('unfetched'):
+        lines += ['', '## Areas that couldn\u2019t be fetched', '',
+                  'The servers didn\u2019t answer for these even after a retry; short breaks there are joined straight. '
+                  'Running the build again will try them afresh.', '']
+        lines += [f'- near {n}' for n in report['unfetched']]
     lines += ['', '## Places where the path still stops', '',
               'Berwick and Gretna are its true ends; anything else is worth a look.', '']
     lines += [f'- near {n}' for n in report['loose']] or ['None.']
