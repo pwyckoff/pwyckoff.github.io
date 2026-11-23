@@ -29,8 +29,9 @@ jobs:
           cache: pip
           cache-dependency-path: coastal-path/build/requirements.txt
 
-      # Fetched data is kept between runs, so most months only changed sources are refetched
-      - uses: actions/cache@v4
+      # Fetched data is kept between runs, so most months only changed sources are refetched.
+      # It's saved at the end even if the build fails or is cancelled, so nothing fetched is wasted.
+      - uses: actions/cache/restore@v4
         with:
           path: coastal-path/build/.cache
           key: coast-path-data-${{ github.run_id }}
@@ -44,6 +45,12 @@ jobs:
           --out coastal-path/coast-path-full.geojson
           --report coastal-path/build/report.md
 
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: coastal-path/build/.cache
+          key: coast-path-data-${{ github.run_id }}
+
       - name: Commit if changed
         run: |
           git config user.name "coast-path-build"
@@ -55,4 +62,3 @@ jobs:
             git commit -m "Rebuild the coast path ($(date -u +%Y-%m-%d))"
             git push
           fi
-
