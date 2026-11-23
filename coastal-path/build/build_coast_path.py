@@ -364,11 +364,29 @@ class Path:
         self.pieces = []          # dicts: geom (BNG LineString), source, via, stretch, country
         self.buffers = []         # one buffer per piece, for "is this ground already covered?"
 
-    def add_all(self, lines, source, via, country='E', stretches=None, clip=True):
-        """Add lines, keeping only ground not already covered. Returns miles added."""
-        added = []
+    def loose_ends(self):
+        """End points of pieces that touch no other piece."""
+        geoms = [p['geom'] for p in self.pieces]
+        if not geoms:
+            return []
+        tree, out = STRtree(geoms), []
+        for j, g in enumerate(geoms):
+            for xy in (g.coords[0], g.coords[-1]):
+                p = Point(xy)
+                if not any(k != j and geoms[k].distance(p) <= LOOSE_M for k in tree.query(p.buffer(LOOSE_M))):
+                    out.append(xy)
+        return out
+
+    def add_all(self, lines, source, via, country='E', stretches=None, clip=True, gaps_only=False, min_len=MIN_PIECE_M):
+        """Add lines, keeping only ground not already covered. Returns miles added.
+
+        gaps_only: keep a piece only if it carries on from a loose end of the path
+        (directly, or through other kept pieces), or stands clear of the path altogether,
+        as a stretch in the middle of a gap does. A trail running parallel to the path,
+        meeting it only partway along, fills no gap and is left out."""
         tree = STRtree([p['geom'] for p in self.pieces]) if self.pieces else None
         btree = STRtree(self.buffers) if self.buffers else None
+        cands = []
         for i, line in enumerate(lines):
             if line.length < 1:
                 continue
@@ -376,13 +394,43 @@ class Path:
                 # Only the covered ground near this line matters
                 near = [self.buffers[k] for k in btree.query(line)]
                 parts = lines_of(line.difference(unary_union(near))) if near else [line]
-                parts = [p for p in parts if p.length >= MIN_PIECE_M]
+                parts = [p for p in parts if p.length >= min_len]
             else:
                 parts = [line]
-            for part in parts:
-                part = self._join(part, tree)
-                added.append({'geom': part, 'source': source, 'via': via, 'country': country,
-                              'stretch': stretches[i] if stretches else None})
+            cands += [(i, part) for part in parts]
+        if gaps_only and self.pieces:
+            frontier = self.loose_ends()
+            geoms = [p['geom'] for p in self.pieces]
+            gtree = STRtree(geoms)
+
+            def meets_path(xy):
+                p = Point(xy)
+                return any(geoms[k].distance(p) <= JOIN_M for k in gtree.query(p.buffer(JOIN_M)))
+            # Pieces clear of the path at both ends are in a gap: keep them, and carry on from them
+            keep = [not meets_path(part.coords[0]) and not meets_path(part.coords[-1]) for _, part in cands]
+            for (_, part), k in zip(cands, keep):
+                if k:
+                    frontier += [part.coords[0], part.coords[-1]]
+            changed = True
+            while changed:
+                changed = False
+                fpts = [Point(xy) for xy in frontier]
+                ftree = STRtree(fpts) if fpts else None
+                for n, (i, part) in enumerate(cands):
+                    if keep[n] or ftree is None:
+                        continue
+                    for xy in (part.coords[0], part.coords[-1]):
+                        p = Point(xy)
+                        if any(fpts[k].distance(p) <= JOIN_M for k in ftree.query(p.buffer(JOIN_M))):
+                            keep[n] = changed = True
+                            frontier += [part.coords[0], part.coords[-1]]
+                            break
+            cands = [c for c, k in zip(cands, keep) if k]
+        added = []
+        for i, part in cands:
+            part = self._join(part, tree)
+            added.append({'geom': part, 'source': source, 'via': via, 'country': country,
+                          'stretch': stretches[i] if stretches else None})
         self.pieces += added
         self.buffers += [a['geom'].buffer(BUFFER_M, resolution=2) for a in added]
         return sum(a['geom'].length for a in added) / 1609.344
@@ -709,7 +757,7 @@ def fill_gaps(fetch, path, report):
             if g is None:
                 continue
             done.add(id(c))
-            mi = path.add_all([g], 'guess', how, country=c['a']['country'], clip=False)
+            mi = path.add_all([g], 'guess', how, country=c['a']['country'], min_len=30)
             report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
         # Ends of unfilled gaps here try their next-best partners, within this area's data
         unfilled = [c for c in area if id(c) not in done]
@@ -730,7 +778,7 @@ def fill_gaps(fetch, path, report):
             if g is not None:
                 used_end.update({ia, ib})
                 used_pair.add(c['pair'])
-                mi = path.add_all([g], 'guess', how, country=c['a']['country'], clip=False)
+                mi = path.add_all([g], 'guess', how, country=c['a']['country'], min_len=30)
                 report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
 
     deferred = []
@@ -803,7 +851,7 @@ def build(fetch):
     q = (f'[out:json][timeout:240];(relation(id:{ids});'
          f'relation["route"~"^(hiking|foot|walking)$"]["name"~"England Coast Path",i]{bb};)->.r;'
          f'(.r;>>;)->.m;way.m;out geom;')
-    mi = path.add_all(osm_lines(fetch.overpass('england-osm', q)), 'other', 'England Coast Path in OpenStreetMap')
+    mi = path.add_all(osm_lines(fetch.overpass('england-osm', q)), 'other', 'England Coast Path in OpenStreetMap', gaps_only=True)
     report['sources'].append(('OpenStreetMap\u2019s England Coast Path routes (incl. stretches mapped before opening)', mi))
 
     def trail(name, match, box, fills):
@@ -815,7 +863,7 @@ def build(fetch):
         q = (f'[out:json][timeout:180];relation["name"~"{match}",i]{bb}->.r;(.r;>>;)->.m;'
              f'(way.m{bb};{named_paths});out geom{bb};')
         lines = osm_lines(fetch.overpass('trail:' + name, q))
-        mi = path.add_all(lines, 'other', name)
+        mi = path.add_all(lines, 'other', name, gaps_only=True)
         report['sources'].append((f'{name} ({fills})' + ('' if lines else ': not found in OpenStreetMap'), mi))
 
     failed = []
