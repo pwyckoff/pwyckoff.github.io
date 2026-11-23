@@ -50,7 +50,8 @@ from shapely.strtree import STRtree
 
 NATURAL_ENGLAND = 'https://services.arcgis.com/JJzESW51TqeY9uat/ArcGIS/rest/services/England_Coast_Path_Route/FeatureServer/0/query'
 DEFRA_COPY = 'https://environment.data.gov.uk/arcgis/rest/services/NE/EnglandCoastPathRoute/FeatureServer/0/query'
-OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
+OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter']
 WALES_RELATION = 1820890
 ENGLAND_OSM_RELATION = 3971851
 # Stretches mapped in OpenStreetMap ahead of opening, from the OSM wiki's status table
@@ -87,6 +88,9 @@ TRAILS = [
     ('Headland Way', 'Headland Way', (54.05, -0.30, 54.23, -0.05), 'Flamborough Head to Filey'),
     ('Severn Way', 'Severn Way', (51.45, -2.75, 51.62, -2.55), 'Aust to Avonmouth'),
 ]
+
+# Trails recorded in OpenStreetMap as paths carrying the name, rather than as a route
+NAMED_PATH_TRAILS = {'Wivenhoe Trail', 'Colchester Orbital'}
 
 BUFFER_M = 150        # a line within this of an accepted one counts as already covered
 MIN_PIECE_M = 300     # shorter new pieces are dropped
@@ -772,9 +776,13 @@ def build(fetch):
     report['sources'].append(('OpenStreetMap\u2019s England Coast Path routes (incl. stretches mapped before opening)', mi))
 
     def trail(name, match, box, fills):
+        # Routes whose name contains the trail's (stage routes too, and the members of any
+        # parent route), plus, for trails recorded only as named paths, those paths.
+        # Scanning every road in the box instead would be far too heavy in big boxes.
         bb = '({},{},{},{})'.format(*box)
-        q = (f'[out:json][timeout:120];way["highway"]{bb}->.w;rel(bw.w)["name"~"{match}",i]->.r;'
-             f'(way(r.r){bb};way["name"~"{match}",i]{bb};);out geom{bb};')
+        named_paths = f'way["name"~"{match}",i]{bb};' if name in NAMED_PATH_TRAILS else ''
+        q = (f'[out:json][timeout:180];relation["name"~"{match}",i]{bb}->.r;(.r;>>;)->.m;'
+             f'(way.m{bb};{named_paths});out geom{bb};')
         lines = osm_lines(fetch.overpass('trail:' + name, q))
         mi = path.add_all(lines, 'other', name)
         report['sources'].append((f'{name} ({fills})' + ('' if lines else ': not found in OpenStreetMap'), mi))
