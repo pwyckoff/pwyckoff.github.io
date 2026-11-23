@@ -152,9 +152,15 @@ def log(*a):
 # --------------------------------------------------------------------------
 
 class Fetcher:
-    def __init__(self, cache_dir, ttl_days=25, refresh=False, mock_dir=None):
+    def __init__(self, cache_dir, ttl_days=25, refresh=False, mock_dir=None, budget_min=None):
         self.cache_dir, self.ttl, self.refresh, self.mock = cache_dir, ttl_days * 86400, refresh, mock_dir
         self.last = 0
+        # After this, no new requests: the build finishes with what it has, writes its
+        # results, and lists what's left for the next run (cached data still loads)
+        self.deadline = time.time() + budget_min * 60 if budget_min else None
+
+    def out_of_time(self):
+        return self.deadline is not None and time.time() > self.deadline
         os.makedirs(cache_dir, exist_ok=True)
 
     def _cached(self, key):
@@ -218,6 +224,8 @@ class Fetcher:
 
     def overpass(self, key, query, timeout=180, attempts=3):
         def go():
+            if self.out_of_time():
+                raise RuntimeError('out of time for this run')
             last_err = None
             for attempt in range(attempts):
                 for ep in OVERPASS:
@@ -230,7 +238,7 @@ class Fetcher:
                         last_err = f'{ep} answered {r.status_code}'
                     except Exception as e:      # noqa: BLE001
                         last_err = f'{ep}: {e}'
-                if attempt + 1 < attempts:
+                if attempt + 1 < attempts and not self.out_of_time():
                     time.sleep(20 * (attempt + 1))  # back off before trying the servers again
             raise RuntimeError(last_err)
         return self.get('overpass:' + key, go)
@@ -594,12 +602,25 @@ def fetch_area(fetch, gaps, attempts=1):
     cells = sorted(cells)
     hw = '|'.join(ROAD_FACTOR)
     ways, on_trail = {}, set()
-    for c0 in range(0, len(cells), CELLS_PER_QUERY):
-        chunk = cells[c0:c0 + CELLS_PER_QUERY]
+
+    def get(chunk, key, depth=0):
         boxes = ''.join('way["highway"~"^({})$"]({},{},{},{});'.format(hw, *cell_box(i, j)) for i, j in chunk)
         q = (f'[out:json][timeout:180];({boxes})->.w;.w out body geom;'
              f'rel(bw.w)["route"~"^(hiking|foot|walking)$"]->.r;way.w(r.r);out ids;')
-        d = fetch.overpass(f'area-paths{bb}:{c0}', q, timeout=210, attempts=attempts)
+        try:
+            return fetch.overpass(key, q, timeout=210, attempts=attempts if depth == 0 else 1)
+        except Exception:
+            # Usually too big to finish in time: split it in half and fetch each
+            if depth >= 4 or len(chunk) < 8:
+                raise
+            mid = len(chunk) // 2
+            log(f'   splitting a request of {len(chunk)} squares in two')
+            a = get(chunk[:mid], key + 'a', depth + 1)
+            b = get(chunk[mid:], key + 'b', depth + 1)
+            return {'elements': a.get('elements', []) + b.get('elements', [])}
+
+    for c0 in range(0, len(cells), CELLS_PER_QUERY):
+        d = get(cells[c0:c0 + CELLS_PER_QUERY], f'area-paths{bb}:{c0}')
         for e in d.get('elements', []):
             if e.get('type') != 'way':
                 continue
@@ -728,15 +749,25 @@ def fill_gaps(fetch, path, report):
     # their gaps fall back to straight links for short breaks
     if deferred:
         log(f'Retrying {len(deferred)} area(s) after a pause...')
-        time.sleep(0 if fetch.mock else 180)
-    for area in deferred:
-        net = shore = None
+        if not fetch.out_of_time():
+            time.sleep(0 if fetch.mock else 180)
+    def retry(area, depth=0):
         try:
             net, shore = fetch_area(fetch, area, attempts=2)
         except Exception as e:               # noqa: BLE001
+            if len(area) > 1 and depth < 3 and not fetch.out_of_time():
+                log(f'   splitting the area near {place_name(area[0]["a"]["xy"])} ({len(area)} gaps) in two')
+                mid = len(area) // 2
+                retry(area[:mid], depth + 1)
+                retry(area[mid:], depth + 1)
+                return
             log(f'   still unavailable near {place_name(area[0]["a"]["xy"])}:', e)
             report.setdefault('unfetched', []).append(where(area[0]['a']['xy']))
+            net = shore = None
         process(area, net, shore)
+
+    for area in deferred:
+        retry(area)
     report['loose'] = [where(e['xy']) for e in ends if e['id'] not in used_end]
 
 
@@ -801,6 +832,8 @@ def build(fetch):
         if not failed:
             break
         log(f'Retrying {len(failed)} trail(s) after a pause...')
+        if fetch.out_of_time():
+            break
         time.sleep(0 if fetch.mock else 120 * round_)
         still = []
         for t in failed:
@@ -856,8 +889,9 @@ def write_report(path, report, out):
         lines.append('None.')
     if report.get('unfetched'):
         lines += ['', '## Areas that couldn\u2019t be fetched', '',
-                  'The servers didn\u2019t answer for these even after a retry; short breaks there are joined straight. '
-                  'Running the build again will try them afresh.', '']
+                  'The servers didn\u2019t answer for these even after a retry, or the run reached its time limit first; '
+                  'short breaks there are joined straight for now. Run the build again to fetch them: everything '
+                  'already fetched is reused.', '']
         lines += [f'- near {n}' for n in report['unfetched']]
     lines += ['', '## Places where the path still stops', '',
               'Berwick and Gretna are its true ends; anything else is worth a look.', '']
@@ -873,8 +907,10 @@ def main():
     ap.add_argument('--cache', default=os.path.join(HERE, '.cache'))
     ap.add_argument('--refresh', action='store_true', help='ignore the cache and fetch everything again')
     ap.add_argument('--mock', help='read sample responses from this folder instead of the network')
+    ap.add_argument('--budget', type=float, default=255,
+                    help='minutes of fetching before finishing with what it has (default 255, inside GitHub\u2019s 5 hours)')
     args = ap.parse_args()
-    fetch = Fetcher(args.cache, refresh=args.refresh, mock_dir=args.mock)
+    fetch = Fetcher(args.cache, refresh=args.refresh, mock_dir=args.mock, budget_min=args.budget)
     t0 = time.time()
     path, report = build(fetch)
     write_geojson(path, args.out)
