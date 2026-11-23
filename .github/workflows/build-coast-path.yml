@@ -1,1 +1,58 @@
+# Builds the full estimated coast path once, so every visitor just loads it.
+# Runs monthly (to pick up formal updates) and whenever you press "Run workflow"
+# on the Actions tab. Commits coastal-path/coast-path-full.geojson and the report
+# only if something changed.
+name: Build coast path
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 3 * *'     # 04:17 on the 3rd of each month
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-coast-path
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: coastal-path/build/requirements.txt
+
+      # Fetched data is kept between runs, so most months only changed sources are refetched
+      - uses: actions/cache@v4
+        with:
+          path: coastal-path/build/.cache
+          key: coast-path-data-${{ github.run_id }}
+          restore-keys: coast-path-data-
+
+      - run: pip install -r coastal-path/build/requirements.txt
+
+      - name: Build
+        run: >
+          python coastal-path/build/build_coast_path.py
+          --out coastal-path/coast-path-full.geojson
+          --report coastal-path/build/report.md
+
+      - name: Commit if changed
+        run: |
+          git config user.name "coast-path-build"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add coastal-path/coast-path-full.geojson coastal-path/build/report.md
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Rebuild the coast path ($(date -u +%Y-%m-%d))"
+            git push
+          fi
 
