@@ -34,7 +34,7 @@ jobs:
       - uses: actions/cache/restore@v4
         with:
           path: coastal-path/build/.cache
-          key: coast-path-data-${{ github.run_id }}
+          key: coast-path-data-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: coast-path-data-
 
       - run: pip install -r coastal-path/build/requirements.txt
@@ -49,7 +49,7 @@ jobs:
         if: always()
         with:
           path: coastal-path/build/.cache
-          key: coast-path-data-${{ github.run_id }}
+          key: coast-path-data-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Commit if changed
         run: |
@@ -60,5 +60,7 @@ jobs:
             echo "No changes."
           else
             git commit -m "Rebuild the coast path ($(date -u +%Y-%m-%d))"
+            # Anything committed to the repository while the build ran comes in first
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
             git push
           fi
