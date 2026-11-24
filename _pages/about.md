@@ -8,9 +8,11 @@ redirect_from:
   - /about.html
 ---
 
-I am a Fellow at the London School of Economics' [Global School of Sustainability](https://www.lse.ac.uk/global-school-of-sustainability). I recently completed my PhD in the LSE's [Department of Government](https://www.lse.ac.uk/government), with a dissertation on structural change, employment and decarbonisation.
+I am a Fellow at the London School of Economics’ [Global School of Sustainability](https://www.lse.ac.uk/global-school-of-sustainability). I recently completed my PhD in the [Department of Government](https://www.lse.ac.uk/government), with a dissertation on structural change, employment and decarbonisation.
 
-My research asks how the employment costs of decarbonisation shape politics: how workers and communities exposed to high-emitting industries are represented in legislatures, how publics assign blame and demand compensation when jobs disappear, and how decarbonisation compares with other sources of structural change such as trade and automation. I combine causal inference with survey experiments and computational text analysis. You can read more on my [research page](/research/).
+My research asks how the employment costs of decarbonisation shape politics: how workers and communities exposed to high-emitting industries are represented in legislatures, how publics assign blame and demand compensation when jobs disappear, and how decarbonisation compares with other sources of structural change such as trade and automation.
+
+I combine causal inference with survey experiments and computational text analysis. You can read more on my [research page](/research/).
 
 Research interests:
 * political economy of climate and energy policy
