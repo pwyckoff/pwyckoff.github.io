@@ -1,9 +1,9 @@
 # Coast path build report
 
-Built 23 November 2026, 23:46 UTC.
+Built 24 November 2026, 13:07 UTC.
 
-- **England:** 3,150 of about 2,689 miles (2,269 official, 766 from other mapped paths, 114 guessed)
-- **Wales:** 851 of about 870 miles
+- **England:** 2,644 of about 2,689 miles (2,269 official, 250 from other mapped paths, 124 guessed)
+- **Wales:** 852 of about 870 miles
 
 ## Sources
 
@@ -13,45 +13,51 @@ Built 23 November 2026, 23:46 UTC.
 | Defra’s copy of the same dataset (newer approvals) | 0.0 |
 | Wales Coast Path, from OpenStreetMap | 712.3 |
 | OpenStreetMap’s England Coast Path routes (incl. stretches mapped before opening) | 2.4 |
-| South West Coast Path (Minehead to South Haven Point) | 47.3 |
-| Norfolk Coast Path (Hunstanton to Weybourne) | 27.8 |
-| Suffolk Coast Path (Felixstowe to Hopton-on-Sea) | 407.1 |
+| South West Coast Path (Minehead to South Haven Point) | 42.0 |
+| Norfolk Coast Path (Hunstanton to Weybourne) | 14.3 |
+| Suffolk Coast Path (Felixstowe to Hopton-on-Sea) | 15.8 |
 | Isle of Wight Coastal Path (the Isle of Wight) | 24.3 |
-| Lancashire Coastal Way (Silverdale to Tarleton) | 34.4 |
-| Essex Way (Manningtree to Harwich (Stour)) | 10.7 |
-| Stour and Orwell Walk (Cattawade to Felixstowe): not found in OpenStreetMap | 0.0 |
+| Lancashire Coastal Way (Silverdale to Tarleton) | 21.8 |
+| Essex Way (Manningtree to Harwich (Stour)) | 10.0 |
+| Stour and Orwell Walk (Cattawade to Felixstowe) | 13.7 |
 | Wivenhoe Trail (Colchester to Wivenhoe (Colne)) | 1.8 |
-| Colchester Orbital (Rowhedge, Fingringhoe and Wivenhoe (Colne)) | 9.0 |
+| Colchester Orbital (Rowhedge, Fingringhoe and Wivenhoe (Colne)) | 6.8 |
 | Roach Valley Way (Roach and Crouch sea walls): not found in OpenStreetMap | 0.0 |
 | Bournemouth Coast Path (Sandbanks to Milford on Sea) | 4.8 |
-| Solent Way (Milford on Sea to Langstone) | 19.4 |
-| Sussex Border Path (Thorney Island (Chichester Harbour)) | 1.0 |
+| Solent Way (Milford on Sea to Langstone) | 19.1 |
+| Sussex Border Path (Thorney Island (Chichester Harbour)) | 0.0 |
 | Saxon Shore Way (Sheppey, Medway, Rye and Hastings) | 33.7 |
-| Wirral Way (Wirral coast) | 101.0 |
+| Wirral Way (Wirral coast) | 6.2 |
 | Hadrian’s Wall Path (Bowness-on-Solway to Carlisle) | 11.4 |
-| Hadrian’s Cycleway (Allonby to Bowness-on-Solway) | 20.5 |
+| Hadrian’s Cycleway (Allonby to Bowness-on-Solway) | 12.5 |
 | Allerdale Ramble (Grune Point, by Silloth): not found in OpenStreetMap | 0.0 |
 | Cistercian Way (Furness peninsula): not found in OpenStreetMap | 0.0 |
 | Headland Way (Flamborough Head to Filey): not found in OpenStreetMap | 0.0 |
-| Severn Way (Aust to Avonmouth) | 9.5 |
+| Severn Way (Aust to Avonmouth) | 9.3 |
 
 ## Gaps filled by guessing
 
 | From | To | How | Miles |
 |---|---|---|---:|
 | Grimsby (53.633, -0.232) | Grimsby (53.619, -0.173) | guessed along footpaths near the shore | 5.4 |
+| Hunstanton (52.946, 0.604) | Hunstanton (52.948, 0.615) | guessed along footpaths near the shore | 0.0 |
+| Hunstanton (52.960, 0.635) | Wells (52.956, 1.044) | guessed along footpaths near the shore | 19.3 |
+| Wells (52.963, 1.061) | 52.961, 1.074 (52.961, 1.074) | guessed along footpaths near the shore | 0.2 |
+| Cromer (52.953, 1.110) | Cromer (52.952, 1.119) | guessed along footpaths near the shore | 0.0 |
 | Lowestoft (52.433, 1.721) | Southwold (52.394, 1.720) | guessed along footpaths near the shore | 0.9 |
 | Southwold (52.382, 1.691) | Southwold (52.376, 1.703) | guessed along footpaths near the shore | 0.0 |
 | Southwold (52.371, 1.661) | Southwold (52.362, 1.649) | guessed along footpaths near the shore | 0.3 |
 | Southwold (52.350, 1.652) | Southwold (52.350, 1.654) | joined straight | 0.0 |
 | Southwold (52.342, 1.669) | Southwold (52.331, 1.685) | guessed along footpaths near the shore | 0.4 |
 | Aldeburgh (52.148, 1.512) | Aldeburgh (52.147, 1.511) | joined straight | 0.0 |
-| Shotley Gate (51.946, 1.171) | Manningtree (51.943, 1.079) | guessed along footpaths near the shore | 0.5 |
+| Shotley Gate (52.032, 1.174) | Manningtree (51.897, 0.948) | guessed along footpaths near the shore | 14.9 |
+| Shotley Gate (51.946, 1.171) | Manningtree (51.954, 1.128) | guessed along footpaths near the shore | 1.1 |
+| Manningtree (51.954, 1.105) | Manningtree (51.956, 1.102) | guessed along footpaths near the shore | 0.0 |
+| Manningtree (51.959, 1.079) | Manningtree (51.943, 1.079) | guessed along footpaths near the shore | 0.0 |
 | Manningtree (51.937, 1.095) | Manningtree (51.935, 1.122) | guessed along footpaths near the shore | 0.0 |
-| Manningtree (51.942, 1.146) | Harwich (51.923, 1.269) | guessed along footpaths near the shore | 2.8 |
+| Manningtree (51.942, 1.146) | Harwich (51.923, 1.269) | guessed along footpaths near the shore | 3.5 |
 | Shotley Gate (51.940, 1.191) | Shotley Gate (51.936, 1.200) | guessed along footpaths near the shore | 0.0 |
 | Shotley Gate (51.928, 1.214) | Harwich (51.946, 1.290) | guessed along footpaths near the shore | 0.0 |
-| Mersea (51.871, 0.940) | Mersea (51.871, 0.882) | guessed along footpaths near the shore | 1.7 |
 | Southend (51.457, 0.574) | Southend (51.444, 0.584) | guessed along footpaths near the shore | 0.0 |
 | 51.374, 0.626 (51.374, 0.626) | Sheppey (51.384, 0.648) | guessed along footpaths near the shore | 0.9 |
 | Southend (51.446, 0.679) | Southend (51.460, 0.718) | guessed along footpaths near the shore | 3.6 |
@@ -75,11 +81,11 @@ Built 23 November 2026, 23:46 UTC.
 | Lymington (50.744, -1.535) | Lymington (50.745, -1.538) | guessed along footpaths near the shore | 0.0 |
 | Lymington (50.702, -1.421) | Lymington (50.707, -1.518) | guessed along footpaths near the shore | 2.6 |
 | Lymington (50.695, -1.528) | Lymington (50.690, -1.537) | guessed along footpaths near the shore | 0.6 |
-| Lymington (50.708, -1.550) | Lymington (50.723, -1.565) | guessed along footpaths near the shore | 0.0 |
+| Lymington (50.723, -1.565) | Lymington (50.716, -1.577) | guessed along footpaths near the shore | 0.0 |
 | 50.638, -1.423 (50.638, -1.423) | 50.634, -1.406 (50.634, -1.406) | guessed along footpaths near the shore | 0.8 |
 | 50.617, -1.370 (50.617, -1.370) | 50.617, -1.367 (50.617, -1.367) | guessed along footpaths near the shore | 0.0 |
 | 50.604, -1.337 (50.604, -1.337) | 50.583, -1.286 (50.583, -1.286) | guessed along footpaths near the shore | 2.2 |
-| Lymington (50.716, -1.577) | Bournemouth (50.714, -1.747) | guessed along footpaths near the shore | 13.2 |
+| Lymington (50.706, -1.555) | Bournemouth (50.714, -1.747) | guessed along footpaths near the shore | 13.2 |
 | 50.617, -2.184 (50.617, -2.184) | 50.618, -2.184 (50.618, -2.184) | joined straight | 0.0 |
 | 50.623, -2.207 (50.623, -2.207) | 50.617, -2.225 (50.617, -2.225) | guessed along footpaths near the shore | 0.3 |
 | Weymouth (50.540, -2.428) | Weymouth (50.538, -2.432) | guessed along footpaths near the shore | 0.3 |
@@ -89,11 +95,13 @@ Built 23 November 2026, 23:46 UTC.
 | Weymouth (50.622, -2.540) | Weymouth (50.631, -2.545) | guessed along footpaths near the shore | 0.0 |
 | Weymouth (50.657, -2.581) | Weymouth (50.659, -2.603) | guessed along footpaths near the shore | 0.3 |
 | Weymouth (50.665, -2.638) | 50.676, -2.666 (50.676, -2.666) | guessed along footpaths near the shore | 0.0 |
-| 50.692, -2.710 (50.692, -2.710) | Lyme Regis (50.718, -2.787) | guessed along footpaths near the shore | 2.2 |
+| 50.692, -2.710 (50.692, -2.710) | Lyme Regis (50.718, -2.787) | guessed along footpaths near the shore | 3.7 |
 | Lyme Regis (50.720, -2.811) | Lyme Regis (50.721, -2.939) | guessed along footpaths near the shore | 4.3 |
 | 50.281, -3.873 (50.281, -3.873) | 50.312, -3.947 (50.312, -3.947) | guessed along footpaths near the shore | 0.3 |
 | Plymouth (50.361, -4.130) | Plymouth (50.366, -4.134) | guessed along footpaths near the shore | 3.8 |
+| Falmouth (50.100, -5.129) | Falmouth (50.096, -5.133) | a short crossing, joined straight | 0.4 |
 | Falmouth (50.045, -5.075) | Falmouth (50.043, -5.075) | guessed along footpaths near the shore | 0.0 |
+| Padstow (50.547, -4.934) | Padstow (50.545, -4.926) | a short crossing, joined straight | 0.4 |
 | Weston-super-Mare (51.377, -2.961) | Portishead (51.431, -2.875) | guessed along footpaths near the shore | 8.9 |
 | Portishead (51.480, -2.651) | Portishead (51.520, -2.676) | guessed along footpaths near the shore | 2.3 |
 | Aust (51.589, -2.704) | Aust (51.621, -2.592) | guessed along footpaths near the shore | 5.0 |
@@ -332,6 +340,20 @@ Built 23 November 2026, 23:46 UTC.
 | Conwy (53.329, -3.861) | Conwy (53.314, -3.842) | guessed along footpaths near the shore | 0.0 |
 | Conwy (53.283, -3.840) | Conwy (53.301, -3.840) | guessed along footpaths near the shore | 1.3 |
 | Conwy (53.328, -3.830) | Conwy (53.327, -3.831) | joined straight | 0.0 |
+| Lytham (53.737, -2.947) | Lytham (53.745, -2.936) | guessed along footpaths near the shore | 0.4 |
+| Lytham (53.740, -2.908) | Lytham (53.740, -2.905) | guessed along footpaths near the shore | 0.0 |
+| Lytham (53.737, -2.876) | Fleetwood (53.926, -3.022) | guessed along footpaths near the shore | 0.6 |
+| Lytham (53.739, -3.008) | Lytham (53.762, -3.045) | guessed along footpaths near the shore | 0.0 |
+| Blackpool (53.776, -3.053) | Blackpool (53.777, -3.056) | guessed along footpaths near the shore | 0.0 |
+| Fleetwood (53.883, -3.047) | Fleetwood (53.885, -3.047) | joined straight | 0.0 |
+| Ravenglass (54.367, -3.431) | Ravenglass (54.373, -3.444) | guessed along footpaths near the shore | 0.7 |
+| Silloth (54.845, -3.290) | Silloth (54.847, -3.284) | guessed along footpaths near the shore | 0.9 |
+| Silloth (54.857, -3.269) | Silloth (54.857, -3.269) | joined straight | 0.0 |
+| Silloth (54.875, -3.260) | Silloth (54.876, -3.260) | joined straight | 0.0 |
+| Silloth (54.899, -3.218) | Gretna (54.954, -3.211) | guessed along footpaths near the shore | 3.3 |
+| Gretna (54.950, -3.189) | Gretna (54.932, -3.170) | guessed along footpaths near the shore | 0.0 |
+| Gretna (54.926, -3.148) | Gretna (54.927, -3.144) | guessed along footpaths near the shore | 0.4 |
+| Gretna (54.925, -3.019) | Gretna (54.924, -3.019) | joined straight | 0.0 |
 | Conwy (53.324, -3.791) | Conwy (53.319, -3.768) | guessed along footpaths near the shore | 0.2 |
 | Conwy (53.294, -3.681) | Conwy (53.294, -3.680) | joined straight | 0.0 |
 | Rhyl (53.293, -3.642) | Rhyl (53.293, -3.640) | joined straight | 0.0 |
@@ -348,40 +370,9 @@ Built 23 November 2026, 23:46 UTC.
 | Flint (53.278, -3.182) | Flint (53.269, -3.166) | guessed along footpaths near the shore | 0.0 |
 | Flint (53.259, -3.144) | Flint (53.294, -3.076) | guessed along footpaths near the shore | 6.0 |
 | Flint (53.289, -3.069) | Flint (53.288, -3.055) | guessed along footpaths near the shore | 0.4 |
-| Flint (53.238, -3.114) | Chester (53.210, -3.013) | guessed along footpaths near the shore | 0.4 |
+| Flint (53.238, -3.114) | Chester (53.183, -2.921) | guessed along footpaths near the shore | 0.4 |
 | Flint (53.234, -3.093) | Flint (53.252, -3.042) | guessed along footpaths near the shore | 0.0 |
-| Birkenhead (53.303, -2.950) | Birkenhead (53.315, -2.960) | guessed along footpaths near the shore | 1.0 |
-| Birkenhead (53.329, -2.956) | Birkenhead (53.346, -2.997) | guessed along footpaths near the shore | 1.7 |
-| Birkenhead (53.397, -3.020) | Birkenhead (53.405, -3.021) | guessed along footpaths near the shore | 1.1 |
-| Birkenhead (53.412, -3.091) | Birkenhead (53.412, -3.090) | joined straight | 0.0 |
-| Lytham (53.737, -2.947) | Lytham (53.745, -2.936) | guessed along footpaths near the shore | 0.4 |
-| Lytham (53.740, -2.908) | Lytham (53.740, -2.905) | guessed along footpaths near the shore | 0.0 |
-| Lytham (53.737, -2.876) | Fleetwood (53.971, -2.870) | guessed along footpaths near the shore | 16.1 |
-| Lytham (53.739, -3.008) | Lytham (53.762, -3.045) | guessed along footpaths near the shore | 0.0 |
-| Blackpool (53.776, -3.053) | Blackpool (53.777, -3.056) | guessed along footpaths near the shore | 0.0 |
-| Fleetwood (53.883, -3.047) | Fleetwood (53.885, -3.047) | joined straight | 0.0 |
-| Fleetwood (53.926, -3.022) | Fleetwood (53.930, -2.985) | guessed along footpaths near the shore | 2.0 |
-| Fleetwood (53.932, -2.910) | Fleetwood (53.931, -2.874) | guessed along footpaths near the shore | 0.4 |
-| Fleetwood (53.954, -2.837) | Fleetwood (53.955, -2.836) | joined straight | 0.0 |
-| Morecambe (53.981, -2.872) | Morecambe (53.968, -2.854) | guessed along footpaths near the shore | 0.0 |
-| Gretna (54.951, -3.223) | Gretna (54.954, -3.211) | guessed along footpaths near the shore | 0.5 |
-| Silloth (54.910, -3.220) | Silloth (54.899, -3.218) | guessed along footpaths near the shore | 1.9 |
-| Gretna (54.950, -3.189) | Gretna (54.932, -3.170) | guessed along footpaths near the shore | 0.0 |
-| Gretna (54.926, -3.148) | Gretna (54.927, -3.144) | guessed along footpaths near the shore | 0.4 |
-| Gretna (54.925, -3.019) | Gretna (54.924, -3.019) | joined straight | 0.0 |
-| Hunstanton (52.946, 0.604) | Hunstanton (52.948, 0.615) | guessed along footpaths near the shore | 0.0 |
-| Hunstanton (52.960, 0.635) | Wells (52.967, 0.685) | guessed along footpaths near the shore | 1.3 |
-| Wells (52.962, 0.729) | Wells (52.965, 0.747) | guessed along footpaths near the shore | 0.7 |
-| Wells (52.976, 0.766) | Wells (52.977, 0.782) | guessed along footpaths near the shore | 0.0 |
-| Wells (52.969, 0.813) | Wells (52.967, 0.814) | guessed along footpaths near the shore | 0.0 |
-| Wells (52.973, 0.846) | Wells (52.956, 0.872) | guessed along footpaths near the shore | 1.0 |
-| Wells (52.957, 0.924) | Wells (52.956, 1.044) | guessed along footpaths near the shore | 2.3 |
-| Wells (52.963, 1.061) | 52.961, 1.074 (52.961, 1.074) | guessed along footpaths near the shore | 0.2 |
-| Cromer (52.953, 1.110) | Cromer (52.952, 1.119) | guessed along footpaths near the shore | 0.0 |
-| Ravenglass (54.367, -3.431) | Ravenglass (54.373, -3.444) | guessed along footpaths near the shore | 0.7 |
-| Silloth (54.845, -3.290) | Silloth (54.847, -3.284) | guessed along footpaths near the shore | 0.9 |
-| Silloth (54.857, -3.269) | Silloth (54.857, -3.269) | joined straight | 0.0 |
-| Silloth (54.875, -3.260) | Silloth (54.876, -3.260) | joined straight | 0.0 |
+| Chester (53.210, -3.013) | Birkenhead (53.297, -2.978) | guessed along footpaths near the shore | 1.2 |
 
 ## Places where the path still stops
 
@@ -389,42 +380,18 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 
 - near Berwick (55.811, -2.035)
 - near Hunstanton (52.958, 0.588)
-- near 52.312, 1.451 (52.312, 1.451)
-- near 52.258, 1.300 (52.258, 1.300)
-- near 52.233, 1.426 (52.233, 1.426)
-- near 52.251, 1.299 (52.251, 1.299)
-- near Aldeburgh (52.233, 1.427)
 - near Aldeburgh (52.194, 1.614)
-- near Aldeburgh (52.203, 1.443)
 - near Aldeburgh (52.169, 1.598)
-- near Aldeburgh (52.171, 1.511)
-- near Aldeburgh (52.160, 1.509)
-- near Aldeburgh (52.189, 1.451)
 - near Aldeburgh (52.135, 1.509)
-- near 52.228, 1.299 (52.228, 1.299)
-- near 52.220, 1.300 (52.220, 1.300)
-- near 52.190, 1.300 (52.190, 1.300)
-- near 52.154, 1.300 (52.154, 1.300)
-- near 52.138, 1.300 (52.138, 1.300)
-- near 52.123, 1.300 (52.123, 1.300)
-- near 52.118, 1.299 (52.118, 1.299)
-- near 52.102, 1.301 (52.102, 1.301)
+- near Aldeburgh (52.129, 1.501)
 - near Felixstowe (52.008, 1.423)
-- near Felixstowe (52.059, 1.300)
 - near Felixstowe (52.007, 1.420)
-- near Felixstowe (52.057, 1.300)
-- near Felixstowe (52.003, 1.401)
-- near Felixstowe (52.053, 1.296)
-- near Felixstowe (52.045, 1.299)
-- near Felixstowe (52.031, 1.300)
-- near Felixstowe (52.018, 1.300)
-- near Felixstowe (51.990, 1.349)
-- near Felixstowe (52.005, 1.300)
-- near Felixstowe (51.982, 1.307)
 - near Harwich (51.940, 1.320)
-- near Manningtree (51.897, 0.948)
+- near Shotley Gate (52.009, 1.232)
+- near Shotley Gate (52.023, 1.211)
 - near Manningtree (51.883, 0.937)
 - near Mersea (51.858, 0.954)
+- near Mersea (51.871, 0.940)
 - near Mersea (51.788, 0.823)
 - near Woolwich (51.494, 0.063)
 - near Gravesend (51.459, 0.553)
@@ -433,7 +400,6 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Sheppey (51.405, 0.913)
 - near 51.058, 0.835 (51.058, 0.835)
 - near Selsey (50.809, -0.865)
-- near Portsmouth (50.851, -0.933)
 - near 50.586, -1.251 (50.586, -1.251)
 - near 50.759, -1.293 (50.759, -1.293)
 - near Southampton (50.813, -1.312)
@@ -445,9 +411,8 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Weymouth (50.617, -2.242)
 - near 50.279, -3.871 (50.279, -3.871)
 - near Plymouth (50.365, -4.166)
-- near Falmouth (50.158, -5.015)
+- near Falmouth (50.157, -5.069)
 - near Falmouth (50.051, -5.072)
-- near Padstow (50.545, -4.926)
 - near Bideford (51.102, -4.197)
 - near Bideford (51.116, -4.204)
 - near 51.223, -3.696 (51.223, -3.696)
@@ -462,15 +427,7 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near St Davids (51.866, -5.319)
 - near Aberdyfi (52.590, -3.919)
 - near Aberdyfi (52.600, -3.860)
-- near Flint (53.366, -3.224)
-- near Chester (53.183, -2.921)
-- near Birkenhead (53.306, -2.982)
-- near Birkenhead (53.355, -2.948)
-- near Birkenhead (53.395, -3.010)
-- near Birkenhead (53.412, -3.117)
-- near Birkenhead (53.420, -3.089)
-- near Birkenhead (53.423, -3.085)
-- near 53.449, -3.264 (53.449, -3.264)
+- near Birkenhead (53.410, -3.016)
 - near Millom (54.245, -3.245)
 - near Silloth (54.838, -3.406)
 - near Silloth (54.848, -3.374)
