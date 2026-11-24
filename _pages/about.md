@@ -8,18 +8,22 @@ redirect_from:
   - /about.html
 ---
 
-I am a PhD student at the London School of Economics and Political Science, affiliated with the [Department of Government](https://www.lse.ac.uk/government) and the [Grantham Research Institute](https://www.lse.ac.uk/granthaminstitute/). My research interests include: 
-* political economy
-* distributional impacts of climate change
-* electoral institutions 
-* just transitions and sustainable employment
+I am a Fellow at the London School of Economics' [Global School of Sustainability](https://www.lse.ac.uk/global-school-of-sustainability). I recently completed my PhD in the LSE's [Department of Government](https://www.lse.ac.uk/government), with a dissertation on structural change, employment and decarbonisation.
+
+My research asks how the employment costs of decarbonisation shape politics: how workers and communities exposed to high-emitting industries are represented in legislatures, how publics assign blame and demand compensation when jobs disappear, and how decarbonisation compares with other sources of structural change such as trade and automation. I combine causal inference with survey experiments and computational text analysis. You can read more on my [research page](/research/).
+
+Research interests:
+* political economy of climate and energy policy
+* employment, structural change and just transitions
+* legislative behaviour and representation
+* computational text analysis of political and media discourse
 
 
 Background 
 ======
-I have previously worked in the OECD's [Directorate on Employment, Labour and Social Affairs](https://www.oecd.org/els/) (2017-2019, 2021-2022), at the European Commission's [DG Competition](https://commission.europa.eu/about-european-commission/departments-and-executive-agencies/competition_en) (2020-2021), and at the [Wilson Center](https://www.wilsoncenter.org/) (2016). 
+Before my PhD, I worked in the OECD's [Directorate for Employment, Labour and Social Affairs](https://www.oecd.org/els/) (2017-2019, 2021-2022), at the European Commission's [DG Competition](https://commission.europa.eu/about-european-commission/departments-and-executive-agencies/competition_en) (2020-2021), and at the [Wilson Center](https://www.wilsoncenter.org/) (2016). 
 
-I studied at Yale's [Jackson Institute](https://jackson.yale.edu/), and at the Oxford [Department of International Development](https://www.qeh.ox.ac.uk/).
+I studied at Yale's [Jackson Institute](https://jackson.yale.edu/) and at Oxford's [Department of International Development](https://www.qeh.ox.ac.uk/).
 
 
 ![](/images/cover_picture.jpg)

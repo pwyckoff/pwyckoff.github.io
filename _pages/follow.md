@@ -8,7 +8,7 @@ redirect_from:
   - /subscribe.html
 ---
 
-You can find me on [Twitter](https://twitter.com/PeterSWyckoff) or [Github](https://github.com/pwyckoff).
+You can find me on [Bluesky](https://bsky.app/profile/peterwyckoff.bsky.social), [LinkedIn](https://www.linkedin.com/in/peterwyckoff/) and [GitHub](https://github.com/pwyckoff).
 
 
 If you would like to receive the blog posts from this website by email, you can subscribe to them here: 

@@ -10,7 +10,7 @@ locale                   : "en-US"
 title                    : "Peter Wyckoff"
 title_separator          : "-"
 name                     : &name "Peter Wyckoff"
-description              : &description "MRes/PhD student LSE Department of Government"
+description              : &description "Fellow, LSE Global School of Sustainability. Political economy of climate policy."
 url                      : https://pwyckoff.github.io
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
 repository               : "pwyckoff.github.io"
@@ -83,9 +83,9 @@ analytics:
 author:
   name             : "Peter Wyckoff"
   avatar           : "profile.jpg"
-  bio              : "Department of Government, LSE. Interested in employment, climate, politics"
+  bio              : "Fellow, LSE Global School of Sustainability. Political economy of climate policy, employment and structural change."
   location         : "London, UK"
-  employer         :
+  employer         : "London School of Economics"
   pubmed           : #"https://www.ncbi.nlm.nih.gov/pubmed/?term=john+snow"
   googlescholar    : #"http://yourfullgooglescholarurl.com"
   email            :
@@ -103,7 +103,8 @@ author:
   instagram        :
   impactstory      : #"https://profiles.impactstory.org/u/xxxx-xxxx-xxxx-xxxx"
   lastfm           :
-  linkedin         :
+  linkedin         : "peterwyckoff"
+  bluesky          : "peterwyckoff.bsky.social"
   orcid            : #"http://orcid.org/yourorcidurl"
   pinterest        :
   soundcloud       :
