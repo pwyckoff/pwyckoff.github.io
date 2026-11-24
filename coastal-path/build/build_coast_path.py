@@ -67,12 +67,12 @@ TRAILS = [
     # The long-standing National Trails and coast paths the England Coast Path absorbs
     ('South West Coast Path', 'South West Coast Path', (49.95, -5.75, 51.25, -1.94), 'Minehead to South Haven Point'),
     ('Norfolk Coast Path', 'Norfolk Coast Path', (52.90, 0.47, 53.00, 1.16), 'Hunstanton to Weybourne'),
-    ('Suffolk Coast Path', 'Suffolk Coast', (51.96, 1.30, 52.53, 1.80), 'Felixstowe to Hopton-on-Sea'),
+    ('Suffolk Coast Path', 'Suffolk Coast (Path|and Heaths|& Heaths)', (51.96, 1.30, 52.53, 1.80), 'Felixstowe to Hopton-on-Sea'),
     ('Isle of Wight Coastal Path', 'Isle of Wight Coastal Path', (50.57, -1.60, 50.78, -1.06), 'the Isle of Wight'),
     ('Lancashire Coastal Way', 'Lancashire Coastal Way', (53.62, -3.10, 54.21, -2.74), 'Silverdale to Tarleton'),
     # Regional trails along specific gaps
     ('Essex Way', 'Essex Way', (51.92, 1.03, 51.965, 1.295), 'Manningtree to Harwich (Stour)'),
-    ('Stour and Orwell Walk', 'Stour and Orwell', (51.93, 1.03, 52.06, 1.40), 'Cattawade to Felixstowe'),
+    ('Stour and Orwell Walk', 'Stour (and|&) Orwell', (51.93, 1.03, 52.06, 1.40), 'Cattawade to Felixstowe'),
     ('Wivenhoe Trail', 'Wivenhoe Trail', (51.85, 0.90, 51.89, 0.98), 'Colchester to Wivenhoe (Colne)'),
     ('Colchester Orbital', 'Colchester Orbital', (51.82, 0.88, 51.90, 1.02), 'Rowhedge, Fingringhoe and Wivenhoe (Colne)'),
     ('Roach Valley Way', 'Roach Valley Way', (51.56, 0.68, 51.66, 0.86), 'Roach and Crouch sea walls'),
@@ -80,7 +80,7 @@ TRAILS = [
     ('Solent Way', 'Solent Way', (50.70, -1.72, 50.86, -0.93), 'Milford on Sea to Langstone'),
     ('Sussex Border Path', 'Sussex Border Path', (50.78, -0.95, 50.86, -0.85), 'Thorney Island (Chichester Harbour)'),
     ('Saxon Shore Way', 'Saxon Shore Way', (50.84, 0.55, 51.48, 0.95), 'Sheppey, Medway, Rye and Hastings'),
-    ('Wirral Way', 'Wirral', (53.28, -3.22, 53.45, -2.95), 'Wirral coast'),
+    ('Wirral Way', '^Wirral Way$', (53.28, -3.22, 53.45, -2.95), 'Wirral coast'),
     ('Hadrian\u2019s Wall Path', 'Hadrian.s Wall Path', (54.88, -3.25, 54.96, -2.92), 'Bowness-on-Solway to Carlisle'),
     ('Hadrian\u2019s Cycleway', 'Hadrian.s Cycleway', (54.76, -3.45, 54.96, -3.22), 'Allonby to Bowness-on-Solway'),
     ('Allerdale Ramble', 'Allerdale Ramble', (54.85, -3.40, 54.92, -3.22), 'Grune Point, by Silloth'),
@@ -91,6 +91,9 @@ TRAILS = [
 
 # Trails recorded in OpenStreetMap as paths carrying the name, rather than as a route
 NAMED_PATH_TRAILS = {'Wivenhoe Trail', 'Colchester Orbital'}
+# Cycle routes used on purpose; every other trail must be a walking route
+CYCLE_TRAILS = {'Hadrian\u2019s Cycleway'}
+ISOLATED_MAX_M = 12000  # a stretch standing clear of the path must still be this close to it (the Colne is wide)
 
 BUFFER_M = 150        # a line within this of an accepted one counts as already covered
 MIN_PIECE_M = 300     # shorter new pieces are dropped
@@ -197,7 +200,7 @@ class Fetcher:
             return {'elements': w.get('wales', [])}
         if key == 'overpass:england-osm':
             return {'elements': w.get('england_osm', [])}
-        if key.startswith('overpass:trail:'):
+        if key.startswith('overpass:trail:') or key.startswith('overpass:trail-v2:'):
             return {'elements': w.get('trails', {}).get(key.split(':', 2)[2], [])}
         if key.startswith('overpass:area-coast'):
             # Clip to the area, as the real service does with out geom(box)
@@ -377,7 +380,7 @@ class Path:
                     out.append(xy)
         return out
 
-    def add_all(self, lines, source, via, country='E', stretches=None, clip=True, gaps_only=False, min_len=MIN_PIECE_M):
+    def add_all(self, lines, source, via, country='E', stretches=None, clip=True, gaps_only=False, min_len=MIN_PIECE_M, box=None):
         """Add lines, keeping only ground not already covered. Returns miles added.
 
         gaps_only: keep a piece only if it carries on from a loose end of the path
@@ -406,8 +409,21 @@ class Path:
             def meets_path(xy):
                 p = Point(xy)
                 return any(geoms[k].distance(p) <= JOIN_M for k in gtree.query(p.buffer(JOIN_M)))
-            # Pieces clear of the path at both ends are in a gap: keep them, and carry on from them
-            keep = [not meets_path(part.coords[0]) and not meets_path(part.coords[-1]) for _, part in cands]
+            # Pieces clear of the path at both ends are in a gap: keep them, and carry on from
+            # them, provided they stay near the path and don't run off the edge of the box
+            # (a piece leaving the box is heading inland, not along the coast)
+            def on_box_edge(xy):
+                if box is None:
+                    return False
+                lat, lon = wgs(xy)
+                s0, w0, n0, e0 = box
+                return min(lat - s0, n0 - lat) < 0.002 or min(lon - w0, e0 - lon) < 0.003
+
+            def near_path(part):
+                return any(geoms[k].distance(part) <= ISOLATED_MAX_M for k in gtree.query(part.buffer(ISOLATED_MAX_M)))
+            keep = [not meets_path(part.coords[0]) and not meets_path(part.coords[-1])
+                    and not on_box_edge(part.coords[0]) and not on_box_edge(part.coords[-1]) and near_path(part)
+                    for _, part in cands]
             for (_, part), k in zip(cands, keep):
                 if k:
                     frontier += [part.coords[0], part.coords[-1]]
@@ -759,6 +775,7 @@ def fill_gaps(fetch, path, report):
             done.add(id(c))
             mi = path.add_all([g], 'guess', how, country=c['a']['country'], min_len=30)
             report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
+            report.setdefault('gap_pts', []).append({'a': wgs(c['a']['xy']), 'b': wgs(c['b']['xy']), 'how': how, 'mi': round(mi, 2)})
         # Ends of unfilled gaps here try their next-best partners, within this area's data
         unfilled = [c for c in area if id(c) not in done]
         if not unfilled or net is None:
@@ -780,6 +797,7 @@ def fill_gaps(fetch, path, report):
                 used_pair.add(c['pair'])
                 mi = path.add_all([g], 'guess', how, country=c['a']['country'], min_len=30)
                 report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
+                report.setdefault('gap_pts', []).append({'a': wgs(c['a']['xy']), 'b': wgs(c['b']['xy']), 'how': how, 'mi': round(mi, 2)})
 
     deferred = []
     for ai, area in enumerate(areas):
@@ -817,6 +835,7 @@ def fill_gaps(fetch, path, report):
     for area in deferred:
         retry(area)
     report['loose'] = [where(e['xy']) for e in ends if e['id'] not in used_end]
+    report['loose_pts'] = [[round(v, 5) for v in wgs(e['xy'])] for e in ends if e['id'] not in used_end]
 
 
 # --------------------------------------------------------------------------
@@ -860,10 +879,11 @@ def build(fetch):
         # Scanning every road in the box instead would be far too heavy in big boxes.
         bb = '({},{},{},{})'.format(*box)
         named_paths = f'way["name"~"{match}",i]{bb};' if name in NAMED_PATH_TRAILS else ''
-        q = (f'[out:json][timeout:180];relation["name"~"{match}",i]{bb}->.r;(.r;>>;)->.m;'
-             f'(way.m{bb};{named_paths});out geom{bb};')
-        lines = osm_lines(fetch.overpass('trail:' + name, q))
-        mi = path.add_all(lines, 'other', name, gaps_only=True)
+        kinds = 'hiking|foot|walking|bicycle' if name in CYCLE_TRAILS else 'hiking|foot|walking'
+        q = (f'[out:json][timeout:180];relation["route"~"^({kinds})$"]["name"~"{match}",i]{bb}->.r;(.r;>>;)->.m;'
+             f'(way.m["highway"]{bb};{named_paths});out geom{bb};')
+        lines = osm_lines(fetch.overpass('trail-v2:' + name, q))
+        mi = path.add_all(lines, 'other', name, gaps_only=True, box=box)
         report['sources'].append((f'{name} ({fills})' + ('' if lines else ': not found in OpenStreetMap'), mi))
 
     failed = []
@@ -899,7 +919,7 @@ def build(fetch):
     return path, report
 
 
-def write_geojson(path, out):
+def write_geojson(path, out, report=None):
     feats = []
     for p in path.pieces:
         coords = [list(map(lambda v: round(v, 5), TO_WGS(x, y))) for x, y in p['geom'].coords]
@@ -912,7 +932,14 @@ def write_geojson(path, out):
                                  '(source "other": existing trails and OpenStreetMap; source "guess": estimated). '
                                  'Built by build_coast_path.py.',
                          'attribution': 'Contains Natural England data (OS data \u00a9 Crown copyright and database right); '
-                                        '\u00a9 OpenStreetMap contributors (ODbL)'},
+                                        '\u00a9 OpenStreetMap contributors (ODbL)',
+                         # For review.html: where the path still stops, and the guessed gaps
+                         'review': {
+                             'loose': (report or {}).get('loose_pts', []),
+                             'gaps': [{'a': [round(v, 5) for v in g['a']], 'b': [round(v, 5) for v in g['b']], 'how': g['how'], 'mi': g['mi']}
+                                      for g in (report or {}).get('gap_pts', [])],
+                             'sources': [[name, round(mi, 1)] for name, mi in (report or {}).get('sources', [])],
+                         }},
           'features': feats}
     with open(out, 'w') as f:
         json.dump(fc, f, separators=(',', ':'))
@@ -961,7 +988,7 @@ def main():
     fetch = Fetcher(args.cache, refresh=args.refresh, mock_dir=args.mock, budget_min=args.budget)
     t0 = time.time()
     path, report = build(fetch)
-    write_geojson(path, args.out)
+    write_geojson(path, args.out, report)
     write_report(path, report, args.report)
     log(f'Done in {time.time() - t0:.0f} s: England {path.miles(country="E"):,.0f} mi, Wales {path.miles(country="W"):,.0f} mi, '
         f'{len(path.pieces)} pieces -> {args.out}')
