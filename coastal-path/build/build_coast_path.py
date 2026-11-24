@@ -95,6 +95,39 @@ NAMED_PATH_TRAILS = {'Wivenhoe Trail', 'Colchester Orbital'}
 CYCLE_TRAILS = {'Hadrian\u2019s Cycleway'}
 ISOLATED_MAX_M = 12000  # a stretch standing clear of the path must still be this close to it (the Colne is wide)
 
+# Ferries the coast paths use, in path order: name, the water it crosses, the two
+# landings (lat, lon), and when it runs. Timings are from the South West Coast Path
+# Association's ferry list where it gives them; otherwise "check before you travel".
+# The ferry's own line is taken from OpenStreetMap where it's mapped.
+FERRIES = [
+    ('Appledore to Instow', 'River Torridge', (51.0545, -4.1925), (51.0555, -4.1755), 'April to October'),
+    ('Padstow to Rock', 'River Camel', (50.5428, -4.9365), (50.5490, -4.9230), 'all year'),
+    ('Helford Passage to Helford', 'Helford River', (50.1010, -5.1275), (50.0955, -5.1355), 'seasonal; check before you travel'),
+    ('Falmouth to St Mawes', 'Carrick Roads', (50.1540, -5.0675), (50.1590, -5.0150), 'all year; check before you travel'),
+    ('St Mawes to Place', 'Porthcuel River', (50.1590, -5.0150), (50.1555, -5.0255), 'seasonal; check before you travel'),
+    ('Fowey to Polruan', 'River Fowey', (50.3335, -4.6365), (50.3290, -4.6325), 'all year'),
+    ('Cremyll to Plymouth', 'River Tamar', (50.3620, -4.1700), (50.3640, -4.1590), 'all year'),
+    ('Warren Point to Noss Mayo', 'River Yealm', (50.3140, -4.0560), (50.3105, -4.0480), 'seasonal; check before you travel'),
+    ('Bantham to Cockleridge', 'River Avon', (50.2795, -3.8800), (50.2775, -3.8745), 'seasonal; check before you travel'),
+    ('Salcombe to East Portlemouth', 'Salcombe estuary', (50.2375, -3.7680), (50.2365, -3.7615), 'all year'),
+    ('Dartmouth to Kingswear', 'River Dart', (50.3505, -3.5780), (50.3505, -3.5725), 'all year'),
+    ('Teignmouth to Shaldon', 'River Teign', (50.5440, -3.5030), (50.5420, -3.5055), 'all year'),
+    ('Exmouth to Starcross', 'River Exe', (50.6175, -3.4195), (50.6265, -3.4430), 'seasonal; check before you travel'),
+    ('Sandbanks to Shell Bay', 'Poole Harbour', (50.6815, -1.9480), (50.6785, -1.9505), 'all year; check before you travel'),
+    ('Mudeford Quay to Mudeford Sandbank', 'Christchurch Harbour', (50.7240, -1.7410), (50.7225, -1.7445), 'seasonal; check before you travel'),
+    ('Cowes to East Cowes', 'River Medina', (50.7595, -1.2955), (50.7590, -1.2925), 'all year; check before you travel'),
+    ('Hythe to Southampton', 'Southampton Water', (50.8705, -1.3970), (50.8960, -1.4050), 'check before you travel'),
+    ('Hamble to Warsash', 'River Hamble', (50.8580, -1.3110), (50.8545, -1.3060), 'check before you travel'),
+    ('Gosport to Portsmouth', 'Portsmouth Harbour', (50.7955, -1.1150), (50.7975, -1.1080), 'all year; check before you travel'),
+    ('Eastney to Hayling Island', 'Langstone Harbour', (50.7900, -1.0315), (50.7915, -1.0260), 'check before you travel'),
+    ('Harwich to Shotley', 'Harwich Harbour', (51.9465, 1.2885), (51.9530, 1.2700), 'seasonal; check before you travel'),
+    ('Harwich to Felixstowe', 'Harwich Harbour', (51.9465, 1.2885), (51.9445, 1.3175), 'seasonal; check before you travel'),
+    ('Felixstowe Ferry to Bawdsey', 'River Deben', (51.9875, 1.3915), (51.9905, 1.3965), 'seasonal; check before you travel'),
+    ('Butley Ferry', 'Butley River', (52.0935, 1.4885), (52.0925, 1.4935), 'seasonal; check before you travel'),
+    ('Walberswick to Southwold', 'River Blyth', (52.3170, 1.6710), (52.3185, 1.6690), 'seasonal; check before you travel'),
+    ('Barmouth to Penrhyn Point', 'Afon Mawddach', (52.7200, -4.0525), (52.7185, -4.0625), 'seasonal; check before you travel'),
+]
+
 BUFFER_M = 150        # a line within this of an accepted one counts as already covered
 MIN_PIECE_M = 300     # shorter new pieces are dropped
 JOIN_M = 300          # new pieces are extended to touch accepted ones within this
@@ -202,6 +235,8 @@ class Fetcher:
             return {'elements': w.get('england_osm', [])}
         if key.startswith('overpass:trail:') or key.startswith('overpass:trail-v2:'):
             return {'elements': w.get('trails', {}).get(key.split(':', 2)[2], [])}
+        if key.startswith('overpass:ferry:'):
+            return {'elements': w.get('ferries', {}).get(key.split(':', 2)[2], [])}
         if key.startswith('overpass:area-coast'):
             # Clip to the area, as the real service does with out geom(box)
             s0, w0, n0, e0 = map(float, key[key.index('(') + 1:key.index(')')].split(','))
@@ -380,7 +415,8 @@ class Path:
                     out.append(xy)
         return out
 
-    def add_all(self, lines, source, via, country='E', stretches=None, clip=True, gaps_only=False, min_len=MIN_PIECE_M, box=None):
+    def add_all(self, lines, source, via, country='E', stretches=None, clip=True, gaps_only=False, min_len=MIN_PIECE_M, box=None,
+                clip_m=None):
         """Add lines, keeping only ground not already covered. Returns miles added.
 
         gaps_only: keep a piece only if it carries on from a loose end of the path
@@ -393,7 +429,12 @@ class Path:
         for i, line in enumerate(lines):
             if line.length < 1:
                 continue
-            if clip and btree is not None:
+            if clip and btree is not None and clip_m is not None:
+                # A tighter clip: only what lies more than clip_m from existing path
+                near = [self.pieces[k]['geom'].buffer(clip_m, resolution=2) for k in btree.query(line)]
+                parts = lines_of(line.difference(unary_union(near))) if near else [line]
+                parts = [p for p in parts if p.length >= min_len]
+            elif clip and btree is not None:
                 # Only the covered ground near this line matters
                 near = [self.buffers[k] for k in btree.query(line)]
                 parts = lines_of(line.difference(unary_union(near))) if near else [line]
@@ -473,15 +514,18 @@ class Path:
         return LineString(coords)
 
     def miles(self, source=None, country=None):
+        """Walking miles: ferries aren't counted unless asked for by name."""
         return sum(p['geom'].length for p in self.pieces
-                   if (source is None or p['source'] == source) and (country is None or p['country'] == country)) / 1609.344
+                   if (p['source'] == source if source else p['source'] != 'ferry')
+                   and (country is None or p['country'] == country)) / 1609.344
 
 
 # --------------------------------------------------------------------------
 # Gaps: loose ends on separate pieces that sit near each other along the coast
 # --------------------------------------------------------------------------
 
-def find_gaps(path):
+def components(path):
+    """Which pieces connect (ends within LOOSE_M of another piece), and the loose ends."""
     geoms = [p['geom'] for p in path.pieces]
     tree = STRtree(geoms)
     parent = list(range(len(geoms)))
@@ -491,20 +535,118 @@ def find_gaps(path):
             parent[i] = parent[parent[i]]
             i = parent[i]
         return i
-
     loose = []
     for j, g in enumerate(geoms):
         for end, xy in ((0, g.coords[0]), (1, g.coords[-1])):
             p = Point(xy)
             hit = False
             for k in tree.query(p.buffer(LOOSE_M)):
+                k = int(k)
                 if k != j and geoms[k].distance(p) <= LOOSE_M:
                     hit = True
-                    a, b = find(j), find(int(k))
+                    a, b = find(j), find(k)
                     if a != b:
                         parent[a] = b
             if not hit:
                 loose.append((j, end, xy))
+    return geoms, tree, find, parent, loose
+
+
+def coast_near(fetch, pts):
+    """The coastline around some points, as (STRtree, lines), or None if it can't be fetched."""
+    box = area_box(pts, pad=2000)
+    bb = '({},{},{},{})'.format(*box)
+    try:
+        d = fetch.overpass('area-coast' + bb, f'[out:json][timeout:120];way["natural"="coastline"]{bb};out body geom{bb};',
+                           timeout=150, attempts=2)
+    except Exception:                   # noqa: BLE001
+        return None
+    lines = []
+    for w in d.get('elements', []):
+        run = []
+        for g in (w.get('geometry') or []):
+            if g and isinstance(g.get('lat'), (int, float)):
+                run.append(TO_BNG(g['lon'], g['lat']))
+            else:
+                if len(run) > 1:
+                    lines.append(LineString(run))
+                run = []
+        if len(run) > 1:
+            lines.append(LineString(run))
+    return (STRtree(lines), lines) if lines else (None, [])
+
+
+def stitch(path, max_m, report, fetch=None):
+    """Join each loose end to the nearest piece of path it isn't already connected to,
+    if one is within max_m: pieces that don't quite meet, trails stopping just short,
+    connections lost to trimming. Nearest first; a few rounds."""
+    made, skipped = 0, []
+    for _ in range(4):
+        geoms, tree, find, parent, loose = components(path)
+        joins = []
+        loose_at = [(find(j), xy) for j, e, xy in loose]
+        for j, end, xy in loose:
+            p = Point(xy)
+            # Another piece's loose end nearby is the natural partner: end to end
+            best_end = min(((Point(o).distance(p), o) for c, o in loose_at if c != find(j) and Point(o).distance(p) <= max_m),
+                           default=None)
+            if best_end:
+                k = next(int(k) for k in tree.query(Point(best_end[1]).buffer(1)) if find(int(k)) != find(j))
+                joins.append((best_end[0], j, xy, best_end[1], k))
+                continue
+            # Otherwise the nearest point on another piece (never partway along a ferry,
+            # which is out on the water: ferries join only at their landings)
+            best, bq, bk = max_m, None, None
+            for k in tree.query(p.buffer(max_m)):
+                k = int(k)
+                if find(k) == find(j) or path.pieces[k]['source'] == 'ferry':
+                    continue
+                d = geoms[k].distance(p)
+                if d < best:
+                    q = geoms[k].interpolate(geoms[k].project(p))
+                    best, bq, bk = d, (q.x, q.y), k
+            if bq is not None:
+                joins.append((best, j, xy, bq, bk))
+        joins.sort(key=lambda t: t[0])
+        # The coastline around the candidate links, fetched by area, to keep links off the water
+        coast_of = {}
+        if fetch is not None and joins:
+            cells = {}
+            for t in joins:
+                cells.setdefault((int(t[2][0] // 30000), int(t[2][1] // 30000)), []).append(t)
+            for cell, ts in cells.items():
+                c = coast_near(fetch, [t[2] for t in ts] + [t[3] for t in ts])
+                for t in ts:
+                    coast_of[id(t)] = c
+        n = 0
+        for t in joins:
+            d, j, xy, q, k = t
+            a, b = find(j), find(k)
+            if a == b:
+                continue
+            if fetch is not None:
+                c = coast_of.get(id(t))
+                if c is None and d > 100:
+                    continue                    # no coastline to check against: only the shortest links
+                if c and c[0] is not None and crosses(LineString([xy, q]), c):
+                    skipped.append(xy)          # it would cross water: leave it to the guessing
+                    continue
+            parent[a] = b
+            line = LineString([xy, q]) if d > 0.5 else None
+            if line is not None:
+                path.pieces.append({'geom': line, 'source': 'guess', 'via': 'joined to the nearest path',
+                                    'country': path.pieces[j]['country'], 'stretch': None})
+                path.buffers.append(line.buffer(BUFFER_M, resolution=2))
+            n += 1
+        made += n
+        if not n:
+            break
+    report['stitched'] = report.get('stitched', 0) + made
+    log(f'   joined {made} near-misses within {max_m:.0f} m; {len(set(skipped))} left alone because the link would cross water')
+
+
+def find_gaps(path):
+    geoms, tree, find, parent, loose = components(path)
     comp_len = {}
     for j, g in enumerate(geoms):
         comp_len[find(j)] = comp_len.get(find(j), 0) + g.length
@@ -563,10 +705,26 @@ def cell_box(i, j):
             round(max(c[0] for c in corners), 4), round(max(c[1] for c in corners), 4))
 
 
+def crosses(line, coast):
+    """Does a straight link cross the coastline (and so water) away from its own ends?
+    coast is (STRtree, lines) or None."""
+    if not coast:
+        return False
+    tree, lines = coast
+    a, b = Point(line.coords[0]), Point(line.coords[-1])
+    for k in tree.query(line):
+        x = line.intersection(lines[int(k)])
+        for pt in ([x] if x.geom_type == 'Point' else getattr(x, 'geoms', [])):
+            if pt.geom_type == 'Point' and pt.distance(a) > 5 and pt.distance(b) > 5:
+                return True
+    return False
+
+
 class Network:
     """A routing network: points, neighbours, and a grid for finding the nearest point."""
     def __init__(self):
         self.pts, self.adj, self.index, self.grid = [], [], {}, {}
+        self.coast = None
 
     def node(self, nid, xy):
         i = self.index.get(nid)
@@ -704,6 +862,7 @@ def fetch_area(fetch, gaps, attempts=1):
                 best = min(best, coast_lines[ctree.nearest(p)].distance(p))
         return best
 
+    shore.coast = (STRtree(coast_lines), coast_lines) if coast_lines else None
     net = Network()
     for w in ways.values():
         t = w.get('tags') or {}
@@ -751,7 +910,7 @@ def fill_gaps(fetch, path, report):
 
     def fill(c, net, shore):
         a, b, d = c['a']['xy'], c['b']['xy'], c['d']
-        if d < 150:
+        if d < 150 and (shore is None or not crosses(LineString([a, b]), shore.coast)):
             return LineString([a, b]), 'joined straight'
         if net is not None:
             g = net.route(a, b, 600, (8, 10000) if d < 25000 else (3, 15000))
@@ -767,13 +926,27 @@ def fill_gaps(fetch, path, report):
 
     done = set()
 
+    def add_guess(c, g, how):
+        """Add a guessed route, keeping only what isn't already covered, but never losing
+        the connection: a short gap goes in whole, and a guess trimmed to nothing becomes
+        a straight link between the two ends."""
+        country = c['a']['country']
+        if how == 'joined straight':
+            return path.add_all([g], 'guess', how, country=country, clip=False)
+        mi = path.add_all([g], 'guess', how, country=country, min_len=30)
+        if mi < 0.01:
+            # The route runs alongside existing path almost all the way; keep just the part
+            # more than 40 m from it, which is the missing link itself, along real ways
+            mi = path.add_all([g], 'guess', how, country=country, min_len=10, clip_m=LOOSE_M)
+        return mi
+
     def process(area, net, shore):
         for c in area:
             g, how = fill(c, net, shore)
             if g is None:
                 continue
             done.add(id(c))
-            mi = path.add_all([g], 'guess', how, country=c['a']['country'], min_len=30)
+            mi = add_guess(c, g, how)
             report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
             report.setdefault('gap_pts', []).append({'a': wgs(c['a']['xy']), 'b': wgs(c['b']['xy']), 'how': how, 'mi': round(mi, 2)})
         # Ends of unfilled gaps here try their next-best partners, within this area's data
@@ -795,7 +968,7 @@ def fill_gaps(fetch, path, report):
             if g is not None:
                 used_end.update({ia, ib})
                 used_pair.add(c['pair'])
-                mi = path.add_all([g], 'guess', how, country=c['a']['country'], min_len=30)
+                mi = add_guess(c, g, how)
                 report['gaps'].append((where(c['a']['xy']), where(c['b']['xy']), how, mi))
                 report.setdefault('gap_pts', []).append({'a': wgs(c['a']['xy']), 'b': wgs(c['b']['xy']), 'how': how, 'mi': round(mi, 2)})
 
@@ -841,6 +1014,37 @@ def fill_gaps(fetch, path, report):
 # --------------------------------------------------------------------------
 # The build
 # --------------------------------------------------------------------------
+
+def add_ferries(fetch, path, report):
+    """Each ferry the route uses, as its own kind of line: from OpenStreetMap where the
+    ferry is mapped, otherwise straight between the landings. A ferry links the path on
+    either side, so the gap there isn't guessed as a long walk round."""
+    report['ferries'] = []
+    for name, water, a, b, note in FERRIES:
+        A, B = TO_BNG(a[1], a[0]), TO_BNG(b[1], b[0])
+        box = area_box([A, B], pad=1500)
+        bb = '({},{},{},{})'.format(*box)
+        line, mapped = None, False
+        try:
+            d = fetch.overpass('ferry:' + name, f'[out:json][timeout:60];way["route"="ferry"]{bb};out geom;', timeout=90, attempts=2)
+            best = 1500.0
+            for w in osm_lines(d):
+                s0, s1 = w.coords[0], w.coords[-1]
+                fit = min(math.dist(s0, A) + math.dist(s1, B), math.dist(s1, A) + math.dist(s0, B))
+                if fit < best and w.length < 8000:
+                    best, line = fit, (w if math.dist(s0, A) + math.dist(s1, B) <= math.dist(s1, A) + math.dist(s0, B)
+                                       else LineString(list(w.coords)[::-1]))
+            mapped = line is not None
+        except Exception as e:           # noqa: BLE001
+            log(f'   {name}: ferry line unavailable ({e}); drawing it straight')
+        if line is None:
+            line = LineString([A, B])
+        label = name if name.lower().endswith('ferry') else f'{name} ferry'
+        path.pieces.append({'geom': line, 'source': 'ferry', 'via': label, 'country': 'W' if a[1] < -3.9 and a[0] > 52.5 else 'E',
+                            'stretch': None, 'water': water, 'note': note})
+        path.buffers.append(line.buffer(10, resolution=2))
+        report['ferries'].append((name, water, note, 'mapped in OpenStreetMap' if mapped else 'drawn straight'))
+
 
 def build(fetch):
     report = {'sources': [], 'gaps': [], 'loose': []}
@@ -914,8 +1118,27 @@ def build(fetch):
     for name, match, box, fills in failed:
         report['sources'].append((f'{name} ({fills}): couldn\u2019t load', 0))
 
+    log('Ferries...')
+    add_ferries(fetch, path, report)
+    log('Joining pieces that nearly meet...')
+    stitch(path, 300, report, fetch)
     log('Guessing the remaining gaps...')
     fill_gaps(fetch, path, report)
+    log('Joining anything still just short...')
+    stitch(path, 300, report, fetch)
+    # How continuous the finished path is, and where it still stops
+    geoms, tree, find, parent, loose = components(path)
+    sizes = {}
+    for j, g in enumerate(geoms):
+        walk = 0 if path.pieces[j]['source'] == 'ferry' else g.length     # a ferry alone isn't a piece of path
+        sizes[find(j)] = sizes.get(find(j), 0) + walk
+    big = {c for c, m in sizes.items() if m >= SUBSTANTIAL_M}
+    report['pieces'] = (len(big), max(sizes.values()) / 1609.344 if sizes else 0)
+    final_loose = [xy for j, e, xy in loose if find(j) in big and path.pieces[j]['source'] != 'ferry']
+    # A ferry landing that meets no path probably has its coordinates slightly off
+    report['ferry_unlinked'] = sorted({path.pieces[j]['via'] for j, e, xy in loose if path.pieces[j]['source'] == 'ferry'})
+    report['loose'] = [where(xy) for xy in final_loose]
+    report['loose_pts'] = [[round(v, 5) for v in wgs(xy)] for xy in final_loose]
     return path, report
 
 
@@ -924,7 +1147,8 @@ def write_geojson(path, out, report=None):
     for p in path.pieces:
         coords = [list(map(lambda v: round(v, 5), TO_WGS(x, y))) for x, y in p['geom'].coords]
         feats.append({'type': 'Feature',
-                      'properties': {'source': p['source'], 'via': p['via'], 'country': p['country'], 'stretch': p['stretch']},
+                      'properties': dict({'source': p['source'], 'via': p['via'], 'country': p['country'], 'stretch': p['stretch']},
+                                         **({'water': p['water'], 'note': p['note']} if p['source'] == 'ferry' else {})),
                       'geometry': {'type': 'LineString', 'coordinates': coords}})
     fc = {'type': 'FeatureCollection',
           'properties': {'created': datetime.now(timezone.utc).isoformat(timespec='seconds'),
@@ -953,9 +1177,18 @@ def write_report(path, report, out):
              f'- **England:** {E:,.0f} of about {EXPECTED_MI["E"]:,} miles '
              f'({path.miles("official", "E"):,.0f} official, {path.miles("other", "E"):,.0f} from other mapped paths, '
              f'{path.miles("guess", "E"):,.0f} guessed)',
-             f'- **Wales:** {W:,.0f} of about {EXPECTED_MI["W"]:,} miles', '',
+             f'- **Wales:** {W:,.0f} of about {EXPECTED_MI["W"]:,} miles',
+             f'- **Continuity:** {report.get("pieces", (0, 0))[0]} separate pieces of path over a mile long; the longest is '
+             f'{report.get("pieces", (0, 0))[1]:,.0f} miles. One piece would mean it runs unbroken all the way round '
+             f'(islands aside). {report.get("stitched", 0)} near-misses were joined.', '',
              '## Sources', '', '| Source | Miles added |', '|---|---:|']
     lines += [f'| {s} | {m:,.1f} |' for s, m in report['sources']]
+    if report.get('ferries'):
+        lines += ['', '## Ferries', '', '| Ferry | Crosses | Runs | Line |', '|---|---|---|---|']
+        lines += [f'| {n} | {w} | {t} | {how} |' for n, w, t, how in report['ferries']]
+        if report.get('ferry_unlinked'):
+            lines += ['', 'These ferries have a landing that meets no path, so their landing points may need adjusting: '
+                      + ', '.join(report['ferry_unlinked']) + '.']
     lines += ['', '## Gaps filled by guessing', '']
     if report['gaps']:
         lines += ['| From | To | How | Miles |', '|---|---|---|---:|']
