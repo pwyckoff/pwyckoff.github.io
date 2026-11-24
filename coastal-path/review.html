@@ -63,9 +63,10 @@
   const $ = s => document.querySelector(s);
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const map = L.map('map', { preferCanvas: true, zoomControl: true }).setView([53.0, -2.5], 6);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19, subdomains: 'abcd',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  // Stadia Maps, as the logbook uses: authorised for this site, so no key is needed
+  L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
   const renderer = L.canvas({ tolerance: 6 });
 
@@ -97,6 +98,7 @@
   // Group lines by where they came from
   const groups = new Map();
   const groupOf = p => p.source === 'official' ? `Official: ${p.via || 'Natural England'}`
+    : p.source === 'ferry' ? 'Ferries'
     : p.source === 'guess' ? `Guess: ${p.via || 'guessed'}` : (p.via || 'Other mapped path');
   let totE = 0, totW = 0;
   (fc.features || []).forEach(f => {
@@ -106,6 +108,7 @@
     if (!groups.has(key)) groups.set(key, { key, source: p.source, feats: [], mi: 0 });
     const g = groups.get(key);
     g.feats.push(f); g.mi += mi;
+    if (p.source === 'ferry') return;                 // ferries aren't walking miles
     if (p.country === 'W') totW += mi; else totE += mi;
   });
   $('#totals').innerHTML = `England <b>${Math.round(totE).toLocaleString()}</b> of about 2,689 mi · Wales <b>${Math.round(totW).toLocaleString()}</b> of about 870 mi`;
@@ -119,17 +122,18 @@
   const ordered = [...groups.values()].sort((a, b) =>
     ({ official: 0, other: 1, guess: 2 }[a.source] ?? 1) - ({ official: 0, other: 1, guess: 2 }[b.source] ?? 1) || b.mi - a.mi);
   ordered.forEach(g => {
-    g.colour = g.source === 'official' ? (g.key.includes('Wales') ? '#1b7837' : '#2f6b3a')
+    g.colour = g.source === 'ferry' ? '#1f78b4'
+      : g.source === 'official' ? (g.key.includes('Wales') ? '#1b7837' : '#2f6b3a')
       : g.source === 'guess' ? (guessColour[g.key.replace('Guess: ', '')] || '#ff7f00')
       : palette[pi++ % palette.length];
-    g.dash = g.source === 'guess' ? '6 5' : null;
+    g.dash = g.source === 'guess' ? '6 5' : g.source === 'ferry' ? '2 6' : null;
     g.layer = L.geoJSON({ type: 'FeatureCollection', features: g.feats }, {
       renderer,
       style: { color: g.colour, weight: g.source === 'official' ? 2 : 3.5, opacity: g.source === 'official' ? .7 : .95, dashArray: g.dash },
       onEachFeature: (f, layer) => layer.on('click', ev => {
         const p = f.properties || {}, ll = ev.latlng, ref = `${p.via || p.source} at ${ll.lat.toFixed(3)}, ${ll.lng.toFixed(3)}`;
         L.popup().setLatLng(ll).setContent(`<div class="pop"><b>${esc(p.via || p.source)}</b>
-          ${p.source === 'official' ? 'Official route' : p.source === 'guess' ? 'Guessed' : 'Other mapped path'}${p.stretch ? `, ${esc(p.stretch)}` : ''}<br>
+          ${p.source === 'official' ? 'Official route' : p.source === 'guess' ? 'Guessed' : p.source === 'ferry' ? `Ferry across ${esc(p.water || 'the water')}, runs ${esc(p.note || '?')}` : 'Other mapped path'}${p.stretch ? `, ${esc(p.stretch)}` : ''}<br>
           This piece: ${miles(f.geometry.coordinates).toFixed(1)} mi<br>Reference: <code>${esc(ref)}</code></div>`).openOn(map);
       })
     }).addTo(map);

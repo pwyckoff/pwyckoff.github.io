@@ -10,7 +10,7 @@
      the services listed in connect-src. If you edit the inline script, the browser
      will refuse to run it and print the new sha256 in the console; paste that into
      script-src below in place of the old one. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-AsD8y/ULT6gbVIi7PHd3OPNtle8KH+buT3Fvf00/sWA='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src 'self' https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src https://cdn.jsdelivr.net 'sha256-vR0CtrXQp4DqYQTy/DNdub/nr05vPWnCenBqwKhng2A='; style-src https://cdn.jsdelivr.net 'unsafe-inline'; font-src data:; img-src 'self' https://tiles.stadiamaps.com https://*.basemaps.cartocdn.com https://cdn.jsdelivr.net data: blob:; connect-src 'self' https://services.arcgis.com https://services1.arcgis.com https://api.open-meteo.com https://api.github.com https://gist.githubusercontent.com https://environment.data.gov.uk https://overpass.kumi.systems https://overpass-api.de https://nominatim.openstreetmap.org; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#F3F4EF">
 <link rel="manifest" href="coast-path.webmanifest">
@@ -55,6 +55,7 @@
   --sea: #CFDDE0;
   --path: #2F7D4A;         /* national-trail green */
   --path-soft: #86B896;    /* the same, lighter: path that isn't the official line */
+  --ferry: #3F6E92;        /* ferries: the ink of the sea */
   --halo: rgba(243, 244, 239, .8);
   --casing: #F3F4EF;
   --panel-w: 320px;
@@ -66,14 +67,14 @@
   :root:not([data-theme="light"]) {
     --surface: #151C20; --surface-2: #1E272C; --ink: #E3E6E1; --ink-2: #9AA5A9; --line: #33424A;
     --rule: #C9CEC8; --tide: #79A9D1; --danger: #E07A66; --walk: #E0705F; --cycle: #79A9D1;
-    --other: #D9A84E; --focus: #79A9D1; --sea: #1A2228; --path: #7FBF8E; --path-soft: #4E7A5C;
+    --other: #D9A84E; --focus: #79A9D1; --sea: #1A2228; --path: #7FBF8E; --path-soft: #4E7A5C; --ferry: #8DB4D6;
     --halo: rgba(10, 16, 20, .6); --casing: #12191D; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --surface: #151C20; --surface-2: #1E272C; --ink: #E3E6E1; --ink-2: #9AA5A9; --line: #33424A;
   --rule: #C9CEC8; --tide: #79A9D1; --danger: #E07A66; --walk: #E0705F; --cycle: #79A9D1;
-  --other: #D9A84E; --focus: #79A9D1; --sea: #1A2228; --path: #7FBF8E; --path-soft: #4E7A5C;
+  --other: #D9A84E; --focus: #79A9D1; --sea: #1A2228; --path: #7FBF8E; --path-soft: #4E7A5C; --ferry: #8DB4D6;
   --halo: rgba(10, 16, 20, .6); --casing: #12191D; color-scheme: dark;
 }
 
@@ -230,6 +231,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .map-key .k { display: inline-block; width: 22px; height: 0; border-top: 3px dotted var(--path); }
 .map-key .k.other { border-top-color: var(--path-soft); }
 .map-key .k.guess { border-top: 3px dashed var(--path-soft); }
+.map-key .k.ferry { border-top: 2px dotted var(--ferry); }
+.ferry-note { color: var(--ferry) !important; font-style: normal !important; }
 .path-key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .8125rem; color: var(--ink-2); }
 .path-key li { display: flex; align-items: center; gap: 6px; }
 .path-key .k { width: 26px; height: 0; border-top: 3px dotted var(--path); }
@@ -735,6 +738,10 @@ button, input, textarea, select { font: inherit; color: inherit; }
         { name: 'Lancashire Coastal Way', match: 'Lancashire Coastal Way', box: [53.86, -3.10, 54.21, -2.74], fills: 'Silverdale to Cleveleys' },
         { name: 'Cumbria Coastal Way', match: 'Cumbria Coastal Way', box: [54.76, -3.45, 55.01, -3.04], fills: 'Gretna to Allonby' },
         { name: 'Hadrian’s Wall Path', match: 'Hadrian.s Wall Path', box: [54.88, -3.25, 54.96, -2.92], fills: 'Bowness-on-Solway to Carlisle' },
+        // The Cumbria Coastal Way seems to be gone from OpenStreetMap; these cover the Solway shore instead.
+        // The cycleway is kept west of Bowness, where Hadrian's Wall Path takes over on parallel ground.
+        { name: 'Hadrian’s Cycleway', match: 'Hadrian.s Cycleway', box: [54.76, -3.45, 54.96, -3.22], fills: 'Allonby to Bowness-on-Solway' },
+        { name: 'Allerdale Ramble', match: 'Allerdale Ramble', box: [54.85, -3.40, 54.92, -3.22], fills: 'Grune Point, by Silloth' },
         { name: 'Isle of Wight Coastal Path', match: 'Isle of Wight Coastal Path', box: [50.57, -1.60, 50.78, -1.06], fills: 'the island' },
         { name: 'Solent Way', match: 'Solent Way', box: [50.70, -1.72, 50.86, -1.30], fills: 'Highcliffe to Calshot' }
       ],
@@ -994,6 +1001,17 @@ button, input, textarea, select { font: inherit; color: inherit; }
         if (hit) { cuts[hit.line].push(hit.pos); joins.push([j, pos, hit.line, hit.pos]); }
       });
     });
+    // Ferries: each landing is placed on the path nearby (within 800 m)
+    const ferryLinks = [];
+    (PATH.ferries || []).forEach((fy, f) => {
+      const c = fy.coords, ends = [c[0], c[c.length - 1]].map(([lat, lon]) => locateIn(lat, lon, 800));
+      if (!ends[0] || !ends[1]) return;
+      ends.forEach(e => cuts[e.line].push(e.pos));
+      // The ferry as travelled: from the path, across the water, back onto the path
+      fy.route = [ends[0].pt, ...c, ends[1].pt];
+      fy.len = lineM(fy.route);
+      ferryLinks.push([ends[0].line, ends[0].pos, ends[1].line, ends[1].pos, f]);
+    });
     // One node per distinct cut along each line (cuts within 2 m merge)
     let n = 0;
     const nodeAt = cuts.map(cs => {
@@ -1011,6 +1029,13 @@ button, input, textarea, select { font: inherit; color: inherit; }
     });
     // Edges run between neighbouring cuts on each line
     const adj = Array.from({ length: n }, () => []);
+    // Ferry crossings are edges too, on a "line" numbered below zero
+    ferryLinks.forEach(([la, pa, lb, pb, f]) => {
+      const u = root(nodeNear(la, pa)), v = root(nodeNear(lb, pb)), w = PATH.ferries[f].len;
+      if (u === v) return;
+      adj[u].push([v, w, -1 - f, 0, 1]);
+      adj[v].push([u, w, -1 - f, 1, 0]);
+    });
     nodeAt.forEach((list, i) => {
       for (let k = 1; k < list.length; k++) {
         const u = root(list[k - 1].id), v = root(list[k].id), w = list[k].pos - list[k - 1].pos;
@@ -1031,12 +1056,22 @@ button, input, textarea, select { font: inherit; color: inherit; }
   }
   // Coordinates of line i between distances p0 and p1, in that direction
   function sliceLine(i, p0, p1) {
+    if (i < 0) {
+      const r = PATH.ferries[-1 - i].route;
+      return p0 < p1 ? r.slice() : r.slice().reverse();
+    }
     if (p0 > p1) return sliceLine(i, p1, p0).reverse();
     const a = pointAt(i, p0), b = pointAt(i, p1), l = PATH.lines[i];
     const out = [a.pt];
     for (let j = a.j; j < b.j; j++) out.push(l[j]);
     out.push(b.pt);
     return out;
+  }
+  function locateIn(lat, lon, maxM) {
+    const s = nearestOnPath(lat, lon, maxM);
+    if (!s) return null;
+    const line = PATH.segLine[s.k], v = PATH.segVert[s.k], c = PATH.cum[line];
+    return { line, pos: c[v - 1] + s.t * (c[v] - c[v - 1]), pt: [s.lat, s.lon] };
   }
   // Where a point sits on the path: { line, pos } or null
   function locate(p, maxM) {
@@ -1112,6 +1147,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       if (dist[hi] + (bhi.pos - b.pos) < best) { best = dist[hi] + (bhi.pos - b.pos); via = hi; at = bhi.pos; }
       if (best === Infinity || best > maxM) return null;
       let coords;
+      const fx = { used: [], spans: [], m: 0 };
       if (via == null) coords = sliceLine(a.line, a.pos, b.pos);
       else {
         const steps = [];
@@ -1119,17 +1155,28 @@ button, input, textarea, select { font: inherit; color: inherit; }
         while (prevNode[v] >= 0) { steps.push(prevEdge[v]); v = prevNode[v]; }
         steps.reverse();
         coords = sliceLine(a.line, a.pos, seedPos[v]);
-        steps.forEach(([li, p0, p1]) => coords.push(...sliceLine(li, p0, p1).slice(1)));
+        steps.forEach(([li, p0, p1]) => addStep(coords, li, p0, p1, fx));
         coords.push(...sliceLine(b.line, at, b.pos).slice(1));
       }
       const miles = lineM(coords) / M_PER_MI;
       // Coastal routes wind, but not endlessly: a huge detour means a gap in the data
       if (miles > 4 * haversineMi(from, t) + 5) return null;
-      return { t, coords, miles: round(miles, 2) };
+      return { t, coords, miles: round(miles - fx.m / M_PER_MI, 2), ferries: fx.used, spans: fx.spans };
     });
   }
 
-  // Shortest way along the path between two points: { coords, miles } or null
+  // One step of a route: along the path, or across on a ferry (noted, and not walked miles)
+  function addStep(coords, li, p0, p1, fx) {
+    const seg = sliceLine(li, p0, p1);
+    const start = coords.length - 1;
+    coords.push(...seg.slice(1));
+    if (li < 0) {
+      fx.used.push(PATH.ferries[-1 - li]);
+      fx.spans.push([start, coords.length - 1]);
+      fx.m += lineM(seg);
+    }
+  }
+  // Shortest way along the path between two points: { coords, miles, ferries } or null
   function routeAlong(from, to) {
     if (!PATH.graph) return null;
     const a = locate(from, CONFIG.coastPath.snapMaxM), b = locate(to, CONFIG.coastPath.snapMaxM);
@@ -1196,6 +1243,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     }
     if (best === Infinity) return null;
     let coords;
+    const fx = { used: [], spans: [], m: 0 };
     if (bestNode < 0) {
       coords = sliceLine(a.line, a.pos, b.pos);         // straight along one line
     } else {
@@ -1204,13 +1252,13 @@ button, input, textarea, select { font: inherit; color: inherit; }
       while (prevNode[v] >= 0) { steps.push(prevEdge[v]); v = prevNode[v]; }
       steps.reverse();
       coords = sliceLine(a.line, a.pos, seedPos[v]);
-      steps.forEach(([li, p0, p1]) => coords.push(...sliceLine(li, p0, p1).slice(1)));
+      steps.forEach(([li, p0, p1]) => addStep(coords, li, p0, p1, fx));
       coords.push(...sliceLine(b.line, bestAt, b.pos).slice(1));
     }
     const miles = lineM(coords) / M_PER_MI;
     // A wild detour means the data has a gap here; better to draw nothing than nonsense
     if (miles > 3 * haversineMi(from, to) + 2) return null;
-    return { coords: coords.map(p => [round(p[0], 5), round(p[1], 5)]), miles: round(miles, 2) };
+    return { coords: coords.map(p => [round(p[0], 5), round(p[1], 5)]), miles: round(miles - fx.m / M_PER_MI, 2), ferries: fx.used, spans: fx.spans };
   }
 
   // Nearest point on the path within maxM metres, or null
@@ -1480,15 +1528,20 @@ button, input, textarea, select { font: inherit; color: inherit; }
       if (!res.ok) return null;
       const fc = await res.json();
       if (!fc || !Array.isArray(fc.features) || !fc.features.length) return null;
-      const lines = [], source = [], country = [], stretch = [];
+      const lines = [], source = [], country = [], stretch = [], ferries = [];
       fc.features.forEach(f => {
         const c = f && f.geometry && f.geometry.coordinates;
         if (!Array.isArray(c) || c.length < 2) return;
-        lines.push(c.map(([lo, la]) => [la, lo]));
         const pr = f.properties || {};
+        // Ferries aren't path: kept apart, so they're never walked miles or a place GPS snaps to
+        if (pr.source === 'ferry') {
+          ferries.push({ coords: c.map(([lo, la]) => [la, lo]), name: pr.via || 'Ferry', water: pr.water || '', note: pr.note || '' });
+          return;
+        }
+        lines.push(c.map(([lo, la]) => [la, lo]));
         source.push(pr.source || 'official'); country.push(pr.country || 'E'); stretch.push(pr.stretch || null);
       });
-      return lines.length ? { lines, meta: { source, country, stretch }, created: (fc.properties || {}).created || null } : null;
+      return lines.length ? { lines, meta: { source, country, stretch }, ferries, created: (fc.properties || {}).created || null } : null;
     } catch (e) { return null; }
   }
 
@@ -1515,6 +1568,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
     };
     const all = [...mapped, ...own, ...hand];
     const miles = (src, ctry) => lineMilesAll(all.filter((_, i) => PATH.meta.source[i] === src && (PATH.meta.country[i] || 'E') === ctry));
+    PATH.ferries = saved.ferries || [];
     installPath(all, {
       england: miles('official', 'E'), fill: miles('other', 'E'), guessed: miles('guess', 'E'),
       guessedWales: miles('guess', 'W'), wales: miles('official', 'W') + miles('other', 'W')
@@ -1758,7 +1812,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
     // Guesses keep a faint halo at every zoom, so they don't vanish into the terrain zoomed out
     const peckHalo = L.polyline(guessed, { ...opts, color: cssVar('--halo'), weight: 6, opacity: .9 }).addTo(m);
     const pecked = L.polyline(guessed, { ...opts, color: cssVar('--path-soft'), weight: 2, opacity: 1, dashArray: '6 6' }).addTo(m);
-    pathLayers.set(m, [halo, line, soft, pecked, peckHalo]);
+    // Ferries: a fine dashed line across the water, in the sea's ink; tap for the name and when it runs
+    const ferryLayer = L.layerGroup((PATH.ferries || []).map(f => L.polyline(f.coords, {
+      pane: 'overlayPane', lineCap: 'round', interactive: true, color: cssVar('--ferry'), weight: 2.5, opacity: .9, dashArray: '1 5'
+    }).bindPopup(`<div class="pop-route">${esc(f.name)}</div><div class="pop-meta">Crosses ${esc(f.water)}. Runs ${esc(f.note || 'check before you travel')}.</div>`))).addTo(m);
+    pathLayers.set(m, [halo, line, soft, pecked, peckHalo, ferryLayer]);
     styleForZoom(m);
   }
   /* =========================================================
@@ -2188,59 +2246,59 @@ button, input, textarea, select { font: inherit; color: inherit; }
       const mapped = [...eng, ...currentFill, ...wal];
       const nE = eng.length + currentFill.length;
       const { cands, looseEnds } = orderedGaps(mapped, i => i < nE ? 'E' : 'W');
-      const usedEnd = new Set(), usedPair = new Set(), out = [], tries = new Map();
-      const take = (c, coords, rough) => {
-        out.push({ coords, country: c.country, rough });
+      // 1. Decide the gaps first, with no requests: pair loose ends greedily, preferring
+      //    the next piece along the coast over a nearer one across an estuary
+      const score = c => c.d * (1 + c.apart / 4);
+      const usedEnd = new Set(), usedPair = new Set(), gaps = [];
+      [...cands].sort((x, y) => score(x) - score(y)).forEach(c => {
+        if (usedEnd.has(c.ea) || usedEnd.has(c.eb) || usedPair.has(c.pair)) return;
         usedEnd.add(c.ea); usedEnd.add(c.eb); usedPair.add(c.pair);
+        gaps.push(c);
+      });
+      // Work round the coast in order, so the map fills in as you'd read it
+      gaps.sort((x, y) => refT(x.a[0], x.a[1]) - refT(y.a[0], y.a[1]));
+      // 2. Fill each gap completely before the next: a footpath route if there is one,
+      //    a short straight link for a crossing, otherwise the shoreline
+      const out = [], unfilled = [];
+      const fill = async c => {
+        let coords = null, how = null;
+        if (c.d < 150) coords = [c.a, c.b];
+        if (!coords) { try { coords = await predictGap({ a: c.a, b: c.b }); } catch (e) { coords = null; } }
+        if (!coords && c.d < 2000) { coords = [c.a, c.b]; how = 'crossing'; }
+        if (!coords) { try { coords = await roughGap({ a: c.a, b: c.b }); how = 'shore'; } catch (e) { coords = null; } }
+        if (!coords) return false;
+        out.push({ coords, country: c.country, rough: how });
         if (out.length % 3 === 0) { currentPredicted = out.slice(); installParts(); }   // draw as we go
-      };
-      const free = c => !usedEnd.has(c.ea) && !usedEnd.has(c.eb) && !usedPair.has(c.pair);
-      // Each loose end gets three chances per pass
-      const allowed = (c, pass) => {
-        const ka = `${pass}:${c.ea}`, kb = `${pass}:${c.eb}`;
-        if ((tries.get(ka) || 0) >= 3 || (tries.get(kb) || 0) >= 3) return false;
-        tries.set(ka, (tries.get(ka) || 0) + 1); tries.set(kb, (tries.get(kb) || 0) + 1);
         return true;
       };
-      let requests = 0;
-      // Pass 1: walkable routes near the shore. Nearest pairs first, with distance
-      // weighted by how far apart the pieces sit in coastal order, so the next piece
-      // along beats a nearer one across an estuary
-      const score = c => c.d * (1 + c.apart / 4);
-      const byDist = [...cands].sort((x, y) => score(x) - score(y));
-      for (let i = 0; i < byDist.length; i++) {
-        const c = byDist[i];
-        if (!free(c)) continue;
-        if (c.d < 150) { take(c, [c.a, c.b], null); continue; }            // a small break: join it straight
-        if (!allowed(c, 1) || requests >= 200) continue;
-        predictProgress.text = `guessing gaps (near ${placeName(c.a)})`;
+      for (let gi = 0; gi < gaps.length; gi++) {
+        const c = gaps[gi];
+        predictProgress.text = `guessing gaps, ${gi + 1} of ${gaps.length} (near ${placeName(c.a)})`;
         pathSummary(false);
-        requests++;
-        let coords = null;
-        try { coords = await predictGap({ a: c.a, b: c.b }); } catch (e) { coords = null; }
-        if (coords) take(c, coords, null);
+        if (!(await fill(c))) unfilled.push(c);
       }
-      // Pass 2: close what's left, neighbours along the coast first. A short crossing
-      // (a river mouth or harbour taken by ferry or bridge) is joined straight; anything
-      // longer traces the shoreline.
-      const byOrder = [...cands].sort((x, y) => x.apart - y.apart || x.d - y.d);
-      for (const c of byOrder) {
-        if (!free(c) || !allowed(c, 2)) continue;
-        let coords = null, how = 'shore';
-        if (c.d < 2000) { coords = [c.a, c.b]; how = 'crossing'; }
-        else if (requests < 260) {
-          predictProgress.text = `tracing the shore across gaps (near ${placeName(c.a)})`;
-          pathSummary(false);
-          requests++;
-          try { coords = await roughGap({ a: c.a, b: c.b }); } catch (e) { coords = null; }
-        }
-        if (coords) take(c, coords, how);
+      // 3. A gap that couldn't be filled frees its ends; each tries its next-best partners
+      //    (two at most), in case the first pairing was the wrong one
+      unfilled.forEach(c => { usedEnd.delete(c.ea); usedEnd.delete(c.eb); usedPair.delete(c.pair); });
+      const retryEnds = new Set(unfilled.flatMap(c => [c.ea, c.eb]));
+      const tried = new Set(unfilled), tries = new Map();
+      const retries = [...cands].filter(c => !tried.has(c) && (retryEnds.has(c.ea) || retryEnds.has(c.eb)))
+        .sort((x, y) => score(x) - score(y));
+      for (const c of retries) {
+        if (usedEnd.has(c.ea) || usedEnd.has(c.eb) || usedPair.has(c.pair)) continue;
+        const ta = tries.get(c.ea) || 0, tb = tries.get(c.eb) || 0;
+        if (ta >= 2 || tb >= 2) continue;
+        tries.set(c.ea, ta + 1); tries.set(c.eb, tb + 1);
+        predictProgress.text = `trying other pairings (near ${placeName(c.a)})`;
+        pathSummary(false);
+        if (await fill(c)) { usedEnd.add(c.ea); usedEnd.add(c.eb); usedPair.add(c.pair); gaps.push(c); }
       }
       predictProgress.text = '';
       currentPredicted = out;
+      const done = usedEnd;
       gapReport = {
         guessed: out.filter(o => lineM(o.coords) >= 150).map(o => ({ coords: o.coords, label: `${placeName(o.coords[0])} to ${placeName(o.coords[o.coords.length - 1])}`, mi: lineM(o.coords) / M_PER_MI, rough: o.rough })),
-        loose: looseEnds.filter(l => !usedEnd.has(l.e)).slice(0, 30).map(l => ({ pt: l.pt, label: placeName(l.pt) }))
+        loose: looseEnds.filter(l => !done.has(l.e)).slice(0, 30).map(l => ({ pt: l.pt, label: placeName(l.pt) }))
       };
       if (tab === 'data') renderGaps();
       installParts();
@@ -2254,6 +2312,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       predicting = false;
     }
   }
+
 
 
 
@@ -2773,8 +2832,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
   L.control.scale({ position: 'bottomleft', imperial: true, metric: false, maxWidth: 120 }).addTo(map);
   function renderMapKey() {
     const src = (PATH.meta && PATH.meta.source) || [];
-    const rows = [['official', 'Official route'], ['other', 'Other mapped path'], ['guess', 'Guessed route']]
-      .filter(([k]) => k === 'official' || src.includes(k));
+    const rows = [['official', 'Official route'], ['other', 'Other mapped path'], ['guess', 'Guessed route'], ['ferry', 'Ferry']]
+      .filter(([k]) => k === 'official' || (k === 'ferry' ? (PATH.ferries || []).length : src.includes(k)));
     const el = mapKey.getContainer();
     el.hidden = !PATH.lines || rows.length < 2;          // only worth a key once there's more than one kind
     el.innerHTML = rows.map(([k, label]) => `<span><i class="k ${k}"></i>${label}</span>`).join('');
@@ -3955,9 +4014,17 @@ button, input, textarea, select { font: inherit; color: inherit; }
     if (planLayer) { map.removeLayer(planLayer); planLayer = null; }
     if (planStartLayer) { map.removeLayer(planStartLayer); planStartLayer = null; }
   }
-  function newMilesAlong(coords) {
+  // "Crosses the River Dart by ferry (all year)": what a planned trip relies on
+  function ferryNote(route) {
+    const fs = (route && route.ferries) || [];
+    if (!fs.length) return '';
+    return `<span class="stay ferry-note">${fs.map(f => `Crosses ${esc(f.water || 'the water')} by ferry (${esc(f.note || 'check before you travel')})`).join('; ')}</span>`;
+  }
+  function newMilesAlong(coords, spans = []) {
     let total = 0, fresh = 0;
+    const onFerry = i => spans.some(([a, b]) => i > a && i <= b);
     for (let i = 1; i < coords.length; i++) {
+      if (onFerry(i)) continue;
       const a = coords[i - 1], b = coords[i], d = distM(a, b);
       const n = Math.max(1, Math.round(d / SAMPLE_M));
       for (let k = 0; k < n; k++) {
@@ -4047,7 +4114,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
       const out = [];
       routesFrom(st, [...targets, ...towns], reach * M_PER_MI).forEach(r => {
         if (!r || r.miles < 2) return;
-        const m = newMilesAlong(r.coords);
+        const m = newMilesAlong(r.coords, r.spans);
         if (m.fresh < 0.5) return;
         const days = daysFor(r.miles);
         if (days > PLAN_MAX_DAYS) return;
@@ -4081,7 +4148,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
         ? `<span class="stay">${p.nights.length === 1 ? 'Night' : 'Nights'}: ${p.nights.map(n => n.name ? `${esc(n.name)} (${fmtWhole(n.mi)} mi)` : `around ${fmtWhole(n.mi)} mi`).join(', ')}</span>` : '';
       return `<li class="entry"><button class="entry-main" type="button" data-plan-i="${i++}">
         <span class="entry-text"><span class="route">To ${esc(p.to.name)}</span>
-        <span class="meta">${fmtMi(p.route.miles)} mi${when}, ${fmtMi(p.fresh)} new</span>${stay}${p.to.town ? '<span class="stay">No station at the end</span>' : ''}</span></button></li>`;
+        <span class="meta">${fmtMi(p.route.miles)} mi${when}, ${fmtMi(p.fresh)} new</span>${stay}${ferryNote(p.route)}${p.to.town ? '<span class="stay">No station at the end</span>' : ''}</span></button></li>`;
     };
     const none = text => `<li class="hint">${text}</li>`;
     $('#planList').innerHTML =
