@@ -14,18 +14,11 @@ My research asks how the employment costs of decarbonisation shape politics: how
 
 I combine causal inference with survey experiments and computational text analysis. You can read more on my [research page](/research/).
 
-Research interests:
-* political economy of climate and energy policy
-* employment, structural change and just transitions
-* legislative behaviour and representation
-* computational text analysis of political and media discourse
-
-
 Background 
 ======
-Before my PhD, I worked in the OECD's [Directorate for Employment, Labour and Social Affairs](https://www.oecd.org/els/) (2017-2019, 2021-2022), at the European Commission's [DG Competition](https://commission.europa.eu/about-european-commission/departments-and-executive-agencies/competition_en) (2020-2021), and at the [Wilson Center](https://www.wilsoncenter.org/) (2016). 
+Before my PhD, I worked in the OECD’s [Directorate for Employment, Labour and Social Affairs](https://www.oecd.org/els/) (2017-2019, 2021-2022), at the European Commission’s [DG Competition](https://commission.europa.eu/about-european-commission/departments-and-executive-agencies/competition_en) (2020-2021), and at the [Wilson Center](https://www.wilsoncenter.org/) (2016). I studied at [Yale](https://jackson.yale.edu/) and at [Oxford](https://www.qeh.ox.ac.uk/).
 
-I studied at Yale's [Jackson Institute](https://jackson.yale.edu/) and at Oxford's [Department of International Development](https://www.qeh.ox.ac.uk/).
+I'm always happy to hear from researchers, policymakers and journalists working on these questions. [Bluesky](https://bsky.app/profile/peterwyckoff.bsky.social) or [LinkedIn](https://www.linkedin.com/in/peterwyckoff/) are the best places to reach me.
 
 
 ![](/images/cover_picture.jpg)
