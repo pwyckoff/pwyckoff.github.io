@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Coast path review</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
+<style>
+  :root { --ink: #1f2a30; --ink-2: #5b6870; --rule: #d9dcd6; --paper: #f4f3ee; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: grid; grid-template-columns: 340px 1fr; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
+  #side { overflow-y: auto; padding: 14px 16px 24px; border-right: 1px solid var(--rule); }
+  #map { height: 100%; }
+  h1 { font-size: 17px; margin: 0 0 2px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); margin: 18px 0 6px; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+  .fine { color: var(--ink-2); font-size: 12.5px; }
+  .totals { margin: 8px 0 0; }
+  .legend { list-style: none; margin: 0; padding: 0; }
+  .legend li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .legend label { display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; }
+  .sw { width: 26px; height: 0; border-top: 4px solid; flex: none; }
+  .sw.dash { border-top-style: dashed; }
+  .mi { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; border: 1px solid var(--rule); background: #fff; }
+  .list li { padding: 4px 8px; border-bottom: 1px solid var(--rule); cursor: pointer; font-size: 13px; }
+  .list li:hover { background: #eef2ee; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+  button { font: inherit; font-size: 12.5px; padding: 3px 8px; border: 1px solid var(--ink-2); background: #fff; cursor: pointer; }
+  .pop b { display: block; }
+  .pop code { font-size: 12px; user-select: all; }
+  @media (max-width: 760px) { body { grid-template-columns: 1fr; grid-template-rows: 45vh 1fr; } #side { order: 2; border-right: 0; border-top: 1px solid var(--rule); } }
+</style>
+</head>
+<body>
+<aside id="side">
+  <h1>Coast path review</h1>
+  <div class="fine" id="built">Loading coast-path-full.geojson…</div>
+  <div class="totals" id="totals"></div>
+
+  <h2>Where each line comes from</h2>
+  <div class="row"><button id="onlyUnofficial" type="button">Hide the official route</button><button id="showAll" type="button">Show everything</button></div>
+  <ul class="legend" id="legend"></ul>
+
+  <h2>Places where the path stops</h2>
+  <div class="fine">Red dots. Berwick and Gretna are its true ends; anything else is worth a look.</div>
+  <ul class="list" id="loose"></ul>
+
+  <h2>Guessed gaps, largest first</h2>
+  <ul class="list" id="gaps"></ul>
+
+  <h2>Telling me about a problem</h2>
+  <div class="fine">Click a line or a dot: its details include a reference like <code>Solent Way at 50.812, -1.401</code>. Copy that, and say what's wrong: it should follow a different path, it shouldn't be there, or something's missing.</div>
+</aside>
+<div id="map"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+<script>
+(async () => {
+  const $ = s => document.querySelector(s);
+  const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const map = L.map('map', { preferCanvas: true, zoomControl: true }).setView([53.0, -2.5], 6);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, subdomains: 'abcd',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  }).addTo(map);
+  const renderer = L.canvas({ tolerance: 6 });
+
+  let fc;
+  try {
+    const res = await fetch('coast-path-full.geojson', { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    fc = await res.json();
+  } catch (e) {
+    $('#built').textContent = `Couldn’t load coast-path-full.geojson (${e.message}). Has the build committed it yet?`;
+    return;
+  }
+  const props = fc.properties || {}, review = props.review || {};
+  $('#built').textContent = props.created ? `Built ${new Date(props.created).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Built (date unknown)';
+
+  // Length of a line in miles
+  const R = 6371008.8;
+  const miles = coords => {
+    let m = 0;
+    for (let i = 1; i < coords.length; i++) {
+      const [lo1, la1] = coords[i - 1], [lo2, la2] = coords[i];
+      const p1 = la1 * Math.PI / 180, p2 = la2 * Math.PI / 180, dp = p2 - p1, dl = (lo2 - lo1) * Math.PI / 180;
+      const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+      m += 2 * R * Math.asin(Math.sqrt(a));
+    }
+    return m / 1609.344;
+  };
+
+  // Group lines by where they came from
+  const groups = new Map();
+  const groupOf = p => p.source === 'official' ? `Official: ${p.via || 'Natural England'}`
+    : p.source === 'guess' ? `Guess: ${p.via || 'guessed'}` : (p.via || 'Other mapped path');
+  let totE = 0, totW = 0;
+  (fc.features || []).forEach(f => {
+    const c = f.geometry && f.geometry.coordinates;
+    if (!Array.isArray(c) || c.length < 2) return;
+    const p = f.properties || {}, key = groupOf(p), mi = miles(c);
+    if (!groups.has(key)) groups.set(key, { key, source: p.source, feats: [], mi: 0 });
+    const g = groups.get(key);
+    g.feats.push(f); g.mi += mi;
+    if (p.country === 'W') totW += mi; else totE += mi;
+  });
+  $('#totals').innerHTML = `England <b>${Math.round(totE).toLocaleString()}</b> of about 2,689 mi · Wales <b>${Math.round(totW).toLocaleString()}</b> of about 870 mi`;
+
+  // Colours: official in greens, each trail its own colour, guesses dashed by method
+  const palette = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#9a6324', '#469990', '#800000',
+    '#808000', '#000075', '#bfef45', '#fabed4', '#dcbeff', '#aaffc3', '#ffd8b1', '#a9a9a9', '#ffe119', '#e6beff'];
+  const guessColour = { 'guessed along footpaths near the shore': '#ff7f00', 'roughly along the shoreline': '#984ea3',
+    'joined straight': '#e41a1c', 'a short crossing, joined straight': '#e41a1c' };
+  let pi = 0;
+  const ordered = [...groups.values()].sort((a, b) =>
+    ({ official: 0, other: 1, guess: 2 }[a.source] ?? 1) - ({ official: 0, other: 1, guess: 2 }[b.source] ?? 1) || b.mi - a.mi);
+  ordered.forEach(g => {
+    g.colour = g.source === 'official' ? (g.key.includes('Wales') ? '#1b7837' : '#2f6b3a')
+      : g.source === 'guess' ? (guessColour[g.key.replace('Guess: ', '')] || '#ff7f00')
+      : palette[pi++ % palette.length];
+    g.dash = g.source === 'guess' ? '6 5' : null;
+    g.layer = L.geoJSON({ type: 'FeatureCollection', features: g.feats }, {
+      renderer,
+      style: { color: g.colour, weight: g.source === 'official' ? 2 : 3.5, opacity: g.source === 'official' ? .7 : .95, dashArray: g.dash },
+      onEachFeature: (f, layer) => layer.on('click', ev => {
+        const p = f.properties || {}, ll = ev.latlng, ref = `${p.via || p.source} at ${ll.lat.toFixed(3)}, ${ll.lng.toFixed(3)}`;
+        L.popup().setLatLng(ll).setContent(`<div class="pop"><b>${esc(p.via || p.source)}</b>
+          ${p.source === 'official' ? 'Official route' : p.source === 'guess' ? 'Guessed' : 'Other mapped path'}${p.stretch ? `, ${esc(p.stretch)}` : ''}<br>
+          This piece: ${miles(f.geometry.coordinates).toFixed(1)} mi<br>Reference: <code>${esc(ref)}</code></div>`).openOn(map);
+      })
+    }).addTo(map);
+  });
+  // Legend with tick boxes
+  $('#legend').innerHTML = ordered.map((g, i) => `<li><label><input type="checkbox" data-g="${i}" checked>
+    <span class="sw${g.dash ? ' dash' : ''}" style="border-top-color:${g.colour}"></span>${esc(g.key)}</label>
+    <span class="mi">${g.mi < 10 ? g.mi.toFixed(1) : Math.round(g.mi).toLocaleString()} mi</span></li>`).join('');
+  $('#legend').addEventListener('change', ev => {
+    const g = ordered[Number(ev.target.dataset.g)];
+    if (ev.target.checked) g.layer.addTo(map); else map.removeLayer(g.layer);
+  });
+  const setAll = test => document.querySelectorAll('#legend input').forEach((cb, i) => {
+    const on = test(ordered[i]); cb.checked = on;
+    if (on) ordered[i].layer.addTo(map); else map.removeLayer(ordered[i].layer);
+  });
+  $('#onlyUnofficial').addEventListener('click', () => setAll(g => g.source !== 'official'));
+  $('#showAll').addEventListener('click', () => setAll(() => true));
+
+  // Places where the path stops
+  const loose = review.loose || [];
+  const dots = L.layerGroup(loose.map(([la, lo]) => L.circleMarker([la, lo], { renderer, radius: 5, color: '#c0392b', weight: 2, fillColor: '#fff', fillOpacity: 1 })
+    .bindPopup(`<div class="pop"><b>The path stops here</b>Reference: <code>stop at ${la.toFixed(3)}, ${lo.toFixed(3)}</code></div>`))).addTo(map);
+  $('#loose').innerHTML = loose.length
+    ? loose.map(([la, lo], i) => `<li data-l="${i}">${la.toFixed(3)}, ${lo.toFixed(3)}</li>`).join('')
+    : '<li>None recorded in this build.</li>';
+  $('#loose').addEventListener('click', ev => {
+    const li = ev.target.closest('[data-l]');
+    if (li) map.setView(loose[Number(li.dataset.l)], 14);
+  });
+
+  // Guessed gaps, largest first
+  const gaps = (review.gaps || []).filter(g => g.mi >= 0.1).sort((a, b) => b.mi - a.mi);
+  $('#gaps').innerHTML = gaps.length
+    ? gaps.map((g, i) => `<li data-g="${i}">${g.mi.toFixed(1)} mi, ${esc(g.how.replace(', joined straight', ''))} <span class="fine">(${g.a[0].toFixed(2)}, ${g.a[1].toFixed(2)})</span></li>`).join('')
+    : '<li>None recorded in this build.</li>';
+  $('#gaps').addEventListener('click', ev => {
+    const li = ev.target.closest('[data-g]');
+    if (li) { const g = gaps[Number(li.dataset.g)]; map.fitBounds([g.a, g.b], { padding: [60, 60], maxZoom: 15 }); }
+  });
+})();
+</script>
+</body>
+</html>
