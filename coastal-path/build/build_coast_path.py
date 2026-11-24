@@ -93,6 +93,7 @@ TRAILS = [
 NAMED_PATH_TRAILS = {'Wivenhoe Trail', 'Colchester Orbital'}
 # Cycle routes used on purpose; every other trail must be a walking route
 CYCLE_TRAILS = {'Hadrian\u2019s Cycleway'}
+WATER_CHECK_M = 120     # straight links this long or more are checked against the coastline
 ISOLATED_MAX_M = 12000  # a stretch standing clear of the path must still be this close to it (the Colne is wide)
 
 # Ferries the coast paths use, in path order: name, the water it crosses, the two
@@ -237,6 +238,18 @@ class Fetcher:
             return {'elements': w.get('trails', {}).get(key.split(':', 2)[2], [])}
         if key.startswith('overpass:ferry:'):
             return {'elements': w.get('ferries', {}).get(key.split(':', 2)[2], [])}
+        if key == 'overpass:ferries-all':
+            return {'elements': [e for v in w.get('ferries', {}).values() for e in v]}
+        if key.startswith('overpass:tile-coast:'):
+            ti, tj = map(int, key.split(':')[2:4])
+            s0, w0, n0, e0 = tile_box(ti, tj)
+            clip = lambda g: g if (s0 <= g['lat'] <= n0 and w0 <= g['lon'] <= e0) else None
+            return {'elements': [dict(e, geometry=[clip(g) for g in e['geometry']]) for e in w.get('coastline', [])]}
+        if key.startswith('overpass:tile-paths:'):
+            if not key.endswith(':0'):
+                return {'elements': []}
+            ids = [{'type': 'way', 'id': i} for i in w.get('on_walking_routes', [])]
+            return {'elements': w.get('ways', []) + ids}
         if key.startswith('overpass:area-coast'):
             # Clip to the area, as the real service does with out geom(box)
             s0, w0, n0, e0 = map(float, key[key.index('(') + 1:key.index(')')].split(','))
@@ -553,26 +566,13 @@ def components(path):
 
 
 def coast_near(fetch, pts):
-    """The coastline around some points, as (STRtree, lines), or None if it can't be fetched."""
-    box = area_box(pts, pad=2000)
-    bb = '({},{},{},{})'.format(*box)
+    """The coastline around some points, from the same fixed squares the gap filling uses,
+    as (STRtree, lines), or None if it can't be fetched."""
     try:
-        d = fetch.overpass('area-coast' + bb, f'[out:json][timeout:120];way["natural"="coastline"]{bb};out body geom{bb};',
-                           timeout=150, attempts=2)
+        el = [e for i, j in tiles_for(pts, pad=1000) for e in tile_coast(fetch, i, j)]
     except Exception:                   # noqa: BLE001
         return None
-    lines = []
-    for w in d.get('elements', []):
-        run = []
-        for g in (w.get('geometry') or []):
-            if g and isinstance(g.get('lat'), (int, float)):
-                run.append(TO_BNG(g['lon'], g['lat']))
-            else:
-                if len(run) > 1:
-                    lines.append(LineString(run))
-                run = []
-        if len(run) > 1:
-            lines.append(LineString(run))
+    lines = coast_lines_of(el)
     return (STRtree(lines), lines) if lines else (None, [])
 
 
@@ -612,8 +612,11 @@ def stitch(path, max_m, report, fetch=None):
         coast_of = {}
         if fetch is not None and joins:
             cells = {}
+            # Links under WATER_CHECK_M just close pieces that fail to touch; only longer ones
+            # could be crossing water, so only they need the coastline
             for t in joins:
-                cells.setdefault((int(t[2][0] // 30000), int(t[2][1] // 30000)), []).append(t)
+                if t[0] >= WATER_CHECK_M:
+                    cells.setdefault((int(t[2][0] // 50000), int(t[2][1] // 50000)), []).append(t)
             for cell, ts in cells.items():
                 c = coast_near(fetch, [t[2] for t in ts] + [t[3] for t in ts])
                 for t in ts:
@@ -624,9 +627,9 @@ def stitch(path, max_m, report, fetch=None):
             a, b = find(j), find(k)
             if a == b:
                 continue
-            if fetch is not None:
+            if fetch is not None and d >= WATER_CHECK_M:
                 c = coast_of.get(id(t))
-                if c is None and d > 100:
+                if c is None:
                     continue                    # no coastline to check against: only the shortest links
                 if c and c[0] is not None and crosses(LineString([xy, q]), c):
                     skipped.append(xy)          # it would cross water: leave it to the guessing
@@ -782,51 +785,63 @@ class Network:
         return line.simplify(8)
 
 
-def fetch_area(fetch, gaps, attempts=1):
-    """Coastline and walkable ways for an area of gaps. Returns (footpath network, shoreline network)."""
-    pts = [g['a']['xy'] for g in gaps] + [g['b']['xy'] for g in gaps]
-    box = area_box(pts)
-    bb = '({},{},{},{})'.format(*box)
-    cdata = fetch.overpass('area-coast' + bb, f'[out:json][timeout:120];way["natural"="coastline"]{bb};out body geom{bb};',
-                           timeout=150, attempts=attempts)
-    shore = Network()
-    coast_lines = []
-    for w in cdata.get('elements', []):
-        if w.get('type') != 'way' or 'nodes' not in w:
-            continue
-        geo, run = w.get('geometry') or [], []
-        for k in range(min(len(w['nodes']), len(geo))):
-            g = geo[k]
-            if not g or not isinstance(g.get('lat'), (int, float)):
+TILE_M = 25000          # coastline and footpaths are fetched, and saved, per fixed square of this size
+
+
+def tile_box(i, j, pad=1000):
+    corners = [wgs((x, y)) for x in (i * TILE_M - pad, (i + 1) * TILE_M + pad) for y in (j * TILE_M - pad, (j + 1) * TILE_M + pad)]
+    return (round(min(c[0] for c in corners), 4), round(min(c[1] for c in corners), 4),
+            round(max(c[0] for c in corners), 4), round(max(c[1] for c in corners), 4))
+
+
+def tiles_for(points, pad=4000):
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    return [(i, j) for i in range(int((min(xs) - pad) // TILE_M), int((max(xs) + pad) // TILE_M) + 1)
+            for j in range(int((min(ys) - pad) // TILE_M), int((max(ys) + pad) // TILE_M) + 1)]
+
+
+def tile_coast(fetch, i, j, attempts=1):
+    """One square's coastline (elements with node ids, clipped to the square plus a margin)."""
+    bb = '({},{},{},{})'.format(*tile_box(i, j))
+    return fetch.overpass(f'tile-coast:{i}:{j}', f'[out:json][timeout:120];way["natural"="coastline"]{bb};out body geom{bb};',
+                          timeout=150, attempts=attempts).get('elements', [])
+
+
+def coast_lines_of(elements):
+    lines = []
+    for w in elements:
+        run = []
+        for g in (w.get('geometry') or []):
+            if g and isinstance(g.get('lat'), (int, float)):
+                run.append(TO_BNG(g['lon'], g['lat']))
+            else:
                 if len(run) > 1:
-                    coast_lines.append(LineString(run))
+                    lines.append(LineString(run))
                 run = []
-                continue
-            xy = TO_BNG(g['lon'], g['lat'])
-            run.append(xy)
-            u = shore.node(w['nodes'][k], xy)
-            if k and geo[k - 1] and isinstance(geo[k - 1].get('lat'), (int, float)):
-                v = shore.index[w['nodes'][k - 1]]
-                shore.edge(u, v, math.dist(xy, shore.pts[v]))
         if len(run) > 1:
-            coast_lines.append(LineString(run))
-    # Squares along the coastline (and round every gap end), then the ways in them
+            lines.append(LineString(run))
+    return lines
+
+
+def tile_paths(fetch, i, j, coast_elements, attempts=1):
+    """Walkable ways in small squares along one tile's coastline, and which are on walking routes."""
+    lines = coast_lines_of(coast_elements)
+    x0, y0 = i * TILE_M, j * TILE_M
     cells = set()
-    for l in coast_lines:
+    for l in lines:
         n = max(2, int(l.length / (CELL_M / 2)))
         for k in range(n + 1):
             p = l.interpolate(k / n, normalized=True)
-            i, j = int(p.x // CELL_M), int(p.y // CELL_M)
-            cells |= {(i + di, j + dj) for di in (-1, 0, 1) for dj in (-1, 0, 1)}
-    for x, y in pts:
-        i, j = int(x // CELL_M), int(y // CELL_M)
-        cells |= {(i + di, j + dj) for di in (-1, 0, 1) for dj in (-1, 0, 1)}
+            if not (x0 <= p.x < x0 + TILE_M and y0 <= p.y < y0 + TILE_M):
+                continue
+            ci, cj = int(p.x // CELL_M), int(p.y // CELL_M)
+            cells |= {(ci + di, cj + dj) for di in (-1, 0, 1) for dj in (-1, 0, 1)}
     cells = sorted(cells)
     hw = '|'.join(ROAD_FACTOR)
-    ways, on_trail = {}, set()
 
     def get(chunk, key, depth=0):
-        boxes = ''.join('way["highway"~"^({})$"]({},{},{},{});'.format(hw, *cell_box(i, j)) for i, j in chunk)
+        boxes = ''.join('way["highway"~"^({})$"]({},{},{},{});'.format(hw, *cell_box(a, b)) for a, b in chunk)
         q = (f'[out:json][timeout:180];({boxes})->.w;.w out body geom;'
              f'rel(bw.w)["route"~"^(hiking|foot|walking)$"]->.r;way.w(r.r);out ids;')
         try:
@@ -840,16 +855,44 @@ def fetch_area(fetch, gaps, attempts=1):
             a = get(chunk[:mid], key + 'a', depth + 1)
             b = get(chunk[mid:], key + 'b', depth + 1)
             return {'elements': a.get('elements', []) + b.get('elements', [])}
-
+    out = []
     for c0 in range(0, len(cells), CELLS_PER_QUERY):
-        d = get(cells[c0:c0 + CELLS_PER_QUERY], f'area-paths{bb}:{c0}')
-        for e in d.get('elements', []):
-            if e.get('type') != 'way':
+        out += get(cells[c0:c0 + CELLS_PER_QUERY], f'tile-paths:{i}:{j}:{c0}').get('elements', [])
+    return out
+
+
+def fetch_area(fetch, gaps, attempts=1):
+    """Coastline and walkable ways around some gaps, from the fixed squares they fall in.
+    Returns (footpath network, shoreline network)."""
+    pts = [g['a']['xy'] for g in gaps] + [g['b']['xy'] for g in gaps]
+    coast_el, path_el = [], []
+    for i, j in tiles_for(pts):
+        ce = tile_coast(fetch, i, j, attempts)
+        coast_el += ce
+        if ce:
+            path_el += tile_paths(fetch, i, j, ce, attempts)
+    shore = Network()
+    coast_lines = coast_lines_of(coast_el)
+    for w in coast_el:
+        if 'nodes' not in w:
+            continue
+        geo = w.get('geometry') or []
+        for k in range(min(len(w['nodes']), len(geo))):
+            g = geo[k]
+            if not g or not isinstance(g.get('lat'), (int, float)):
                 continue
-            if 'geometry' in e and 'nodes' in e:
-                ways[e['id']] = e
-            else:
-                on_trail.add(e.get('id'))
+            u = shore.node(w['nodes'][k], TO_BNG(g['lon'], g['lat']))
+            if k and geo[k - 1] and isinstance(geo[k - 1].get('lat'), (int, float)):
+                v = shore.index[w['nodes'][k - 1]]
+                shore.edge(u, v, math.dist(shore.pts[u], shore.pts[v]))
+    ways, on_trail = {}, set()
+    for e in path_el:
+        if e.get('type') != 'way':
+            continue
+        if 'geometry' in e and 'nodes' in e:
+            ways[e.get('id', id(e))] = e
+        else:
+            on_trail.add(e.get('id'))
     ctree = STRtree(coast_lines) if coast_lines else None
 
     def shore_dist(w):
@@ -862,7 +905,7 @@ def fetch_area(fetch, gaps, attempts=1):
                 best = min(best, coast_lines[ctree.nearest(p)].distance(p))
         return best
 
-    shore.coast = (STRtree(coast_lines), coast_lines) if coast_lines else None
+    shore.coast = (ctree, coast_lines) if coast_lines else None
     net = Network()
     for w in ways.values():
         t = w.get('tags') or {}
@@ -870,7 +913,7 @@ def fetch_area(fetch, gaps, attempts=1):
             continue
         if t.get('access') in ('no', 'private') and t.get('foot') not in ('yes', 'designated', 'permissive'):
             continue
-        f = ROAD_FACTOR[t['highway']] * (0.55 if w['id'] in on_trail else 1) * (1 + shore_dist(w) / 400)
+        f = ROAD_FACTOR[t['highway']] * (0.55 if w.get('id') in on_trail else 1) * (1 + shore_dist(w) / 400)
         prev = None
         for k in range(min(len(w['nodes']), len(w['geometry']))):
             g = w['geometry'][k]
@@ -916,7 +959,9 @@ def fill_gaps(fetch, path, report):
             g = net.route(a, b, 600, (8, 10000) if d < 25000 else (3, 15000))
             if g is not None:
                 return g, 'guessed along footpaths near the shore'
-        if d < 2000:
+        if d < 2000 and net is not None:
+            # Footpaths were fetched here and none joins up: a ferry or ford, joined straight.
+            # (Where the data couldn't be fetched, the gap stays open for the next run.)
             return LineString([a, b]), 'a short crossing, joined straight'
         if shore is not None:
             g = shore.route(a, b, 3000, (6, 30000))
@@ -1015,30 +1060,66 @@ def fill_gaps(fetch, path, report):
 # The build
 # --------------------------------------------------------------------------
 
+def land_ferry(path, line, reach=800):
+    """Extend a ferry line at each end to the nearest path on that landing's own side of the
+    water (nearer this landing than the other), so the ferry joins the path either side."""
+    walk = [p['geom'] for p in path.pieces if p['source'] != 'ferry']
+    if not walk:
+        return line
+    tree = STRtree(walk)
+    coords = list(line.coords)
+    a, b = Point(coords[0]), Point(coords[-1])
+    for end, here, there in ((0, a, b), (-1, b, a)):
+        best, bq = reach, None
+        for k in tree.query(here.buffer(reach)):
+            g = walk[int(k)]
+            q = g.interpolate(g.project(here))
+            d = q.distance(here)
+            if d < best and d < q.distance(there):
+                best, bq = d, (q.x, q.y)
+        if bq is not None and best > 1:
+            if end == 0:
+                coords.insert(0, bq)
+            else:
+                coords.append(bq)
+    return LineString(coords)
+
+
 def add_ferries(fetch, path, report):
     """Each ferry the route uses, as its own kind of line: from OpenStreetMap where the
     ferry is mapped, otherwise straight between the landings. A ferry links the path on
     either side, so the gap there isn't guessed as a long walk round."""
     report['ferries'] = []
+    # Every ferry route near any of the landings, in a single request
+    boxes = []
     for name, water, a, b, note in FERRIES:
         A, B = TO_BNG(a[1], a[0]), TO_BNG(b[1], b[0])
-        box = area_box([A, B], pad=1500)
-        bb = '({},{},{},{})'.format(*box)
+        boxes.append('way["route"="ferry"]({},{},{},{});'.format(*area_box([A, B], pad=1500)))
+    try:
+        all_ferries = osm_lines(fetch.overpass('ferries-all', f'[out:json][timeout:120];({"".join(boxes)});out geom;',
+                                               timeout=150, attempts=2))
+    except Exception as e:               # noqa: BLE001
+        log(f'   ferry lines unavailable ({e}); drawing them straight')
+        all_ferries = None
+    for name, water, a, b, note in FERRIES:
+        A, B = TO_BNG(a[1], a[0]), TO_BNG(b[1], b[0])
         line, mapped = None, False
         try:
-            d = fetch.overpass('ferry:' + name, f'[out:json][timeout:60];way["route"="ferry"]{bb};out geom;', timeout=90, attempts=2)
+            if all_ferries is None:
+                raise RuntimeError('no ferry lines this run')
             best = 1500.0
-            for w in osm_lines(d):
+            for w in all_ferries:
                 s0, s1 = w.coords[0], w.coords[-1]
                 fit = min(math.dist(s0, A) + math.dist(s1, B), math.dist(s1, A) + math.dist(s0, B))
                 if fit < best and w.length < 8000:
                     best, line = fit, (w if math.dist(s0, A) + math.dist(s1, B) <= math.dist(s1, A) + math.dist(s0, B)
                                        else LineString(list(w.coords)[::-1]))
             mapped = line is not None
-        except Exception as e:           # noqa: BLE001
-            log(f'   {name}: ferry line unavailable ({e}); drawing it straight')
+        except Exception:                # noqa: BLE001
+            pass
         if line is None:
             line = LineString([A, B])
+        line = land_ferry(path, line)
         label = name if name.lower().endswith('ferry') else f'{name} ferry'
         path.pieces.append({'geom': line, 'source': 'ferry', 'via': label, 'country': 'W' if a[1] < -3.9 and a[0] > 52.5 else 'E',
                             'stretch': None, 'water': water, 'note': note})
