@@ -1,10 +1,10 @@
 # Coast path build report
 
-Built 25 November 2026, 18:14 UTC.
+Built 25 November 2026, 20:31 UTC.
 
-- **England:** 2,608 of about 2,689 miles (2,269 official, 250 from other mapped paths, 89 guessed)
-- **Wales:** 884 of about 870 miles
-- **Continuity:** 77 separate pieces of path over a mile long; the longest is 516 miles. One piece would mean it runs unbroken all the way round (islands aside). 550 near-misses were joined.
+- **England:** 2,644 of about 2,689 miles (2,269 official, 250 from other mapped paths, 125 guessed)
+- **Wales:** 912 of about 870 miles
+- **Continuity:** 38 separate pieces of path over a mile long; the longest is 572 miles. One piece would mean it runs unbroken all the way round (islands aside). 550 near-misses were joined.
 
 ## Sources
 
@@ -67,7 +67,7 @@ Built 25 November 2026, 18:14 UTC.
 | Walberswick to Southwold | River Blyth | seasonal; check before you travel | mapped in OpenStreetMap |
 | Barmouth to Penrhyn Point | Afon Mawddach | seasonal; check before you travel | mapped in OpenStreetMap |
 
-These ferries have a landing that meets no path, so their landing points may need adjusting: Mudeford Quay to Mudeford Sandbank ferry, Sandbanks to Shell Bay ferry, St Mawes to Place ferry.
+These ferries have a landing that meets no path, so their landing points may need adjusting: St Mawes to Place ferry.
 
 ## Gaps filled by guessing
 
@@ -95,9 +95,28 @@ These ferries have a landing that meets no path, so their landing points may nee
 | Manningtree (51.933, 1.117) | Manningtree (51.935, 1.122) | guessed along footpaths near the shore | 0.2 |
 | Shotley Gate (51.940, 1.191) | Shotley Gate (51.940, 1.197) | guessed along footpaths near the shore | 0.3 |
 | Shotley Gate (51.928, 1.214) | Harwich (51.921, 1.262) | guessed along footpaths near the shore | 3.2 |
+| Mersea (51.858, 0.954) | Mersea (51.881, 0.901) | guessed along footpaths near the shore | 1.4 |
+| Mersea (51.880, 0.940) | Mersea (51.880, 0.930) | guessed along footpaths near the shore | 0.2 |
+| Southend (51.457, 0.574) | Southend (51.457, 0.578) | guessed along footpaths near the shore | 0.2 |
+| 51.374, 0.626 (51.374, 0.626) | Sheppey (51.384, 0.648) | guessed along footpaths near the shore | 0.9 |
+| Southend (51.446, 0.679) | Southend (51.460, 0.718) | guessed along footpaths near the shore | 3.6 |
+| Sheppey (51.346, 0.733) | Sheppey (51.348, 0.738) | guessed along footpaths near the shore | 0.2 |
 | Dungeness (50.933, 0.795) | 50.937, 0.763 (50.937, 0.763) | roughly along the shoreline | 1.1 |
 | 50.956, 0.739 (50.956, 0.739) | 50.950, 0.728 (50.950, 0.728) | a short crossing, joined straight | 0.7 |
 | Hastings (50.926, 0.731) | Hastings (50.925, 0.715) | guessed along footpaths near the shore | 0.9 |
+| Southampton (50.875, -1.394) | Southampton (50.845, -1.400) | guessed along footpaths near the shore | 0.5 |
+| Lymington (50.743, -1.347) | Lymington (50.729, -1.361) | guessed along footpaths near the shore | 0.7 |
+| Lymington (50.761, -1.528) | Lymington (50.750, -1.530) | guessed along footpaths near the shore | 1.7 |
+| Lymington (50.726, -1.422) | Lymington (50.717, -1.416) | guessed along footpaths near the shore | 0.6 |
+| Lymington (50.710, -1.391) | Lymington (50.716, -1.445) | guessed along footpaths near the shore | 1.9 |
+| Lymington (50.702, -1.421) | Lymington (50.706, -1.510) | guessed along footpaths near the shore | 2.1 |
+| Lymington (50.695, -1.528) | Lymington (50.690, -1.537) | guessed along footpaths near the shore | 0.6 |
+| Lymington (50.723, -1.565) | Lymington (50.722, -1.566) | guessed along footpaths near the shore | 0.2 |
+| 50.638, -1.423 (50.638, -1.423) | 50.634, -1.406 (50.634, -1.406) | guessed along footpaths near the shore | 0.8 |
+| 50.597, -1.322 (50.597, -1.322) | 50.583, -1.286 (50.583, -1.286) | guessed along footpaths near the shore | 1.9 |
+| Bournemouth (50.721, -1.807) | Bournemouth (50.715, -1.891) | guessed along footpaths near the shore | 2.6 |
+| Bournemouth (50.715, -1.899) | Bournemouth (50.683, -1.949) | guessed along footpaths near the shore | 3.4 |
+| Lymington (50.706, -1.555) | Bournemouth (50.724, -1.742) | guessed along footpaths near the shore | 8.5 |
 | 50.621, -2.222 (50.621, -2.222) | 50.617, -2.225 (50.617, -2.225) | guessed along footpaths near the shore | 0.3 |
 | Weymouth (50.540, -2.428) | Weymouth (50.538, -2.432) | guessed along footpaths near the shore | 0.3 |
 | Weymouth (50.519, -2.448) | Weymouth (50.516, -2.454) | guessed along footpaths near the shore | 0.3 |
@@ -108,6 +127,7 @@ These ferries have a landing that meets no path, so their landing points may nee
 | Lyme Regis (50.722, -2.822) | Lyme Regis (50.736, -2.879) | guessed along footpaths near the shore | 2.2 |
 | Lyme Regis (50.734, -2.899) | Lyme Regis (50.741, -2.915) | guessed along footpaths near the shore | 0.9 |
 | Lyme Regis (50.730, -2.932) | Lyme Regis (50.721, -2.939) | guessed along footpaths near the shore | 1.0 |
+| Plymouth (50.361, -4.130) | Plymouth (50.366, -4.134) | guessed along footpaths near the shore | 3.8 |
 | Weston-super-Mare (51.377, -2.961) | Portishead (51.431, -2.875) | guessed along footpaths near the shore | 8.9 |
 | Portishead (51.484, -2.669) | Portishead (51.488, -2.665) | guessed along footpaths near the shore | 0.4 |
 | Aust (51.582, -2.714) | Aust (51.586, -2.711) | guessed along footpaths near the shore | 0.3 |
@@ -157,6 +177,32 @@ These ferries have a landing that meets no path, so their landing points may nee
 | Llanelli (51.684, -4.196) | Llanelli (51.685, -4.203) | guessed along footpaths near the shore | 0.3 |
 | Carmarthen (51.748, -4.339) | Carmarthen (51.770, -4.367) | guessed along footpaths near the shore | 1.8 |
 | Carmarthen (51.836, -4.311) | Carmarthen (51.849, -4.317) | guessed along footpaths near the shore | 1.9 |
+| Carmarthen (51.801, -4.447) | Carmarthen (51.802, -4.453) | guessed along footpaths near the shore | 0.3 |
+| Carmarthen (51.763, -4.397) | Carmarthen (51.762, -4.398) | guessed along footpaths near the shore | 0.1 |
+| Carmarthen (51.808, -4.481) | Carmarthen (51.801, -4.490) | guessed along footpaths near the shore | 0.9 |
+| Carmarthen (51.773, -4.456) | Carmarthen (51.766, -4.458) | guessed along footpaths near the shore | 0.7 |
+| Tenby (51.752, -4.528) | Tenby (51.742, -4.561) | guessed along footpaths near the shore | 1.2 |
+| Tenby (51.735, -4.640) | Tenby (51.668, -4.704) | guessed along footpaths near the shore | 5.2 |
+| Tenby (51.641, -4.805) | Tenby (51.645, -4.817) | guessed along footpaths near the shore | 0.7 |
+| Milford Haven (51.625, -4.901) | Milford Haven (51.614, -4.901) | guessed along footpaths near the shore | 1.0 |
+| Milford Haven (51.610, -4.919) | Milford Haven (51.611, -4.923) | guessed along footpaths near the shore | 0.3 |
+| Milford Haven (51.699, -4.936) | Milford Haven (51.685, -4.945) | guessed along footpaths near the shore | 1.5 |
+| Milford Haven (51.716, -4.941) | Milford Haven (51.614, -4.931) | guessed along footpaths near the shore | 6.1 |
+| Milford Haven (51.681, -5.003) | Milford Haven (51.683, -5.007) | guessed along footpaths near the shore | 0.3 |
+| Milford Haven (51.708, -5.004) | Milford Haven (51.710, -5.059) | guessed along footpaths near the shore | 2.9 |
+| Milford Haven (51.702, -4.996) | Milford Haven (51.719, -5.166) | guessed along footpaths near the shore | 0.2 |
+| Milford Haven (51.683, -5.084) | Milford Haven (51.685, -5.087) | guessed along footpaths near the shore | 0.2 |
+| Milford Haven (51.690, -5.089) | Milford Haven (51.690, -5.098) | guessed along footpaths near the shore | 0.4 |
+| Milford Haven (51.669, -5.103) | Milford Haven (51.672, -5.110) | guessed along footpaths near the shore | 0.4 |
+| Milford Haven (51.724, -5.104) | Milford Haven (51.725, -5.109) | guessed along footpaths near the shore | 0.1 |
+| Milford Haven (51.707, -5.169) | Milford Haven (51.710, -5.168) | guessed along footpaths near the shore | 0.2 |
+| Milford Haven (51.720, -5.168) | St Davids (51.865, -5.158) | guessed along footpaths near the shore | 3.5 |
+| Milford Haven (51.774, -5.109) | Milford Haven (51.784, -5.102) | guessed along footpaths near the shore | 0.0 |
+| Milford Haven (51.730, -5.172) | Milford Haven (51.732, -5.167) | guessed along footpaths near the shore | 0.3 |
+| Milford Haven (51.724, -5.215) | Milford Haven (51.724, -5.224) | guessed along footpaths near the shore | 0.4 |
+| Milford Haven (51.736, -5.236) | Milford Haven (51.733, -5.244) | guessed along footpaths near the shore | 0.7 |
+| St Davids (51.843, -5.116) | St Davids (51.847, -5.119) | guessed along footpaths near the shore | 0.0 |
+| St Davids (51.869, -5.192) | St Davids (51.872, -5.198) | guessed along footpaths near the shore | 0.3 |
 | St Davids (51.901, -5.302) | St Davids (51.912, -5.291) | guessed along footpaths near the shore | 1.0 |
 | St Davids (51.870, -5.283) | Fishguard (52.023, -4.912) | guessed along footpaths near the shore | 13.6 |
 | St Davids (51.872, -5.309) | St Davids (51.866, -5.319) | guessed along footpaths near the shore | 0.3 |
@@ -269,16 +315,6 @@ These ferries have a landing that meets no path, so their landing points may nee
 | Silloth (54.848, -3.374) | Silloth (54.871, -3.384) | guessed along footpaths near the shore | 2.0 |
 | Silloth (54.899, -3.218) | Gretna (54.954, -3.211) | guessed along footpaths near the shore | 3.3 |
 | Gretna (54.900, -2.934) | Gretna (54.899, -2.940) | a short crossing, joined straight | 0.3 |
-| Carmarthen (51.763, -4.397) | Carmarthen (51.762, -4.398) | joined straight | 0.2 |
-
-## Areas that couldn’t be fetched
-
-The servers didn’t answer for these even after a retry, or the run reached its time limit first; short breaks there are joined straight for now. Run the build again to fetch them: everything already fetched is reused.
-
-- near Mersea (51.858, 0.954)
-- near Southampton (50.875, -1.394)
-- near Plymouth (50.361, -4.130)
-- near Carmarthen (51.801, -4.447)
 
 ## Places where the path still stops
 
@@ -293,34 +329,28 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Southampton (50.810, -1.330)
 - near Berwick (55.811, -2.035)
 - near Southend (51.446, 0.679)
-- near 51.374, 0.626 (51.374, 0.626)
 - near 50.937, 0.763 (50.937, 0.763)
 - near Padstow (50.547, -4.934)
 - near Falmouth (50.157, -5.069)
 - near Sheppey (51.405, 0.913)
 - near Sheppey (51.423, 0.825)
-- near 50.638, -1.423 (50.638, -1.423)
-- near Lymington (50.690, -1.537)
-- near Plymouth (50.361, -4.130)
 - near 50.312, -3.947 (50.312, -3.947)
 - near Plymouth (50.365, -4.166)
 - near Plymouth (50.366, -4.134)
 - near Selsey (50.809, -0.865)
-- near Milford Haven (51.730, -5.172)
 - near Chester (53.183, -2.921)
 - near Gower (51.622, -4.240)
 - near Milford Haven (51.716, -4.941)
-- near Milford Haven (51.683, -5.007)
 - near Gower (51.620, -4.257)
-- near Milford Haven (51.614, -4.931)
+- near St Davids (51.874, -5.188)
+- near St Davids (51.870, -5.194)
+- near Tenby (51.723, -4.686)
 - near Llanelli (51.666, -4.166)
+- near Tenby (51.721, -4.688)
 - near Pwllheli (52.826, -4.502)
 - near Pwllheli (52.825, -4.500)
 - near Pwllheli (52.821, -4.506)
 - near Flint (53.303, -3.237)
-- near Milford Haven (51.724, -5.215)
-- near Milford Haven (51.784, -5.102)
-- near St Davids (51.843, -5.116)
 - near Barmouth (52.720, -4.045)
 - near Milford Haven (51.720, -5.168)
 - near Conwy (53.326, -3.778)
@@ -328,25 +358,14 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Holyhead (53.242, -4.594)
 - near Carmarthen (51.748, -4.339)
 - near Fishguard (52.023, -4.912)
-- near St Davids (51.847, -5.119)
 - near Fishguard (51.999, -4.987)
 - near Fishguard (51.996, -4.975)
-- near Milford Haven (51.774, -5.109)
-- near Milford Haven (51.707, -5.169)
-- near Milford Haven (51.710, -5.168)
-- near Milford Haven (51.736, -5.236)
 - near 52.210, -4.333 (52.210, -4.333)
 - near 52.212, -4.336 (52.212, -4.336)
-- near Carmarthen (51.766, -4.458)
-- near Carmarthen (51.773, -4.456)
 - near Fishguard (51.999, -4.988)
-- near Milford Haven (51.708, -5.004)
 - near Milford Haven (51.702, -4.996)
-- near Milford Haven (51.611, -4.923)
-- near Milford Haven (51.681, -5.003)
-- near Milford Haven (51.690, -5.098)
-- near Milford Haven (51.699, -4.936)
-- near Milford Haven (51.724, -5.104)
+- near Milford Haven (51.696, -4.948)
+- near Tenby (51.731, -4.668)
 - near Conwy (53.269, -3.934)
 - near Caernarfon (53.102, -4.325)
 - near 52.214, -4.336 (52.214, -4.336)
@@ -358,15 +377,8 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Chepstow (51.582, -2.779)
 - near Barry (51.391, -3.272)
 - near Flint (53.254, -3.135)
-- near Tenby (51.735, -4.640)
-- near Tenby (51.742, -4.561)
-- near Carmarthen (51.802, -4.453)
-- near Carmarthen (51.808, -4.481)
-- near Carmarthen (51.801, -4.490)
-- near Milford Haven (51.719, -5.166)
 - near Pwllheli (52.848, -4.491)
 - near Barry (51.389, -3.280)
-- near Milford Haven (51.683, -5.084)
 - near Gower (51.620, -4.241)
 - near Porthmadog (52.920, -4.091)
 - near Swansea (51.566, -4.014)
@@ -374,13 +386,7 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Porthcawl (51.482, -3.627)
 - near Bangor (53.192, -4.208)
 - near Cardiff (51.500, -3.122)
-- near Milford Haven (51.614, -4.901)
-- near Milford Haven (51.625, -4.901)
-- near Tenby (51.645, -4.817)
-- near Milford Haven (51.672, -5.110)
-- near Milford Haven (51.669, -5.103)
-- near Milford Haven (51.685, -5.087)
-- near Milford Haven (51.690, -5.089)
+- near Tenby (51.678, -4.702)
 - near Swansea (51.620, -3.931)
 - near Flint (53.276, -3.174)
 - near Flint (53.256, -3.134)
@@ -393,26 +399,16 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Caernarfon (53.187, -4.206)
 - near Holyhead (53.246, -4.591)
 - near Porthmadog (52.923, -4.055)
-- near Milford Haven (51.685, -4.945)
 - near Aberdyfi (52.505, -3.981)
+- near Tenby (51.732, -4.663)
 - near Swansea (51.568, -4.014)
-- near Carmarthen (51.801, -4.447)
-- near Milford Haven (51.710, -5.059)
 - near Porthmadog (52.925, -4.056)
-- near Tenby (51.641, -4.805)
 - near St Davids (51.865, -5.158)
 - near St Davids (51.903, -5.310)
 - near St Davids (51.869, -5.192)
-- near St Davids (51.872, -5.198)
 - near Bangor (53.232, -4.117)
-- near Tenby (51.668, -4.704)
 - near Llanelli (51.678, -4.296)
-- near Milford Haven (51.724, -5.224)
-- near Milford Haven (51.733, -5.244)
-- near Milford Haven (51.610, -4.919)
-- near Tenby (51.752, -4.528)
-- near Milford Haven (51.725, -5.109)
-- near Milford Haven (51.732, -5.167)
+- near Milford Haven (51.612, -4.923)
 - near Southampton (50.875, -1.394)
 - near Southampton (50.875, -1.394)
 - near Bideford (51.118, -4.211)
@@ -421,6 +417,7 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Weymouth (50.617, -2.242)
 - near Falmouth (50.051, -5.072)
 - near 51.223, -3.694 (51.223, -3.694)
+- near Plymouth (50.366, -4.107)
 - near Minehead (51.223, -3.561)
 - near 51.223, -3.696 (51.223, -3.696)
 - near Minehead (51.223, -3.560)
@@ -439,21 +436,15 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Aldeburgh (52.129, 1.501)
 - near Portsmouth (50.682, -1.075)
 - near Portsmouth (50.674, -1.092)
+- near Lymington (50.690, -1.530)
 - near 50.604, -1.337 (50.604, -1.337)
 - near 50.597, -1.322 (50.597, -1.322)
-- near 50.583, -1.286 (50.583, -1.286)
+- near 50.595, -1.318 (50.595, -1.318)
 - near Lymington (50.754, -1.338)
-- near Lymington (50.729, -1.361)
+- near Lymington (50.724, -1.422)
+- near Lymington (50.702, -1.415)
 - near Lymington (50.726, -1.422)
-- near Lymington (50.706, -1.510)
-- near Lymington (50.743, -1.347)
-- near Lymington (50.717, -1.416)
 - near Portsmouth (50.751, -1.278)
-- near Lymington (50.702, -1.421)
-- near Lymington (50.710, -1.391)
-- near Lymington (50.695, -1.528)
-- near 50.634, -1.406 (50.634, -1.406)
-- near Lymington (50.716, -1.445)
 - near 50.586, -1.251 (50.586, -1.251)
 - near Lytham (53.744, -2.937)
 - near Lytham (53.745, -2.936)
@@ -461,7 +452,6 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Fleetwood (53.926, -3.022)
 - near Manningtree (51.944, 1.047)
 - near Shotley Gate (52.032, 1.174)
-- near Mersea (51.880, 0.930)
 - near Mersea (51.858, 0.954)
 - near Mersea (51.871, 0.882)
 - near Mersea (51.881, 0.901)
@@ -470,24 +460,13 @@ Berwick and Gretna are its true ends; anything else is worth a look.
 - near Mersea (51.866, 0.901)
 - near Manningtree (51.897, 0.948)
 - near Bournemouth (50.715, -1.891)
-- near Bournemouth (50.715, -1.899)
-- near Bournemouth (50.721, -1.807)
-- near Lymington (50.761, -1.528)
+- near Lymington (50.760, -1.532)
 - near Lymington (50.706, -1.555)
-- near Lymington (50.722, -1.566)
-- near Southampton (50.845, -1.400)
-- near Lymington (50.723, -1.565)
-- near Lymington (50.750, -1.530)
-- near Sheppey (51.348, 0.738)
 - near Sheppey (51.346, 0.751)
 - near Gravesend (51.459, 0.553)
-- near Sheppey (51.384, 0.648)
-- near Southend (51.457, 0.578)
-- near Southend (51.457, 0.574)
 - near 51.087, 0.931 (51.087, 0.931)
 - near 50.950, 0.737 (50.950, 0.737)
 - near 51.062, 0.845 (51.062, 0.845)
-- near Sheppey (51.346, 0.733)
 - near 51.082, 0.889 (51.082, 0.889)
 - near Flint (53.294, -3.076)
 - near Gretna (54.954, -3.211)
