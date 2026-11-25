@@ -6,6 +6,92 @@ name: Build coast path
 
 on:
   workflow_dispatch:
+    inputs:
+      round:
+        description: 'Which run in a chain this is (the build starts the next one itself if it ran out of time)'
+        default: '1'
+  schedule:
+    - cron: '17 4 3 * *'     # 04:17 on the 3rd of each month
+
+permissions:
+  contents: write
+  actions: write       # so a run can start the next one when it ran out of time
+
+concurrency:
+  group: build-coast-path
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: coastal-path/build/requirements.txt
+
+      # Fetched data is kept between runs, so most months only changed sources are refetched.
+      # It's saved at the end even if the build fails or is cancelled, so nothing fetched is wasted.
+      - uses: actions/cache/restore@v4
+        with:
+          path: coastal-path/build/.cache
+          key: coast-path-data-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: coast-path-data-
+
+      - run: pip install -r coastal-path/build/requirements.txt
+
+      - name: Build
+        run: >
+          python coastal-path/build/build_coast_path.py
+          --out coastal-path/coast-path-full.geojson
+          --report coastal-path/build/report.md
+
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: coastal-path/build/.cache
+          key: coast-path-data-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Commit if changed
+        run: |
+          git config user.name "coast-path-build"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add coastal-path/coast-path-full.geojson coastal-path/build/report.md
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Rebuild the coast path ($(date -u +%Y-%m-%d))"
+            # Anything committed to the repository while the build ran comes in first
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+            git push
+          fi
+
+      # If the run ran out of time with areas still to fetch, start the next run, which
+      # carries on from everything saved. At most six runs in a chain.
+      - name: Carry on if anything was left
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROUND: ${{ inputs.round || '1' }}
+        run: |
+          if grep -q "Areas that couldn" coastal-path/build/report.md && [ "$ROUND" -lt 6 ]; then
+            echo "Areas were left unfetched: starting run $((ROUND + 1))."
+            gh workflow run build-coast-path.yml --ref "${GITHUB_REF_NAME}" -f round=$((ROUND + 1))
+          else
+            echo "Nothing left to fetch (or the chain has reached six runs)."
+          fi
+# Builds the full estimated coast path once, so every visitor just loads it.
+# Runs monthly (to pick up formal updates) and whenever you press "Run workflow"
+# on the Actions tab. Commits coastal-path/coast-path-full.geojson and the report
+# only if something changed.
+name: Build coast path
+
+on:
+  workflow_dispatch:
   schedule:
     - cron: '17 4 3 * *'     # 04:17 on the 3rd of each month
 
