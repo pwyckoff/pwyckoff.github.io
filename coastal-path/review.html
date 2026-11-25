@@ -8,51 +8,84 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
 <style>
-  :root { --ink: #1f2a30; --ink-2: #5b6870; --rule: #d9dcd6; --paper: #f4f3ee; }
+  :root { --ink: #1f2a30; --ink-2: #5b6870; --rule: #d9dcd6; --paper: #f4f3ee;
+          --undecided: #f07f13; --kept: #2b7bb9; --removed: #9aa3a8; --drawn: #8e44ad; --official: #2f6b3a; --ferry: #1f78b4; }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
-  body { display: grid; grid-template-columns: 340px 1fr; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
+  body { display: grid; grid-template-columns: 360px 1fr; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
   #side { overflow-y: auto; padding: 14px 16px 24px; border-right: 1px solid var(--rule); }
   #map { height: 100%; }
+  #map.drawing { cursor: crosshair; }
   h1 { font-size: 17px; margin: 0 0 2px; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); margin: 18px 0 6px; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+  h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); margin: 16px 0 6px; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
   .fine { color: var(--ink-2); font-size: 12.5px; }
-  .totals { margin: 8px 0 0; }
-  .legend { list-style: none; margin: 0; padding: 0; }
-  .legend li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
-  .legend label { display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; }
-  .sw { width: 26px; height: 0; border-top: 4px solid; flex: none; }
-  .sw.dash { border-top-style: dashed; }
-  .mi { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; border: 1px solid var(--rule); background: #fff; }
-  .list li { padding: 4px 8px; border-bottom: 1px solid var(--rule); cursor: pointer; font-size: 13px; }
-  .list li:hover { background: #eef2ee; }
-  .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
-  button { font: inherit; font-size: 12.5px; padding: 3px 8px; border: 1px solid var(--ink-2); background: #fff; cursor: pointer; }
-  .pop b { display: block; }
-  .pop code { font-size: 12px; user-select: all; }
-  @media (max-width: 760px) { body { grid-template-columns: 1fr; grid-template-rows: 45vh 1fr; } #side { order: 2; border-right: 0; border-top: 1px solid var(--rule); } }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 6px 0; }
+  button { font: inherit; font-size: 13px; padding: 4px 9px; border: 1px solid var(--ink-2); background: #fff; color: var(--ink); cursor: pointer; border-radius: 3px; }
+  button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  button.on { background: var(--ink); color: #fff; }
+  button:disabled { opacity: .45; cursor: default; }
+  .section-title { font-size: 16px; font-weight: 600; margin: 4px 0 0; }
+  .bar { height: 6px; background: var(--rule); border-radius: 3px; overflow: hidden; margin: 6px 0 2px; }
+  .bar i { display: block; height: 100%; background: var(--kept); }
+  .extras { list-style: none; margin: 0; padding: 0; }
+  .extras li { border: 1px solid var(--rule); background: #fff; border-radius: 3px; padding: 6px 8px; margin: 0 0 6px; }
+  .extras li.hl { outline: 2px solid var(--ink); }
+  .extras .what { display: flex; align-items: center; gap: 8px; }
+  .sw { width: 22px; height: 0; border-top: 4px solid var(--undecided); flex: none; }
+  .extras .kind { flex: 1; }
+  .extras .mi { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .extras .acts { display: flex; gap: 6px; margin-top: 5px; }
+  .extras .acts button { padding: 2px 8px; font-size: 12.5px; }
+  .status-kept .sw { border-top-color: var(--kept); }
+  .status-removed .sw { border-top-color: var(--removed); border-top-style: dashed; }
+  .status-removed .kind { color: var(--ink-2); text-decoration: line-through; }
+  .status-drawn .sw { border-top-color: var(--drawn); }
+  .key { display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; font-size: 12.5px; color: var(--ink-2); align-items: center; }
+  .key .sw { width: 22px; }
+  #drawHelp { display: none; }
+  .drawing-on #drawHelp { display: block; }
+  @media (max-width: 760px) { body { grid-template-columns: 1fr; grid-template-rows: 50vh 1fr; } #side { order: 2; border-right: 0; border-top: 1px solid var(--rule); } }
 </style>
 </head>
 <body>
 <aside id="side">
   <h1>Coast path review</h1>
   <div class="fine" id="built">Loading coast-path-full.geojson…</div>
-  <div class="totals" id="totals"></div>
+  <div class="bar"><i id="progressBar" style="width:0"></i></div>
+  <div class="fine" id="progress"></div>
 
-  <h2>Where each line comes from</h2>
-  <div class="row"><button id="onlyUnofficial" type="button">Hide the official route</button><button id="showAll" type="button">Show everything</button></div>
-  <ul class="legend" id="legend"></ul>
+  <h2>Section</h2>
+  <div class="section-title" id="secTitle">–</div>
+  <div class="fine" id="secMeta"></div>
+  <div class="row">
+    <button id="prev" type="button">‹ Previous</button>
+    <button id="next" type="button" class="primary">Next with extras ›</button>
+    <select id="jump" aria-label="Go to a section"></select>
+  </div>
+  <div class="row">
+    <button id="keepAll" type="button">Keep all undecided here</button>
+    <button id="hideOfficial" type="button">Hide official route</button>
+  </div>
+  <ul class="extras" id="extras"></ul>
 
-  <h2>Places where the path stops</h2>
-  <div class="fine">Red dots. Berwick and Gretna are its true ends; anything else is worth a look.</div>
-  <ul class="list" id="loose"></ul>
+  <h2>Draw a line</h2>
+  <div class="row"><button id="drawBtn" type="button">Draw a section</button><button id="drawUndo" type="button" disabled>Undo point</button><button id="drawDone" type="button" disabled>Finish</button><button id="drawCancel" type="button" disabled>Cancel</button></div>
+  <div class="fine" id="drawHelp">Click along the way the path should go. Its ends snap onto the nearest path within 300 m, so it joins up. Press Finish when done.</div>
+  <ul class="extras" id="drawnList"></ul>
 
-  <h2>Guessed gaps, largest first</h2>
-  <ul class="list" id="gaps"></ul>
+  <h2>Your decisions</h2>
+  <div class="fine" id="decisionsSummary"></div>
+  <div class="row"><button id="download" type="button" class="primary">Download decisions</button><button id="loadFile" type="button">Load a decisions file</button><input type="file" id="fileIn" accept=".json,application/json" hidden></div>
+  <div class="fine">Saved in this browser as you go. To apply them to the map, put the downloaded <code>decisions.json</code> in <code>coastal-path/build</code> on GitHub, then run the build. Every later build applies it too.</div>
 
-  <h2>Telling me about a problem</h2>
-  <div class="fine">Click a line or a dot: its details include a reference like <code>Solent Way at 50.812, -1.401</code>. Copy that, and say what's wrong: it should follow a different path, it shouldn't be there, or something's missing.</div>
+  <h2>Key</h2>
+  <div class="key">
+    <span class="sw" style="border-top-color:var(--official)"></span><span>Official route (not editable)</span>
+    <span class="sw" style="border-top-color:var(--undecided)"></span><span>Extra, not yet decided</span>
+    <span class="sw" style="border-top-color:var(--kept)"></span><span>Extra you’ve kept</span>
+    <span class="sw" style="border-top-color:var(--removed);border-top-style:dashed"></span><span>Extra you’ve removed</span>
+    <span class="sw" style="border-top-color:var(--drawn)"></span><span>Line you’ve drawn</span>
+  </div>
 </aside>
 <div id="map"></div>
 
@@ -60,120 +93,237 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 <script>
 (async () => {
+  const COAST_ORDER = [["Berwick", 55.77, -2.0], ["Bamburgh", 55.61, -1.71], ["Amble", 55.33, -1.58], ["Tynemouth", 55.02, -1.42], ["Sunderland", 54.91, -1.37], ["Hartlepool", 54.69, -1.18], ["Redcar", 54.62, -1.06], ["Whitby", 54.49, -0.61], ["Scarborough", 54.28, -0.4], ["Flamborough", 54.12, -0.08], ["Bridlington", 54.08, -0.19], ["Hornsea", 53.91, -0.17], ["Spurn Head", 53.58, 0.11], ["Hull", 53.74, -0.33], ["Humber Bridge", 53.71, -0.45], ["Grimsby", 53.57, -0.08], ["Mablethorpe", 53.34, 0.26], ["Skegness", 53.14, 0.34], ["Boston", 52.98, -0.02], ["Sutton Bridge", 52.77, 0.19], ["King’s Lynn", 52.75, 0.4], ["Hunstanton", 52.94, 0.49], ["Wells", 52.96, 0.85], ["Cromer", 52.93, 1.3], ["Great Yarmouth", 52.61, 1.73], ["Lowestoft", 52.48, 1.75], ["Southwold", 52.33, 1.68], ["Aldeburgh", 52.15, 1.6], ["Felixstowe", 51.96, 1.35], ["Shotley Gate", 51.95, 1.27], ["Manningtree", 51.94, 1.07], ["Harwich", 51.94, 1.28], ["Clacton", 51.79, 1.15], ["Mersea", 51.78, 0.92], ["Maldon", 51.73, 0.68], ["Burnham-on-Crouch", 51.63, 0.81], ["Southend", 51.54, 0.71], ["Tilbury", 51.46, 0.36], ["Woolwich", 51.49, 0.07], ["Gravesend", 51.44, 0.37], ["Sheppey", 51.4, 0.85], ["Whitstable", 51.36, 1.03], ["Margate", 51.39, 1.38], ["Ramsgate", 51.33, 1.42], ["Dover", 51.12, 1.31], ["Folkestone", 51.08, 1.17], ["Dungeness", 50.91, 0.98], ["Hastings", 50.85, 0.58], ["Eastbourne", 50.77, 0.29], ["Brighton", 50.82, -0.14], ["Worthing", 50.81, -0.37], ["Selsey", 50.73, -0.79], ["Portsmouth", 50.8, -1.09], ["Southampton", 50.9, -1.4], ["Lymington", 50.75, -1.55], ["Bournemouth", 50.72, -1.88], ["Swanage", 50.61, -1.96], ["Weymouth", 50.61, -2.45], ["Lyme Regis", 50.72, -2.94], ["Exmouth", 50.62, -3.41], ["Torquay", 50.46, -3.53], ["Start Point", 50.22, -3.64], ["Plymouth", 50.37, -4.14], ["Fowey", 50.33, -4.64], ["Falmouth", 50.15, -5.07], ["The Lizard", 49.96, -5.2], ["Penzance", 50.12, -5.54], ["Land’s End", 50.07, -5.71], ["St Ives", 50.21, -5.48], ["Newquay", 50.41, -5.08], ["Padstow", 50.54, -4.94], ["Bude", 50.83, -4.55], ["Hartland", 51.02, -4.53], ["Bideford", 51.02, -4.21], ["Ilfracombe", 51.21, -4.12], ["Minehead", 51.21, -3.47], ["Weston-super-Mare", 51.35, -2.98], ["Portishead", 51.48, -2.77], ["Aust", 51.6, -2.63], ["Chepstow", 51.64, -2.67], ["Newport", 51.58, -2.99], ["Cardiff", 51.46, -3.17], ["Barry", 51.39, -3.27], ["Porthcawl", 51.48, -3.7], ["Swansea", 51.62, -3.94], ["Gower", 51.57, -4.29], ["Llanelli", 51.68, -4.16], ["Carmarthen", 51.86, -4.31], ["Tenby", 51.67, -4.7], ["Milford Haven", 51.71, -5.03], ["St Davids", 51.88, -5.27], ["Fishguard", 52.0, -4.98], ["Cardigan", 52.08, -4.66], ["Aberystwyth", 52.41, -4.08], ["Aberdyfi", 52.54, -4.05], ["Barmouth", 52.72, -4.05], ["Porthmadog", 52.93, -4.13], ["Pwllheli", 52.89, -4.42], ["Aberdaron", 52.8, -4.71], ["Caernarfon", 53.14, -4.27], ["Holyhead", 53.31, -4.63], ["Amlwch", 53.41, -4.34], ["Beaumaris", 53.26, -4.09], ["Bangor", 53.23, -4.13], ["Conwy", 53.28, -3.83], ["Rhyl", 53.32, -3.49], ["Flint", 53.25, -3.13], ["Chester", 53.19, -2.89], ["Birkenhead", 53.39, -3.01], ["Southport", 53.65, -3.01], ["Lytham", 53.74, -2.96], ["Blackpool", 53.82, -3.05], ["Fleetwood", 53.92, -3.01], ["Morecambe", 54.07, -2.86], ["Arnside", 54.2, -2.83], ["Barrow", 54.11, -3.23], ["Millom", 54.21, -3.27], ["Ravenglass", 54.35, -3.41], ["Whitehaven", 54.55, -3.59], ["Maryport", 54.71, -3.5], ["Silloth", 54.87, -3.39], ["Gretna", 54.99, -3.07]];
+  const STORE = 'coastPathReview.v1';
   const $ = s => document.querySelector(s);
   const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const map = L.map('map', { preferCanvas: true, zoomControl: true }).setView([53.0, -2.5], 6);
-  // Stadia Maps, as the logbook uses: authorised for this site, so no key is needed
+  const map = L.map('map', { preferCanvas: true }).setView([53.0, -2.5], 6);
+  window.__review = map;
   L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
     maxZoom: 20,
     attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
-  const renderer = L.canvas({ tolerance: 6 });
+  const renderer = L.canvas({ tolerance: 7 });
 
+  // ---- Decisions, kept in this browser
+  let D = { version: 1, removed: [], kept: [], drawn: [], reviewed: [] };
+  try { const s = JSON.parse(localStorage.getItem(STORE)); if (s && s.version === 1) D = Object.assign(D, s); } catch (e) { /* fresh */ }
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(D)); } catch (e) { /* full or blocked */ } };
+
+  // ---- The built map
   let fc;
   try {
     const res = await fetch('coast-path-full.geojson', { cache: 'no-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     fc = await res.json();
-  } catch (e) {
-    $('#built').textContent = `Couldn’t load coast-path-full.geojson (${e.message}). Has the build committed it yet?`;
-    return;
-  }
-  const props = fc.properties || {}, review = props.review || {};
-  $('#built').textContent = props.created ? `Built ${new Date(props.created).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Built (date unknown)';
+  } catch (e) { $('#built').textContent = `Couldn’t load coast-path-full.geojson (${e.message}).`; return; }
+  const props = fc.properties || {};
+  $('#built').textContent = props.created ? `Built ${new Date(props.created).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}` : '';
 
-  // Length of a line in miles
   const R = 6371008.8;
-  const miles = coords => {
-    let m = 0;
-    for (let i = 1; i < coords.length; i++) {
-      const [lo1, la1] = coords[i - 1], [lo2, la2] = coords[i];
-      const p1 = la1 * Math.PI / 180, p2 = la2 * Math.PI / 180, dp = p2 - p1, dl = (lo2 - lo1) * Math.PI / 180;
-      const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
-      m += 2 * R * Math.asin(Math.sqrt(a));
+  const miles = c => { let m = 0; for (let i = 1; i < c.length; i++) { const [a, b] = c[i - 1], [d, e] = c[i];
+      const p1 = a * Math.PI / 180, p2 = d * Math.PI / 180, x = Math.sin((p2 - p1) / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin((e - b) * Math.PI / 360) ** 2;
+      m += 2 * R * Math.asin(Math.sqrt(x)); } return m / 1609.344; };
+  // Which section a point is in: the stretch between two neighbouring towns it lies nearest
+  const sectionOf = (lat, lon) => {
+    const kx = Math.cos(lat * Math.PI / 180); let best = 1e18, bi = 0;
+    for (let i = 1; i < COAST_ORDER.length; i++) {
+      const [, a0, a1] = COAST_ORDER[i - 1], [, b0, b1] = COAST_ORDER[i];
+      const ax = (a1 - lon) * kx, ay = a0 - lat, dx = (b1 - a1) * kx, dy = b0 - a0, l2 = dx * dx + dy * dy;
+      const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0, px = ax + t * dx, py = ay + t * dy;
+      if (px * px + py * py < best) { best = px * px + py * py; bi = i - 1; }
     }
-    return m / 1609.344;
+    return bi;
   };
+  const keyOf = (via, c) => `${via}|${c[0][0].toFixed(4)},${c[0][1].toFixed(4)}|${c[c.length - 1][0].toFixed(4)},${c[c.length - 1][1].toFixed(4)}`;
+  const kindOf = p => p.source === 'ferry' ? `${p.via}` : p.source === 'guess' ? `Guess: ${p.via}` : `${p.via || 'Other mapped path'}`;
 
-  // Group lines by where they came from
-  const groups = new Map();
-  const groupOf = p => p.source === 'official' ? `Official: ${p.via || 'Natural England'}`
-    : p.source === 'ferry' ? 'Ferries'
-    : p.source === 'guess' ? `Guess: ${p.via || 'guessed'}` : (p.via || 'Other mapped path');
-  let totE = 0, totW = 0;
+  // Official lines: one layer; extras: one layer each, so each can be styled by its status
+  const official = [], extras = [], builtDrawn = [];
   (fc.features || []).forEach(f => {
-    const c = f.geometry && f.geometry.coordinates;
-    if (!Array.isArray(c) || c.length < 2) return;
-    const p = f.properties || {}, key = groupOf(p), mi = miles(c);
-    if (!groups.has(key)) groups.set(key, { key, source: p.source, feats: [], mi: 0 });
-    const g = groups.get(key);
-    g.feats.push(f); g.mi += mi;
-    if (p.source === 'ferry') return;                 // ferries aren't walking miles
-    if (p.country === 'W') totW += mi; else totE += mi;
+    const g = f.geometry && f.geometry.coordinates;
+    if (!Array.isArray(g) || g.length < 2) return;
+    const c = g.map(([lo, la]) => [la, lo]), p = f.properties || {};
+    if (p.source === 'official') { official.push(c); return; }
+    if (p.via === 'drawn by you') { builtDrawn.push(c); return; }      // already yours: not an extra to decide on
+    const mid = c[c.length >> 1];
+    extras.push({ c, p, key: keyOf(p.via || p.source, c), sec: sectionOf(mid[0], mid[1]), mi: miles(c), kind: kindOf(p) });
   });
-  $('#totals').innerHTML = `England <b>${Math.round(totE).toLocaleString()}</b> of about 2,689 mi · Wales <b>${Math.round(totW).toLocaleString()}</b> of about 870 mi`;
+  // Lines you drew that a build has already added, shown faintly beneath the ones in this browser
+  if (builtDrawn.length) L.polyline(builtDrawn, { renderer, color: getComputedStyle(document.documentElement).getPropertyValue('--drawn'), weight: 3, opacity: .5, interactive: false }).addTo(map);
+  const officialLayer = L.polyline(official, { renderer, color: getComputedStyle(document.documentElement).getPropertyValue('--official'), weight: 2, opacity: .65, interactive: false }).addTo(map);
 
-  // Colours: official in greens, each trail its own colour, guesses dashed by method
-  const palette = ['#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#9a6324', '#469990', '#800000',
-    '#808000', '#000075', '#bfef45', '#fabed4', '#dcbeff', '#aaffc3', '#ffd8b1', '#a9a9a9', '#ffe119', '#e6beff'];
-  const guessColour = { 'guessed along footpaths near the shore': '#ff7f00', 'roughly along the shoreline': '#984ea3',
-    'joined straight': '#e41a1c', 'a short crossing, joined straight': '#e41a1c' };
-  let pi = 0;
-  const ordered = [...groups.values()].sort((a, b) =>
-    ({ official: 0, other: 1, guess: 2 }[a.source] ?? 1) - ({ official: 0, other: 1, guess: 2 }[b.source] ?? 1) || b.mi - a.mi);
-  ordered.forEach(g => {
-    g.colour = g.source === 'ferry' ? '#1f78b4'
-      : g.source === 'official' ? (g.key.includes('Wales') ? '#1b7837' : '#2f6b3a')
-      : g.source === 'guess' ? (guessColour[g.key.replace('Guess: ', '')] || '#ff7f00')
-      : palette[pi++ % palette.length];
-    g.dash = g.source === 'guess' ? '6 5' : g.source === 'ferry' ? '2 6' : null;
-    g.layer = L.geoJSON({ type: 'FeatureCollection', features: g.feats }, {
-      renderer,
-      style: { color: g.colour, weight: g.source === 'official' ? 2 : 3.5, opacity: g.source === 'official' ? .7 : .95, dashArray: g.dash },
-      onEachFeature: (f, layer) => layer.on('click', ev => {
-        const p = f.properties || {}, ll = ev.latlng, ref = `${p.via || p.source} at ${ll.lat.toFixed(3)}, ${ll.lng.toFixed(3)}`;
-        L.popup().setLatLng(ll).setContent(`<div class="pop"><b>${esc(p.via || p.source)}</b>
-          ${p.source === 'official' ? 'Official route' : p.source === 'guess' ? 'Guessed' : p.source === 'ferry' ? `Ferry across ${esc(p.water || 'the water')}, runs ${esc(p.note || '?')}` : 'Other mapped path'}${p.stretch ? `, ${esc(p.stretch)}` : ''}<br>
-          This piece: ${miles(f.geometry.coordinates).toFixed(1)} mi<br>Reference: <code>${esc(ref)}</code></div>`).openOn(map);
-      })
-    }).addTo(map);
-  });
-  // Legend with tick boxes
-  $('#legend').innerHTML = ordered.map((g, i) => `<li><label><input type="checkbox" data-g="${i}" checked>
-    <span class="sw${g.dash ? ' dash' : ''}" style="border-top-color:${g.colour}"></span>${esc(g.key)}</label>
-    <span class="mi">${g.mi < 10 ? g.mi.toFixed(1) : Math.round(g.mi).toLocaleString()} mi</span></li>`).join('');
-  $('#legend').addEventListener('change', ev => {
-    const g = ordered[Number(ev.target.dataset.g)];
-    if (ev.target.checked) g.layer.addTo(map); else map.removeLayer(g.layer);
-  });
-  const setAll = test => document.querySelectorAll('#legend input').forEach((cb, i) => {
-    const on = test(ordered[i]); cb.checked = on;
-    if (on) ordered[i].layer.addTo(map); else map.removeLayer(ordered[i].layer);
-  });
-  $('#onlyUnofficial').addEventListener('click', () => setAll(g => g.source !== 'official'));
-  $('#showAll').addEventListener('click', () => setAll(() => true));
-
-  // Places where the path stops
-  const loose = review.loose || [];
-  const dots = L.layerGroup(loose.map(([la, lo]) => L.circleMarker([la, lo], { renderer, radius: 5, color: '#c0392b', weight: 2, fillColor: '#fff', fillOpacity: 1 })
-    .bindPopup(`<div class="pop"><b>The path stops here</b>Reference: <code>stop at ${la.toFixed(3)}, ${lo.toFixed(3)}</code></div>`))).addTo(map);
-  $('#loose').innerHTML = loose.length
-    ? loose.map(([la, lo], i) => `<li data-l="${i}">${la.toFixed(3)}, ${lo.toFixed(3)}</li>`).join('')
-    : '<li>None recorded in this build.</li>';
-  $('#loose').addEventListener('click', ev => {
-    const li = ev.target.closest('[data-l]');
-    if (li) map.setView(loose[Number(li.dataset.l)], 14);
+  const statusOf = x => D.removed.some(r => r.key === x.key) ? 'removed' : D.kept.some(r => r.key === x.key) ? 'kept' : 'undecided';
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const styleFor = st => st === 'removed' ? { color: css('--removed'), weight: 3, opacity: .7, dashArray: '4 6' }
+    : st === 'kept' ? { color: css('--kept'), weight: 4, opacity: .95, dashArray: null }
+    : { color: css('--undecided'), weight: 4.5, opacity: .95, dashArray: null };
+  extras.forEach((x, i) => {
+    x.layer = L.polyline(x.c, { renderer, ...styleFor(statusOf(x)) }).addTo(map);
+    x.layer.on('click', () => { highlight(i); if (x.sec !== cur) { cur = x.sec; showSection(false); highlight(i); } });
   });
 
-  // Guessed gaps, largest first
-  const gaps = (review.gaps || []).filter(g => g.mi >= 0.1).sort((a, b) => b.mi - a.mi);
-  $('#gaps').innerHTML = gaps.length
-    ? gaps.map((g, i) => `<li data-g="${i}">${g.mi.toFixed(1)} mi, ${esc(g.how.replace(', joined straight', ''))} <span class="fine">(${g.a[0].toFixed(2)}, ${g.a[1].toFixed(2)})</span></li>`).join('')
-    : '<li>None recorded in this build.</li>';
-  $('#gaps').addEventListener('click', ev => {
-    const li = ev.target.closest('[data-g]');
-    if (li) { const g = gaps[Number(li.dataset.g)]; map.fitBounds([g.a, g.b], { padding: [60, 60], maxZoom: 15 }); }
+  // Sections: the stretch between each pair of neighbouring towns
+  const sections = COAST_ORDER.slice(1).map((t, i) => ({ i, name: `${COAST_ORDER[i][0]} to ${t[0]}`, items: [] }));
+  extras.forEach((x, i) => sections[x.sec].items.push(i));
+  const withExtras = sections.filter(s => s.items.length);
+  $('#jump').innerHTML = sections.map(s => `<option value="${s.i}">${s.i + 1}. ${esc(s.name)} (${s.items.length})</option>`).join('');
+
+  let cur = (withExtras[0] || sections[0]).i;
+  try { const last = Number(localStorage.getItem(STORE + '.at')); if (sections[last]) cur = last; } catch (e) { /* first visit */ }
+
+  function sectionDone(s) { return s.items.every(i => statusOf(extras[i]) !== 'undecided'); }
+  function renderProgress() {
+    const decided = extras.filter(x => statusOf(x) !== 'undecided').length;
+    const doneSecs = withExtras.filter(sectionDone).length;
+    $('#progressBar').style.width = `${extras.length ? 100 * decided / extras.length : 0}%`;
+    $('#progress').textContent = `${doneSecs} of ${withExtras.length} sections done · ${decided} of ${extras.length} extras decided`;
+    $('#decisionsSummary').textContent = `${D.kept.length} kept, ${D.removed.length} removed, ${D.drawn.length} drawn.`;
+  }
+  function showSection(fit = true) {
+    const s = sections[cur];
+    try { localStorage.setItem(STORE + '.at', String(cur)); } catch (e) { /* ok */ }
+    $('#jump').value = String(cur);
+    $('#secTitle').textContent = `${cur + 1}. ${s.name}`;
+    const mi = s.items.reduce((m, i) => m + extras[i].mi, 0);
+    $('#secMeta').textContent = s.items.length ? `${s.items.length} extras, ${mi.toFixed(1)} mi` : 'No extras here: all official route.';
+    $('#extras').innerHTML = s.items.map(i => {
+      const x = extras[i], st = statusOf(x);
+      return `<li class="status-${st}" data-i="${i}"><div class="what"><span class="sw"></span><span class="kind">${esc(x.kind)}</span><span class="mi">${x.mi.toFixed(2)} mi</span></div>
+        <div class="acts"><button type="button" data-act="show">Show</button><button type="button" data-act="keep" class="${st === 'kept' ? 'on' : ''}">Keep</button><button type="button" data-act="remove" class="${st === 'removed' ? 'on' : ''}">Remove</button></div></li>`;
+    }).join('');
+    if (fit) {
+      const pts = s.items.flatMap(i => extras[i].c);
+      const [, a0, a1] = COAST_ORDER[cur], [, b0, b1] = COAST_ORDER[cur + 1];
+      map.fitBounds(L.latLngBounds(pts.length ? pts : [[a0, a1], [b0, b1]]).extend([a0, a1]).extend([b0, b1]), { padding: [40, 40], maxZoom: 14 });
+    }
+    $('#prev').disabled = cur === 0;
+    renderProgress();
+  }
+  function highlight(i) {
+    document.querySelectorAll('#extras li').forEach(li => li.classList.toggle('hl', Number(li.dataset.i) === i));
+    const li = document.querySelector(`#extras li[data-i="${i}"]`);
+    if (li) li.scrollIntoView({ block: 'nearest' });
+  }
+  function decide(i, what) {
+    const x = extras[i], rec = { key: x.key, via: x.p.via || x.p.source, source: x.p.source, coords: x.c.map(([a, b]) => [+a.toFixed(5), +b.toFixed(5)]) };
+    D.removed = D.removed.filter(r => r.key !== x.key);
+    D.kept = D.kept.filter(r => r.key !== x.key);
+    if (what === 'remove') D.removed.push(rec);
+    if (what === 'keep') D.kept.push({ key: rec.key, via: rec.via });
+    save();
+    x.layer.setStyle(styleFor(statusOf(x)));
+    showSection(false);
+    highlight(i);
+  }
+  $('#extras').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-act]'); if (!b) return;
+    const i = Number(b.closest('li').dataset.i), x = extras[i], act = b.dataset.act;
+    if (act === 'show') { map.fitBounds(L.latLngBounds(x.c), { padding: [80, 80], maxZoom: 16 }); highlight(i); return; }
+    decide(i, statusOf(x) === (act === 'keep' ? 'kept' : 'removed') ? 'clear' : act);
   });
+  $('#extras').addEventListener('mouseover', ev => {
+    const li = ev.target.closest('li[data-i]'); if (!li) return;
+    const x = extras[Number(li.dataset.i)]; x.layer.setStyle({ weight: 8 }); x.layer.bringToFront();
+  });
+  $('#extras').addEventListener('mouseout', ev => {
+    const li = ev.target.closest('li[data-i]'); if (!li) return;
+    const x = extras[Number(li.dataset.i)]; x.layer.setStyle(styleFor(statusOf(x)));
+  });
+  $('#keepAll').addEventListener('click', () => {
+    sections[cur].items.forEach(i => { if (statusOf(extras[i]) === 'undecided') { D.kept.push({ key: extras[i].key, via: extras[i].p.via || extras[i].p.source }); extras[i].layer.setStyle(styleFor('kept')); } });
+    save(); showSection(false);
+  });
+  $('#prev').addEventListener('click', () => { if (cur > 0) { cur--; showSection(); } });
+  $('#next').addEventListener('click', () => {
+    const later = withExtras.find(s => s.i > cur && !sectionDone(s)) || withExtras.find(s => s.i > cur) || withExtras.find(s => !sectionDone(s));
+    if (later) { cur = later.i; showSection(); }
+  });
+  $('#jump').addEventListener('change', ev => { cur = Number(ev.target.value); showSection(); });
+  let officialShown = true;
+  $('#hideOfficial').addEventListener('click', ev => {
+    officialShown = !officialShown;
+    if (officialShown) officialLayer.addTo(map); else map.removeLayer(officialLayer);
+    ev.target.textContent = officialShown ? 'Hide official route' : 'Show official route';
+  });
+
+  // ---- Drawing a line: click along it; ends snap onto the nearest path within 300 m
+  const allLines = () => [...official, ...extras.filter(x => statusOf(x) !== 'removed').map(x => x.c), ...D.drawn.map(d => d.coords)];
+  function snap(pt) {
+    const [lat, lon] = pt, kx = Math.cos(lat * Math.PI / 180), m = 111320;
+    let best = 300, bp = null;
+    for (const c of allLines()) {
+      for (let k = 1; k < c.length; k++) {
+        const [a0, a1] = c[k - 1], [b0, b1] = c[k];
+        if (Math.min(a0, b0) > lat + .004 || Math.max(a0, b0) < lat - .004 || Math.min(a1, b1) > lon + .006 || Math.max(a1, b1) < lon - .006) continue;
+        const ax = (a1 - lon) * kx * m, ay = (a0 - lat) * m, dx = (b1 - a1) * kx * m, dy = (b0 - a0) * m, l2 = dx * dx + dy * dy;
+        const t = l2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / l2)) : 0, px = ax + t * dx, py = ay + t * dy, d = Math.hypot(px, py);
+        if (d < best) { best = d; bp = [a0 + t * (b0 - a0), a1 + t * (b1 - a1)]; }
+      }
+    }
+    return bp || pt;
+  }
+  let drawing = null, drawnLayers = [];
+  const drawStyle = { color: css('--drawn'), weight: 4, opacity: .95 };
+  function renderDrawn() {
+    drawnLayers.forEach(l => map.removeLayer(l));
+    drawnLayers = D.drawn.map(d => L.polyline(d.coords, { renderer, ...drawStyle }).addTo(map));
+    $('#drawnList').innerHTML = D.drawn.map((d, i) => `<li class="status-drawn" data-d="${i}"><div class="what"><span class="sw"></span>
+      <span class="kind">Drawn line ${i + 1}</span><span class="mi">${miles(d.coords).toFixed(2)} mi</span></div>
+      <div class="acts"><button type="button" data-dact="show">Show</button><button type="button" data-dact="delete">Delete</button></div></li>`).join('');
+    renderProgress();
+  }
+  $('#drawnList').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-dact]'); if (!b) return;
+    const i = Number(b.closest('li').dataset.d);
+    if (b.dataset.dact === 'show') map.fitBounds(L.latLngBounds(D.drawn[i].coords), { padding: [80, 80], maxZoom: 16 });
+    else { D.drawn.splice(i, 1); save(); renderDrawn(); }
+  });
+  function setDrawing(on) {
+    document.body.classList.toggle('drawing-on', on);
+    $('#map').classList.toggle('drawing', on);
+    $('#drawBtn').disabled = on; $('#drawUndo').disabled = !on; $('#drawDone').disabled = !on; $('#drawCancel').disabled = !on;
+  }
+  $('#drawBtn').addEventListener('click', () => { drawing = { pts: [], layer: L.polyline([], { ...drawStyle, dashArray: '6 6' }).addTo(map) }; setDrawing(true); });
+  map.on('click', ev => {
+    if (!drawing) return;
+    drawing.pts.push([ev.latlng.lat, ev.latlng.lng]);
+    drawing.layer.setLatLngs(drawing.pts);
+  });
+  $('#drawUndo').addEventListener('click', () => { if (drawing) { drawing.pts.pop(); drawing.layer.setLatLngs(drawing.pts); } });
+  $('#drawCancel').addEventListener('click', () => { if (drawing) map.removeLayer(drawing.layer); drawing = null; setDrawing(false); });
+  $('#drawDone').addEventListener('click', () => {
+    if (!drawing) return;
+    const pts = drawing.pts;
+    map.removeLayer(drawing.layer);
+    if (pts.length >= 2) {
+      pts[0] = snap(pts[0]); pts[pts.length - 1] = snap(pts[pts.length - 1]);
+      D.drawn.push({ coords: pts.map(([a, b]) => [+a.toFixed(5), +b.toFixed(5)]), section: sections[cur].name });
+      save();
+    }
+    drawing = null; setDrawing(false); renderDrawn();
+  });
+
+  // ---- Saving to a file, and loading one
+  $('#download').addEventListener('click', () => {
+    const out = { version: 1, saved: new Date().toISOString(), note: 'Decisions from review.html: removed extras, kept extras, and lines drawn by hand.', ...D };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' }));
+    a.download = 'decisions.json'; document.body.append(a); a.click(); a.remove();
+  });
+  $('#loadFile').addEventListener('click', () => $('#fileIn').click());
+  $('#fileIn').addEventListener('change', async ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (d.version !== 1) throw new Error('not a decisions file');
+      D = { version: 1, removed: d.removed || [], kept: d.kept || [], drawn: d.drawn || [], reviewed: d.reviewed || [] };
+      save(); extras.forEach(x => x.layer.setStyle(styleFor(statusOf(x)))); renderDrawn(); showSection(false);
+    } catch (e) { alert(`Couldn’t read that file: ${e.message}`); }
+  });
+
+  renderDrawn();
+  showSection();
 })();
 </script>
 </body>
