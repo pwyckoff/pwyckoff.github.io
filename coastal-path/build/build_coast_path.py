@@ -40,8 +40,8 @@ from datetime import datetime, timezone
 
 import requests
 from pyproj import Transformer
-from shapely.geometry import LineString, MultiLineString, Point
-from shapely.ops import transform, unary_union
+from shapely.geometry import LineString, Point
+from shapely.ops import unary_union
 from shapely.strtree import STRtree
 
 # --------------------------------------------------------------------------
@@ -192,13 +192,13 @@ class Fetcher:
     def __init__(self, cache_dir, ttl_days=25, refresh=False, mock_dir=None, budget_min=None):
         self.cache_dir, self.ttl, self.refresh, self.mock = cache_dir, ttl_days * 86400, refresh, mock_dir
         self.last = 0
+        os.makedirs(cache_dir, exist_ok=True)
         # After this, no new requests: the build finishes with what it has, writes its
         # results, and lists what's left for the next run (cached data still loads)
         self.deadline = time.time() + budget_min * 60 if budget_min else None
 
     def out_of_time(self):
         return self.deadline is not None and time.time() > self.deadline
-        os.makedirs(cache_dir, exist_ok=True)
 
     def _cached(self, key):
         path = os.path.join(self.cache_dir, hashlib.sha1(key.encode()).hexdigest() + '.json')
@@ -246,8 +246,7 @@ class Fetcher:
             clip = lambda g: g if (s0 <= g['lat'] <= n0 and w0 <= g['lon'] <= e0) else None
             return {'elements': [dict(e, geometry=[clip(g) for g in e['geometry']]) for e in w.get('coastline', [])]}
         if key.startswith('overpass:tile-paths:'):
-            if not key.endswith(':0'):
-                return {'elements': []}
+            # Every request (including the halves of a split one) gets the sample's footpaths
             ids = [{'type': 'way', 'id': i} for i in w.get('on_walking_routes', [])]
             return {'elements': w.get('ways', []) + ids}
         if key.startswith('overpass:area-coast'):
@@ -870,6 +869,8 @@ def fetch_area(fetch, gaps, attempts=1):
         ce = tile_coast(fetch, i, j, attempts)
         coast_el += ce
         if ce:
+            # If these can't be fetched, the whole area waits for the next run, rather than
+            # getting a line that ignores the footpaths
             path_el += tile_paths(fetch, i, j, ce, attempts)
     shore = Network()
     coast_lines = coast_lines_of(coast_el)
