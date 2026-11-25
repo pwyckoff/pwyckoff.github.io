@@ -1128,7 +1128,59 @@ def add_ferries(fetch, path, report):
         report['ferries'].append((name, water, note, 'mapped in OpenStreetMap' if mapped else 'drawn straight'))
 
 
-def build(fetch):
+def load_decisions(where):
+    """decisions.json from review.html: extras removed, and lines drawn by hand."""
+    if not where or not os.path.exists(where):
+        return None
+    with open(where) as f:
+        d = json.load(f)
+    return d if d.get('version') == 1 else None
+
+
+def add_drawn(path, decisions, report):
+    """Lines you drew go in as mapped path, before the joining and guessing work round them."""
+    lines = [bng(d['coords']) for d in decisions.get('drawn', []) if len(d.get('coords', [])) >= 2]
+    if not lines:
+        return
+    walk = [p['geom'] for p in path.pieces if p['source'] != 'ferry']
+    tree = STRtree(walk) if walk else None
+    for line in lines:
+        country = 'E'
+        if tree is not None:
+            k = tree.nearest(Point(line.coords[0]))
+            country = [p for p in path.pieces if p['source'] != 'ferry'][int(k)]['country']
+        path.add_all([line], 'other', 'drawn by you', country=country, clip=False)
+    report['drawn'] = (len(lines), sum(l.length for l in lines) / 1609.344)
+
+
+def apply_removals(path, decisions, report):
+    """Extras you removed are taken out, after the guessing, so nothing puts them back. A piece
+    goes if most of it lies along a line you removed; the official route and your own lines stay."""
+    removed = [bng(r['coords']) for r in decisions.get('removed', []) if len(r.get('coords', [])) >= 2]
+    if not removed:
+        return
+    zones = [r.buffer(25, resolution=2) for r in removed]
+    ztree = STRtree(zones)
+    used = set()
+    keep, gone_mi = [], 0.0
+    for p in path.pieces:
+        g = p['geom']
+        if p['source'] == 'official' or p['via'] == 'drawn by you' or g.length < 1:
+            keep.append(p)
+            continue
+        hits = [int(k) for k in ztree.query(g)]
+        inside = g.intersection(unary_union([zones[k] for k in hits])).length if hits else 0
+        if inside >= 0.7 * g.length:
+            gone_mi += g.length / 1609.344
+            used.update(hits)
+        else:
+            keep.append(p)
+    report['removed'] = (len(path.pieces) - len(keep), gone_mi, len(removed) - len(used))
+    path.pieces = keep
+    path.buffers = [p['geom'].buffer(BUFFER_M, resolution=2) for p in keep]
+
+
+def build(fetch, decisions=None):
     report = {'sources': [], 'gaps': [], 'loose': []}
     path = Path()
 
@@ -1202,12 +1254,18 @@ def build(fetch):
 
     log('Ferries...')
     add_ferries(fetch, path, report)
+    if decisions:
+        log('Your drawn lines...')
+        add_drawn(path, decisions, report)
     log('Joining pieces that nearly meet...')
     stitch(path, 300, report, fetch)
     log('Guessing the remaining gaps...')
     fill_gaps(fetch, path, report)
     log('Joining anything still just short...')
     stitch(path, 300, report, fetch)
+    if decisions:
+        log('Your removals...')
+        apply_removals(path, decisions, report)
     # How continuous the finished path is, and where it still stops
     geoms, tree, find, parent, loose = components(path)
     sizes = {}
@@ -1265,6 +1323,16 @@ def write_report(path, report, out):
              f'(islands aside). {report.get("stitched", 0)} near-misses were joined.', '',
              '## Sources', '', '| Source | Miles added |', '|---|---:|']
     lines += [f'| {s} | {m:,.1f} |' for s, m in report['sources']]
+    if report.get('drawn') or report.get('removed'):
+        lines += ['', '## Your decisions (from decisions.json)', '']
+        if report.get('drawn'):
+            lines.append(f'- {report["drawn"][0]} lines you drew, {report["drawn"][1]:.1f} miles, added as mapped path.')
+        if report.get('removed'):
+            n, mi, unmatched = report['removed']
+            lines.append(f'- {n} pieces removed ({mi:.1f} miles), as you chose.')
+            if unmatched:
+                lines.append(f'- {unmatched} of your removals no longer match anything, usually because that stretch is now '
+                             f'official or the guess has changed. They can be reviewed again.')
     if report.get('ferries'):
         lines += ['', '## Ferries', '', '| Ferry | Crosses | Runs | Line |', '|---|---|---|---|']
         lines += [f'| {n} | {w} | {t} | {how} |' for n, w, t, how in report['ferries']]
@@ -1297,12 +1365,17 @@ def main():
     ap.add_argument('--cache', default=os.path.join(HERE, '.cache'))
     ap.add_argument('--refresh', action='store_true', help='ignore the cache and fetch everything again')
     ap.add_argument('--mock', help='read sample responses from this folder instead of the network')
+    ap.add_argument('--decisions', default=os.path.join(HERE, 'decisions.json'),
+                    help='decisions from review.html (removed extras, drawn lines); used if the file exists')
     ap.add_argument('--budget', type=float, default=255,
                     help='minutes of fetching before finishing with what it has (default 255, inside GitHub\u2019s 5 hours)')
     args = ap.parse_args()
     fetch = Fetcher(args.cache, refresh=args.refresh, mock_dir=args.mock, budget_min=args.budget)
     t0 = time.time()
-    path, report = build(fetch)
+    decisions = load_decisions(args.decisions)
+    if decisions:
+        log(f'Using your decisions: {len(decisions.get("removed", []))} removals, {len(decisions.get("drawn", []))} drawn lines')
+    path, report = build(fetch, decisions)
     write_geojson(path, args.out, report)
     write_report(path, report, args.report)
     log(f'Done in {time.time() - t0:.0f} s: England {path.miles(country="E"):,.0f} mi, Wales {path.miles(country="W"):,.0f} mi, '
